@@ -1,8 +1,11 @@
 {
-  "name": "figma-make-app",
+  "name": "napoyavane-htr-yambol",
   "private": true,
   "version": "1.0.0",
+  "description": "Система за управление на договори, актове, заявки и плащания за напояване — ХТР Ямбол.",
+  "author": "инж.Станислава Димитрова",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
@@ -10,15 +13,46 @@
     "preview": "vite preview",
     "format": "oxfmt",
     "electron": "electron electron/main.cjs",
-    "app": "npm run build:electron && npm run electron"
+    "app": "npm run build:electron && npm run electron",
+    "dist": "npm run build:electron && electron-builder --win --config.directories.output=C:\\Napsis-Release"
+  },
+  "build": {
+    "appId": "bg.napsis.napoyavane",
+    "productName": "Напояване ХТР Ямбол",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".env",
+        "to": ".env"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build-icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
   },
   "dependencies": {
     "@types/jspdf": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "docxtemplater": "^3.69.2",
     "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "pg": "^8.22.0",
     "pizzip": "^3.2.0",
     "react": "^19.0.0",
@@ -35,6 +69,7 @@
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "oxfmt": "^0.2.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.9.3",

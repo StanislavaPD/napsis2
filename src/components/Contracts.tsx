@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import type { Contract } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, SaveIcon } from './ui'
-import { parseSpreadsheetFile, exportRowsToSpreadsheet, cellToDateStr, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToDateStr, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
 
@@ -204,7 +204,10 @@ export default function Contracts() {
         'Стойност': c.value, 'Месец': c.month,
       }
     })
-    exportRowsToSpreadsheet(headers, rows, 'Договори', `Договори_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    exportStyledRowsToSpreadsheet(headers, rows, 'Договори', `Договори_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+      headerColor: '10B981', totalColor: 'D1FAE5',
+      numericColumns: ['Площ дка', 'Бр. поливки', 'Поливодекари', 'Вода куб.м.', 'Стойност'],
+    })
   }
 
   const htu = htus.find(h => h.id === form.htuId)

@@ -1,8 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store'
 import { PageHeader, StatCard, Card, Select, Btn, num, ExportIcon } from './ui'
-import * as XLSX from 'xlsx'
+import { exportStyledWorkbook } from '../lib/spreadsheet'
+import { downloadBlob } from '../lib/docx-fill'
 import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { ARIAL_FONT_BASE64, ARIAL_BOLD_FONT_BASE64 } from '../lib/arial-font'
 
 const MONTHS = [
   'Януари',
@@ -612,170 +615,75 @@ filteredActs
 // EXPORT EXCEL
 // ==========================
 
-function exportExcel(){
+const ANALYSIS_HEADERS = ['Наименование', 'Договори бр.', 'Вода договори м³', 'Стойност договори €', 'Актове бр.', 'Актувана вода м³', 'Актувана площ дка', 'Стойност актове €']
+const ANALYSIS_NUMERIC_COLS = ANALYSIS_HEADERS.slice(1)
 
-
-const wb =
-XLSX.utils.book_new()
-
-
-
-const contractRows =
-filteredContracts.map(c=>{
-
-const cont =
-contractors.find(
-x=>x.id===c.contractorId
-)
-
-const h =
-htus.find(
-x=>x.id===c.htuId
-)
-
-const crop =
-crops.find(
-x=>x.id===c.cropId
-)
-
-
-return {
-
-'Дата':c.date,
-
-'№ Договор':
-c.number,
-
-'Контрагент':
-cont?.name ?? '',
-
-'ХТУ':
-h?.htuName ?? '',
-
-'Култура':
-crop?.name ?? '',
-
-'Площ дка':
-c.area,
-
-'Вода м3':
-c.waterCubic,
-
-'Стойност €':
-c.value,
-
-'Месец':
-c.month
-
+function analysisRows(data: { name: string; contractCount: number; contractWater: number; contractValue: number; actCount: number; actWater: number; actArea: number; actValue: number }[]) {
+  return data.map(x => ({
+    'Наименование': x.name, 'Договори бр.': x.contractCount, 'Вода договори м³': x.contractWater,
+    'Стойност договори €': x.contractValue, 'Актове бр.': x.actCount, 'Актувана вода м³': x.actWater,
+    'Актувана площ дка': x.actArea, 'Стойност актове €': x.actValue,
+  }))
 }
 
-})
-
-
-
-XLSX.utils.book_append_sheet(
-wb,
-XLSX.utils.json_to_sheet(contractRows),
-'Договори'
-)
-
-
-
-
-const actRows =
-filteredActs.map(a=>{
-
-
-const cont =
-contractors.find(
-x=>x.id===a.contractorId
-)
-
-const h =
-htus.find(
-x=>x.id===a.htuId
-)
-
-const crop =
-crops.find(
-x=>x.id===a.cropId
-)
-
-
-
-return {
-
-'Дата':
-a.date,
-
-'Номер':
-a.number,
-
-'Контрагент':
-cont?.name ?? '',
-
-'ХТУ':
-h?.htuName ?? '',
-
-'Култура':
-crop?.name ?? '',
-
-'Площ дка':
-a.area,
-
-'Вода м3':
-a.waterCubic,
-
-'Стойност €':
-a.value,
-
-'Месец':
-a.month
-
+function buildContractRows() {
+  return filteredContracts.map(c => {
+    const cont = contractors.find(x => x.id === c.contractorId)
+    const h = htus.find(x => x.id === c.htuId)
+    const crop = crops.find(x => x.id === c.cropId)
+    return {
+      'Дата': c.date, '№ Договор': c.number, 'Контрагент': cont?.name ?? '', 'ХТУ': h?.htuName ?? '',
+      'Култура': crop?.name ?? '', 'Площ дка': c.area, 'Вода м3': c.waterCubic, 'Стойност €': c.value, 'Месец': c.month,
+    }
+  })
 }
 
-})
+function buildActRows() {
+  return filteredActs.map(a => {
+    const cont = contractors.find(x => x.id === a.contractorId)
+    const h = htus.find(x => x.id === a.htuId)
+    const crop = crops.find(x => x.id === a.cropId)
+    return {
+      'Дата': a.date, 'Номер': a.number, 'Контрагент': cont?.name ?? '', 'ХТУ': h?.htuName ?? '',
+      'Култура': crop?.name ?? '', 'Площ дка': a.area, 'Вода м3': a.waterCubic, 'Стойност €': a.value, 'Месец': a.month,
+    }
+  })
+}
 
+async function exportExcel() {
+  const contractRows = buildContractRows()
+  const actRows = buildActRows()
 
-
-XLSX.utils.book_append_sheet(
-wb,
-XLSX.utils.json_to_sheet(actRows),
-'Актове'
-)
-
-
-
-// Анализи
-
-XLSX.utils.book_append_sheet(
-wb,
-XLSX.utils.json_to_sheet(analysisByMonth),
-'Анализ месеци'
-)
-
-
-XLSX.utils.book_append_sheet(
-wb,
-XLSX.utils.json_to_sheet(analysisByCrop),
-'Анализ култури'
-)
-
-
-XLSX.utils.book_append_sheet(
-wb,
-XLSX.utils.json_to_sheet(analysisByHTU),
-'Анализ ХТУ'
-)
-
-
-
-XLSX.writeFile(
-wb,
-`Напояване_ХТР_Ямбол_Справка_${new Date().toISOString().slice(0,10)}.xlsx`
-)
-
-
+  await exportStyledWorkbook([
+    {
+      sheetName: 'Договори', headers: ['Дата', '№ Договор', 'Контрагент', 'ХТУ', 'Култура', 'Площ дка', 'Вода м3', 'Стойност €', 'Месец'], rows: contractRows,
+      headerColor: '10B981', totalColor: 'D1FAE5', numericColumns: ['Площ дка', 'Вода м3', 'Стойност €'],
+    },
+    {
+      sheetName: 'Актове', headers: ['Дата', 'Номер', 'Контрагент', 'ХТУ', 'Култура', 'Площ дка', 'Вода м3', 'Стойност €', 'Месец'], rows: actRows,
+      headerColor: '3B82F6', totalColor: 'DBEAFE', numericColumns: ['Площ дка', 'Вода м3', 'Стойност €'],
+    },
+    {
+      sheetName: 'Анализ месеци', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByMonth),
+      headerColor: '14B8A6', totalColor: 'CCFBF1', numericColumns: ANALYSIS_NUMERIC_COLS,
+    },
+    {
+      sheetName: 'Анализ култури', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByCrop),
+      headerColor: '3B82F6', totalColor: 'DBEAFE', numericColumns: ANALYSIS_NUMERIC_COLS,
+    },
+    {
+      sheetName: 'Анализ култури по месеци', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByCropMonth),
+      headerColor: 'F59E0B', totalColor: 'FEF3C7', numericColumns: ANALYSIS_NUMERIC_COLS,
+    },
+    {
+      sheetName: 'Анализ ХТУ и култури', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByHtuCropMonth),
+      headerColor: '10B981', totalColor: 'D1FAE5', numericColumns: ANALYSIS_NUMERIC_COLS,
+    },
+    {
+      sheetName: 'Анализ ХТУ', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByHTU),
+      headerColor: '14B8A6', totalColor: 'CCFBF1', numericColumns: ANALYSIS_NUMERIC_COLS,
+    },
+  ], `Напояване_ХТР_Ямбол_Справка_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 
@@ -786,76 +694,78 @@ wb,
 // EXPORT PDF
 // ==========================
 
-function exportPDF(){
+function exportPDF() {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  // jsPDF's built-in fonts (Helvetica etc.) only cover Latin/WinAnsi text — Cyrillic renders as
+  // garbage without an embedded font that actually has Cyrillic glyphs.
+  doc.addFileToVFS('Arial.ttf', ARIAL_FONT_BASE64)
+  doc.addFont('Arial.ttf', 'Arial', 'normal')
+  doc.addFileToVFS('Arial-Bold.ttf', ARIAL_BOLD_FONT_BASE64)
+  doc.addFont('Arial-Bold.ttf', 'Arial', 'bold')
+  doc.setFont('Arial')
 
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 15
 
-const doc =
-new jsPDF({
-orientation:'landscape',
-unit:'mm',
-format:'a4'
-})
+  doc.setFontSize(16)
+  doc.text('Напояване ХТР Ямбол - Справка', 14, y)
+  y += 6
+  doc.setFontSize(9)
+  doc.setTextColor(120)
+  doc.text(new Intl.DateTimeFormat('bg-BG', { dateStyle: 'long' }).format(new Date()), 14, y)
+  doc.setTextColor(0)
+  y += 8
 
+  function addTable(title: string, head: string[], body: (string | number)[][], color: [number, number, number]) {
+    if (y > pageHeight - 40) { doc.addPage(); y = 15 }
+    doc.setFontSize(11)
+    doc.setFont('Arial', 'bold')
+    doc.text(title, 14, y)
+    doc.setFont('Arial', 'normal')
+    autoTable(doc, {
+      startY: y + 3,
+      head: [head],
+      body,
+      margin: { left: 14, right: 14 },
+      styles: { font: 'Arial', fontSize: 8, cellPadding: 2 },
+      headStyles: { font: 'Arial', fillColor: color, textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      tableWidth: pageWidth - 28,
+    })
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
+  }
 
-doc.setFontSize(16)
+  const EMERALD: [number, number, number] = [16, 185, 129]
+  const BLUE: [number, number, number] = [59, 130, 246]
+  const TEAL: [number, number, number] = [20, 184, 166]
+  const AMBER: [number, number, number] = [245, 158, 11]
 
-doc.text(
-'Напояване ХТР Ямбол - Справка',
-14,
-15
-)
+  addTable('Обобщение', ['Показател', 'Стойност'], [
+    ['Договори', String(filteredContracts.length)],
+    ['Актове', String(filteredActs.length)],
+    ['Вода договори', `${num(totalWaterContracts, 0)} м³`],
+    ['Вода актове', `${num(totalWaterActs, 0)} м³`],
+    ['Стойност договори', `${num(totalValueContracts, 2)} €`],
+    ['Стойност актове', `${num(totalValueActs, 2)} €`],
+  ], TEAL)
 
+  const contractHead = ['Дата', '№ Договор', 'Контрагент', 'ХТУ', 'Култура', 'Площ дка', 'Вода м3', 'Стойност €', 'Месец']
+  addTable('Договори', contractHead, buildContractRows().map(r => contractHead.map(h => (r as Record<string, unknown>)[h] as string | number)), EMERALD)
 
-doc.setFontSize(10)
+  const actHead = ['Дата', 'Номер', 'Контрагент', 'ХТУ', 'Култура', 'Площ дка', 'Вода м3', 'Стойност €', 'Месец']
+  addTable('Актове', actHead, buildActRows().map(r => actHead.map(h => (r as Record<string, unknown>)[h] as string | number)), BLUE)
 
+  const toBody = (rows: ReturnType<typeof analysisRows>) => rows.map(r => ANALYSIS_HEADERS.map(h => (r as Record<string, unknown>)[h] as string | number))
+  addTable('Анализ по месеци', ANALYSIS_HEADERS, toBody(analysisRows(analysisByMonth)), TEAL)
+  addTable('Анализ по култури', ANALYSIS_HEADERS, toBody(analysisRows(analysisByCrop)), BLUE)
+  addTable('Анализ по култури по месеци', ANALYSIS_HEADERS, toBody(analysisRows(analysisByCropMonth)), AMBER)
+  addTable('Анализ по ХТУ и култури по месеци', ANALYSIS_HEADERS, toBody(analysisRows(analysisByHtuCropMonth)), EMERALD)
+  addTable('Анализ по ХТУ', ANALYSIS_HEADERS, toBody(analysisRows(analysisByHTU)), TEAL)
 
-doc.text(
-`Договори: ${filteredContracts.length}`,
-14,
-25
-)
-
-
-doc.text(
-`Актове: ${filteredActs.length}`,
-14,
-32
-)
-
-
-doc.text(
-`Вода договори: ${num(totalWaterContracts,0)} м3`,
-14,
-39
-)
-
-
-doc.text(
-`Вода актове: ${num(totalWaterActs,0)} м3`,
-14,
-46
-)
-
-
-doc.text(
-`Стойност договори: ${num(totalValueContracts,2)} €`,
-14,
-53
-)
-
-
-doc.text(
-`Стойност актове: ${num(totalValueActs,2)} €`,
-14,
-60
-)
-
-
-doc.save(
-`Напояване_ХТР_Ямбол_${new Date().toISOString().slice(0,10)}.pdf`
-)
-
-
+  const pdfOutput = doc.output('arraybuffer')
+  const blob = new Blob([pdfOutput], { type: 'application/pdf' })
+  downloadBlob(blob, `Напояване_ХТР_Ямбол_${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
 
@@ -1223,60 +1133,32 @@ color="teal"
 Обобщение
 </h3>
 
-
-<div className="grid grid-cols-2 gap-4">
-
-
-<div>
-Договорирана вода:
-<b>
-{num(totalWaterContracts,0)} м³
-</b>
+<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+  <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+    <p className="text-xs text-teal-50">Договорирана вода</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalWaterContracts, 0)} м³</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+    <p className="text-xs text-blue-50">Актувана вода</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalWaterActs, 0)} м³</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-amber-400 to-amber-500 text-white">
+    <p className="text-xs text-amber-50">Договори</p>
+    <p className="mt-1 text-xl font-semibold">{filteredContracts.length}</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+    <p className="text-xs text-emerald-50">Актове</p>
+    <p className="mt-1 text-xl font-semibold">{filteredActs.length}</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+    <p className="text-xs text-teal-50">Площ договори</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalArea, 2)} дка</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+    <p className="text-xs text-blue-50">Площ актове</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalActArea, 2)} дка</p>
+  </div>
 </div>
-
-
-<div>
-Актувана вода:
-<b>
-{num(totalWaterActs,0)} м³
-</b>
-</div>
-
-
-<div>
-Договори:
-<b>
-{filteredContracts.length}
-</b>
-</div>
-
-
-<div>
-Актове:
-<b>
-{filteredActs.length}
-</b>
-</div>
-
-
-<div>
-Площ договори:
-<b>
-{num(totalArea,2)} дка
-</b>
-</div>
-
-
-<div>
-Площ актове:
-<b>
-{num(totalActArea,2)} дка
-</b>
-</div>
-
-
-</div>
-
 
 </Card>
 

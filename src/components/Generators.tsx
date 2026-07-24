@@ -266,28 +266,6 @@ function calcAct(f: Partial<Act>): Partial<Act> {
 }
 
 // ─── CONTRACT GENERATOR ───────────────────────────────────────────────────────
-const CONTRACT_TAGS: TagInfo[] = [
-  { tag: 'data', label: 'Дата' },
-  { tag: 'nomer', label: '№ договор' },
-  { tag: 'kontragent', label: 'Контрагент' },
-  { tag: 'bulstat', label: 'БУЛСТАТ' },
-  { tag: 'adres', label: 'Адрес' },
-  { tag: 'predstavlyava', label: 'Представлявана от' },
-  { tag: 'htu', label: 'ХТУ' },
-  { tag: 'saorajenie', label: 'Съоражение' },
-  { tag: 'zemlishte', label: 'Землище' },
-  { tag: 'nachin_polivane', label: 'Начин на поливане' },
-  { tag: 'kultura', label: 'Култура' },
-  { tag: 'ploshte', label: 'Площ (дка)' },
-  { tag: 'broi_polivki', label: 'Бр. поливки' },
-  { tag: 'obshto_dka', label: 'Общо дка' },
-  { tag: 'kub_m_dka', label: 'Напоителна норма м³/дка' },
-  { tag: 'voda_kub_m', label: 'Вода куб.м.' },
-  { tag: 'ed_cena', label: 'Ед. цена' },
-  { tag: 'stoinost', label: 'Обща стойност' },
-  { tag: 'mesec', label: 'Месец (автоматично от датата)' },
-]
-
 function ContractGenerator() {
   const { contractors, htus, irrigationMethods, crops, contracts, setContracts } = useStore()
   const [form, setForm] = useState<Partial<Contract>>({
@@ -302,9 +280,6 @@ function ContractGenerator() {
     irrigationNumber: '', month: '',
   })
   const [saved, setSaved] = useState(false)
-  const [templateFile, setTemplateFile] = useState<File | null>(null)
-  const [filling, setFilling] = useState(false)
-  const [fillError, setFillError] = useState('')
 
   const [meteringMethod, setMeteringMethod] = useState<'device' | 'norm' | 'technical'>('norm')
 
@@ -877,44 +852,6 @@ function ContractGenerator() {
     setF({ htuId, village: h?.village ?? '' })
   }
 
-  function buildTagData(): DocxTagData {
-    return {
-      data: form.date ?? '',
-      nomer: form.number ?? '',
-      kontragent: cont?.name ?? '',
-      bulstat: cont?.bulstat ?? '',
-      adres: cont?.address ?? '',
-      predstavlyava: cont?.contact ?? '',
-      htu: htu?.htuName ?? '',
-      saorajenie: htu?.equipment ?? '',
-      zemlishte: form.village ?? '',
-      nachin_polivane: method?.name ?? '',
-      kultura: crop?.name ?? '',
-      ploshte: num(form.area ?? 0, 2),
-      broi_polivki: form.irrigationCount ?? 0,
-      obshto_dka: num(form.totalDka ?? 0, 2),
-      kub_m_dka: num(form.cubicPerDka ?? 0, 0),
-      voda_kub_m: num(form.waterCubic ?? 0, 0),
-      ed_cena: num(form.unitPrice ?? 0, 4),
-      stoinost: num(form.value ?? 0, 2),
-      mesec: monthNameFromDate(form.date),
-    }
-  }
-
-  async function handleFillTemplate() {
-    if (!templateFile) return
-    setFilling(true)
-    setFillError('')
-    try {
-      const blob = await fillDocxTemplate(templateFile, buildTagData())
-      downloadBlob(blob, `Договор_${form.number || 'проект'}.docx`)
-    } catch (err) {
-      setFillError(docxFillErrorMessage(err))
-    } finally {
-      setFilling(false)
-    }
-  }
-
   function saveToRegistry() {
     const c: Contract = {
       id: Date.now().toString(),
@@ -950,17 +887,6 @@ function ContractGenerator() {
             <p className="text-xs text-gray-400">Попълнете полетата за автоматично генериране</p>
           </div>
         </div>
-
-        {/* Template upload + fill */}
-        <TemplateUpload
-          accent={{ border: 'hover:border-teal-300', text: 'text-teal-700' }}
-          templateFile={templateFile}
-          onFileChange={f => { setTemplateFile(f); setFillError('') }}
-          onFill={handleFillTemplate}
-          filling={filling}
-          fillError={fillError}
-          tags={CONTRACT_TAGS}
-        />
 
         <div className="grid grid-cols-2 gap-3">
           <FormRow label="Дата">
@@ -1447,9 +1373,6 @@ function ContractGenerator() {
             </>
           )
         })()}
-        {templateFile && (
-          <p className="text-xs text-center text-teal-600 pb-3">📎 Бланка прикачена — използвайте бутона вляво за попълване и изтегляне</p>
-        )}
       </div>
     </div>
   )

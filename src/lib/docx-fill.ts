@@ -32,7 +32,7 @@ function blobToBase64(blob: Blob): Promise<string> {
  * Saves a Blob under the given filename. In the Electron app this writes the file directly to disk
  * via a native save dialog, so Word opens it normally — a browser-style download would tag it with
  * the "downloaded from the internet" mark and force Word's read-only Protected View. Falls back to
- * a normal browser download outside Electron (e.g. the Figma Make preview).
+ * a normal browser download outside Electron (e.g. a plain browser preview).
  */
 export async function downloadBlob(blob: Blob, filename: string) {
   if (typeof window !== 'undefined' && window.api) {

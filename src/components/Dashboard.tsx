@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { Module } from '../types'
 import { PageHeader, StatCard, Card } from './ui'
 
@@ -14,6 +15,7 @@ function currentMonthLabel() {
 
 export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => void }) {
   const { contracts, acts, contractors, crops } = useStore()
+  const { username } = useAuth()
 
   const stats = useMemo(() => {
     const water = contracts.reduce((sum, c) => sum + (c.waterCubic || 0), 0)
@@ -36,15 +38,15 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
   return (
     <div>
       <PageHeader
-        title="Добър ден, оператор"
+        title={`Добър ден, ${username ?? 'оператор'}`}
         subtitle={`Обобщение на поливния сезон · ${currentMonthLabel()}`}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Активни договори" value={fmtNumber(stats.activeContracts)} color="teal" />
         <StatCard label="Подадена вода" value={`${fmtNumber(stats.water)} м³`} color="blue" />
-        <StatCard label="Актове" value={fmtNumber(stats.pendingActs)} color="amber" />
-        <StatCard label="Стойност за месеца" value={`${fmtNumber(Math.round(stats.monthCost))} €`} color="emerald" />
+        <StatCard label="Актове бр." value={fmtNumber(stats.pendingActs)} color="amber" />
+        <StatCard label="Договорирана стойност за месеца" value={`${fmtNumber(Math.round(stats.monthCost))} €`} color="emerald" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
@@ -113,9 +115,6 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
             </button>
           </div>
 
-          <p className="mt-4 text-xs text-teal-200/70">
-            Бланки: качете готов PDF или Excel шаблон, когато е готов.
-          </p>
         </aside>
       </div>
     </div>

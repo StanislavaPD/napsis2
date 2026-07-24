@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useStore } from '../store'
 import type { IrrigRequest } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, Badge, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, num } from './ui'
-import { parseSpreadsheetFile, exportRowsToSpreadsheet, cellToNum, cellToDateStr, findByField, rowGet } from '../lib/spreadsheet'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToNum, cellToDateStr, findByField, rowGet } from '../lib/spreadsheet'
 
 type ReqForm = Omit<IrrigRequest, 'id'>
 
@@ -166,7 +166,10 @@ export default function Requests() {
         'Статус': statusLabel[statusById.get(r.id) ?? 'active'],
       }
     })
-    exportRowsToSpreadsheet(headers, rows, 'Заявки', `Заявки_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    exportStyledRowsToSpreadsheet(headers, rows, 'Заявки', `Заявки_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+      headerColor: '14B8A6', totalColor: 'CCFBF1',
+      numericColumns: ['Дка'],
+    })
   }
 
   const isOpen = adding || editing !== null

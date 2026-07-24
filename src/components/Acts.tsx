@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import type { Act } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon } from './ui'
-import { parseSpreadsheetFile, exportRowsToSpreadsheet, cellToDateStr, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToDateStr, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
 const DOC_TYPES = ['Акт', 'Фактура', 'Протокол', 'Разписка', 'Друго']
@@ -211,7 +211,10 @@ export default function Acts() {
         'Ед. цена': a.unitPrice, 'Стойност': a.value, 'Месец': a.month,
       }
     })
-    exportRowsToSpreadsheet(headers, rows, 'Актове', `Актове_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    exportStyledRowsToSpreadsheet(headers, rows, 'Актове', `Актове_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+      headerColor: '3B82F6', totalColor: 'DBEAFE',
+      numericColumns: ['Площ', 'Вода куб.м.', 'Стойност'],
+    })
   }
 
   const htu = htus.find(h => h.id === form.htuId)

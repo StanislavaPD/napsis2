@@ -132,7 +132,7 @@ function migratePayments(payments: (Partial<Payment> & { cropId?: string; cropId
   return payments.map(p => {
     const { cropId, cropIds, items, ...rest } = p
     return {
-      id: '', invoiceNumber: '', contractorId: '', amount: 0, paid: false,
+      id: '', invoiceNumber: '', invoiceDate: '', contractorId: '', amount: 0, paid: false,
       ...rest,
       items: items ?? (cropIds ? cropIds.map(id => ({ cropId: id, area: 0 })) : cropId ? [{ cropId, area: 0 }] : []),
     }

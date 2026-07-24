@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import type { Payment } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, Badge } from './ui'
-import { parseSpreadsheetFile, exportRowsToSpreadsheet, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToNum, cellToDateStr, findByField, rowGet } from '../lib/spreadsheet'
 
-const EMPTY: Omit<Payment, 'id'> = { invoiceNumber: '', contractorId: '', items: [], amount: 0, paid: false }
+const EMPTY: Omit<Payment, 'id'> = { invoiceNumber: '', invoiceDate: '', contractorId: '', items: [], amount: 0, paid: false }
 
 export default function Payments() {
   const { payments, setPayments, contractors, crops } = useStore()
@@ -14,18 +14,36 @@ export default function Payments() {
   const [form, setForm] = useState(EMPTY)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<{ added: number; errors: string[] } | null>(null)
+  const [paidFilter, setPaidFilter] = useState<boolean | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const filtered = payments.filter(p => {
     const cont = contractors.find(c => c.id === p.contractorId)
     const q = search.toLowerCase()
     return (
-      p.invoiceNumber.toLowerCase().includes(q) ||
-      (cont?.name.toLowerCase().includes(q) ?? false)
+      (paidFilter === null || p.paid === paidFilter) &&
+      (
+        p.invoiceNumber.toLowerCase().includes(q) ||
+        (cont?.name.toLowerCase().includes(q) ?? false)
+      )
     )
   })
 
   function defaultForm(): Omit<Payment, 'id'> {
-    return { ...EMPTY, contractorId: contractors[0]?.id ?? '' }
+    return { ...EMPTY, contractorId: contractors[0]?.id ?? '', invoiceDate: new Date().toISOString().slice(0, 10) }
+  }
+
+  function toggleSelect(id: string) {
+    const s = new Set(selected)
+    if (s.has(id)) s.delete(id); else s.add(id)
+    setSelected(s)
+  }
+  function toggleAll() {
+    setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map(p => p.id)))
+  }
+  function markSelected(paid: boolean) {
+    setPayments(payments.map(p => selected.has(p.id) ? { ...p, paid } : p))
+    setSelected(new Set())
   }
   function openAdd() { setForm(defaultForm()); setAdding(true) }
   function openEdit(p: Payment) { const { id, ...rest } = p; void id; setForm(rest); setEditing(p) }
@@ -83,6 +101,7 @@ export default function Payments() {
       added.push({
         id: `${Date.now()}-${i}`,
         invoiceNumber,
+        invoiceDate: cellToDateStr(rowGet(row, 'Дата на фактура')),
         contractorId: contractor.id,
         items,
         amount: cellToNum(rowGet(row, 'Сума €', 'Сума')),
@@ -94,17 +113,20 @@ export default function Payments() {
   }
 
   function exportPayments() {
-    const headers = ['№ Фактура', 'Контрагент', 'Култури', 'Дка', 'Сума €', 'Статус']
+    const headers = ['№ Фактура', 'Дата на фактура', 'Контрагент', 'Култури', 'Дка', 'Сума €', 'Статус']
     const rows = filtered.map(p => {
       const cont = contractors.find(c => c.id === p.contractorId)
       const cropNames = p.items.map(i => crops.find(c => c.id === i.cropId)?.name).filter(Boolean).join(', ')
       const totalArea = p.items.reduce((sum, i) => sum + (i.area || 0), 0)
       return {
-        '№ Фактура': p.invoiceNumber, 'Контрагент': cont?.name ?? '', 'Култури': cropNames, 'Дка': totalArea,
+        '№ Фактура': p.invoiceNumber, 'Дата на фактура': p.invoiceDate, 'Контрагент': cont?.name ?? '', 'Култури': cropNames, 'Дка': totalArea,
         'Сума €': p.amount, 'Статус': p.paid ? 'Платена' : 'Неплатена',
       }
     })
-    exportRowsToSpreadsheet(headers, rows, 'Плащания', `Плащания_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    exportStyledRowsToSpreadsheet(headers, rows, 'Плащания', `Плащания_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+      headerColor: 'F59E0B', totalColor: 'FEF3C7',
+      numericColumns: ['Дка', 'Сума €'],
+    })
   }
 
   const totalAmount = filtered.reduce((sum, p) => sum + (p.amount || 0), 0)
@@ -129,41 +151,63 @@ export default function Payments() {
       />
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card className="p-4">
-          <p className="text-xs text-gray-500">Общо фактурирано</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{num(totalAmount, 2)} €</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-gray-500">Платено</p>
-          <p className="mt-1 text-2xl font-semibold text-emerald-600">{num(paidAmount, 2)} €</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-gray-500">Неплатено</p>
-          <p className="mt-1 text-2xl font-semibold text-red-500">{num(unpaidAmount, 2)} €</p>
-        </Card>
+        <button onClick={() => setPaidFilter(null)} className="text-left">
+          <Card className={`p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white transition-shadow ${paidFilter === null ? 'ring-2 ring-teal-300' : ''}`}>
+            <p className="text-xs text-teal-50">Общо фактурирано</p>
+            <p className="mt-1 text-2xl font-semibold">{num(totalAmount, 2)} €</p>
+          </Card>
+        </button>
+        <button onClick={() => setPaidFilter(v => v === true ? null : true)} className="text-left">
+          <Card className={`p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white transition-shadow ${paidFilter === true ? 'ring-2 ring-emerald-300' : ''}`}>
+            <p className="text-xs text-emerald-50">Платено</p>
+            <p className="mt-1 text-2xl font-semibold">{num(paidAmount, 2)} €</p>
+          </Card>
+        </button>
+        <button onClick={() => setPaidFilter(v => v === false ? null : false)} className="text-left">
+          <Card className={`p-4 bg-gradient-to-br from-amber-400 to-amber-500 text-white transition-shadow ${paidFilter === false ? 'ring-2 ring-amber-300' : ''}`}>
+            <p className="text-xs text-amber-50">Неплатено</p>
+            <p className="mt-1 text-2xl font-semibold">{num(unpaidAmount, 2)} €</p>
+          </Card>
+        </button>
       </div>
+
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 px-4 py-2.5 bg-teal-50 border border-teal-100 rounded-xl">
+          <span className="text-sm text-teal-800 font-medium">Избрани: {selected.size}</span>
+          <Btn size="sm" onClick={() => markSelected(true)}>Маркирай като платени</Btn>
+          <Btn size="sm" variant="secondary" onClick={() => markSelected(false)}>Маркирай като неплатени</Btn>
+          <Btn size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Изчисти избора</Btn>
+        </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-br from-amber-400 to-amber-500">
-                {['№ Фактура', 'Контрагент', 'Култури', 'Дка', 'Сума €', 'Статус', 'Действия'].map(h => (
+                <th className="px-4 py-3 w-8">
+                  <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
+                </th>
+                {['№ Фактура', 'Дата на фактура', 'Контрагент', 'Култури', 'Дка', 'Сума €', 'Статус', 'Действия'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState message="Няма намерени фактури" /></td></tr>
+                <tr><td colSpan={9}><EmptyState message="Няма намерени фактури" /></td></tr>
               ) : (
                 filtered.map((p, i) => {
                   const cont = contractors.find(c => c.id === p.contractorId)
                   const cropNames = p.items.map(item => crops.find(c => c.id === item.cropId)?.name).filter(Boolean).join(', ')
                   const totalArea = p.items.reduce((sum, item) => sum + (item.area || 0), 0)
                   return (
-                    <tr key={p.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                    <tr key={p.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'} ${selected.has(p.id) ? 'bg-teal-50' : ''}`}>
+                      <td className="px-4 py-3">
+                        <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
+                      </td>
                       <td className="px-4 py-3 font-medium text-gray-900">{p.invoiceNumber}</td>
+                      <td className="px-4 py-3 text-gray-600">{p.invoiceDate || '—'}</td>
                       <td className="px-4 py-3 text-gray-700">{cont?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{cropNames || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{num(totalArea, 2)}</td>
@@ -194,6 +238,9 @@ export default function Payments() {
           <div className="flex flex-col gap-4">
             <FormRow label="№ Фактура" required>
               <Input value={form.invoiceNumber} onChange={e => setForm({ ...form, invoiceNumber: e.target.value })} placeholder="Ф-001/2026" />
+            </FormRow>
+            <FormRow label="Дата на фактура">
+              <Input type="date" value={form.invoiceDate} onChange={e => setForm({ ...form, invoiceDate: e.target.value })} />
             </FormRow>
             <FormRow label="Контрагент" required>
               <Select value={form.contractorId} onChange={e => setForm({ ...form, contractorId: e.target.value })}>

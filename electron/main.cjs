@@ -4,7 +4,10 @@ const fs = require('node:fs/promises')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { Pool } = require('pg')
-require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true })
+// In a packaged build, extraResources puts .env next to the app (resourcesPath), not inside the
+// asar alongside this file — in dev it sits one level up from electron/.
+const envPath = app.isPackaged ? path.join(process.resourcesPath, '.env') : path.join(__dirname, '..', '.env')
+require('dotenv').config({ path: envPath, quiet: true })
 
 const JWT_SECRET = process.env.JWT_SECRET
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })

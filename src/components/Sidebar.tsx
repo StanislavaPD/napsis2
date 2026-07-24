@@ -152,11 +152,6 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
             </div>
           )}
         </div>
-        {!collapsed && (
-          <p className="mt-4 whitespace-nowrap text-xs leading-[1.4] text-sky-200/85 md:text-sm">
-            инж. Станислава Димитрова
-          </p>
-        )}
       </div>
 
       {/* Nav */}
@@ -209,8 +204,8 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
       )}
 
       {!collapsed && (
-        <div className="px-5 py-4 text-center text-xs text-sky-200/40">
-          v1.0
+        <div className="px-5 py-4 text-center text-xs text-sky-200/40 leading-relaxed">
+          инж. Станислава Димитрова<br />@ 2026 · v1.0
         </div>
       )}
     </aside>

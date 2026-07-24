@@ -1,4 +1,6 @@
 import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import { downloadBlob } from './docx-fill'
 
 export type SheetRow = Record<string, unknown>
 
@@ -31,6 +33,110 @@ export function exportRowsToSpreadsheet(headers: string[], rows: SheetRow[], she
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, sheetName)
   XLSX.writeFile(wb, filename)
+}
+
+export interface StyledExportOptions {
+  /** Header row fill, hex without '#' (e.g. "14B8A6" for teal-500) — matches the module's in-app table header color. */
+  headerColor: string
+  /** Totals row fill, hex without '#'; defaults to a light tint derived from headerColor. */
+  totalColor?: string
+  /** Header names whose column should be summed in the totals row. Omit to skip the totals row entirely. */
+  numericColumns?: string[]
+  /** Label for the totals row's first cell. */
+  totalLabel?: string
+}
+
+/** Builds one colored, auto-sized worksheet (header row + data + optional totals row) inside an existing workbook. */
+function addStyledSheet(
+  wb: ExcelJS.Workbook,
+  sheetName: string,
+  headers: string[],
+  rows: SheetRow[],
+  opts: StyledExportOptions
+) {
+  const ws = wb.addWorksheet(sheetName)
+
+  ws.addRow(headers)
+  rows.forEach(r => ws.addRow(headers.map(h => (r[h] as string | number | undefined) ?? '')))
+
+  const numericCols = opts.numericColumns ?? []
+  let totalsRow: ExcelJS.Row | null = null
+  if (numericCols.length) {
+    const totals = headers.map((h, i) => {
+      if (i === 0) return opts.totalLabel ?? 'Общо'
+      if (!numericCols.includes(h)) return ''
+      const sum = rows.reduce((s, r) => s + (Number(r[h]) || 0), 0)
+      return Math.round(sum * 100) / 100
+    })
+    totalsRow = ws.addRow(totals)
+  }
+
+  // Auto-size each column to its widest cell (header, data, or totals).
+  ws.columns.forEach((col, i) => {
+    let max = String(headers[i] ?? '').length
+    rows.forEach(r => { max = Math.max(max, String(r[headers[i]] ?? '').length) })
+    if (totalsRow) max = Math.max(max, String(totalsRow.getCell(i + 1).value ?? '').length)
+    col.width = Math.max(10, max + 3)
+  })
+
+  const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${opts.headerColor}` } }
+  ws.getRow(1).eachCell(cell => {
+    cell.fill = headerFill
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    cell.alignment = { vertical: 'middle' }
+  })
+
+  if (totalsRow) {
+    const usingTint = !!opts.totalColor
+    const totalFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: `FF${opts.totalColor ?? opts.headerColor}` } }
+    totalsRow.eachCell(cell => {
+      cell.fill = totalFill
+      cell.font = { bold: true, color: { argb: usingTint ? 'FF1F2937' : 'FFFFFFFF' } }
+    })
+  }
+
+  const thinBorder: Partial<ExcelJS.Borders> = {
+    top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+  }
+  ws.eachRow(row => row.eachCell(cell => { cell.border = thinBorder }))
+}
+
+/**
+ * Exports rows to a formatted .xlsx: colored header row (matching the module's in-app table header),
+ * columns auto-sized to their content, and — when `numericColumns` is given — a colored totals row
+ * summing those columns at the bottom. Saves via `downloadBlob` (native save in the Electron app, so
+ * the file isn't tagged as downloaded-from-the-internet and opens normally in Excel).
+ */
+export async function exportStyledRowsToSpreadsheet(
+  headers: string[],
+  rows: SheetRow[],
+  sheetName: string,
+  filename: string,
+  opts: StyledExportOptions
+) {
+  const wb = new ExcelJS.Workbook()
+  addStyledSheet(wb, sheetName, headers, rows, opts)
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  await downloadBlob(blob, filename)
+}
+
+export interface StyledSheetSpec extends StyledExportOptions {
+  sheetName: string
+  headers: string[]
+  rows: SheetRow[]
+}
+
+/** Same styling as `exportStyledRowsToSpreadsheet`, but bundles several sheets into a single .xlsx file. */
+export async function exportStyledWorkbook(sheets: StyledSheetSpec[], filename: string) {
+  const wb = new ExcelJS.Workbook()
+  sheets.forEach(s => addStyledSheet(wb, s.sheetName, s.headers, s.rows, s))
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  await downloadBlob(blob, filename)
 }
 
 /** Looks up a value in a row by one or more possible header names, case/whitespace-insensitive. */

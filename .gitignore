@@ -5,3 +5,4 @@ dist-electron/
 *.local
 .claude/
 Договор за доставка на вода за напояване .docx
+release/

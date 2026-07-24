@@ -88,6 +88,7 @@ export interface IrrigRequest {
 export interface Payment {
   id: string
   invoiceNumber: string
+  invoiceDate: string
   contractorId: string
   items: { cropId: string; area: number }[]
   amount: number
