@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-electron/
+.env
+*.local
+.claude/
+Договор за доставка на вода за напояване .docx
