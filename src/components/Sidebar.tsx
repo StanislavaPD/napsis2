@@ -142,8 +142,8 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
       {/* Logo */}
       <div className={`px-5 py-5 md:py-8 ${collapsed ? 'md:px-0 md:flex md:justify-center' : ''}`}>
         <div className={`flex items-center gap-3 ${collapsed ? 'md:gap-0' : ''}`}>
-          <div className="w-11 h-11 shrink-0 rounded-lg border border-sky-300/50 overflow-hidden flex items-center justify-center bg-white/5">
-            <img src="/i.ico" alt="" className="w-9 h-9 object-contain" />
+          <div className="w-16 h-16 shrink-0 rounded-lg border border-sky-300/50 overflow-hidden flex items-center justify-center bg-white/5">
+            <img src="./i.ico" alt="" className="w-24 h-24 object-contain" />
           </div>
           {!collapsed && (
             <div>

@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('node:path')
+const os = require('node:os')
 const fs = require('node:fs/promises')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
@@ -32,23 +33,8 @@ function verifyToken(token) {
   }
 }
 
-ipcMain.handle('auth:register', async (_e, username, password) => {
-  username = String(username || '').trim()
-  if (!username || !password || String(password).length < 4) {
-    return { error: 'Потребителско име и парола (мин. 4 символа) са задължителни.' }
-  }
-  const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username])
-  if (existing.rows.length) return { error: 'Вече има акаунт с това потребителско име.' }
-  const hash = await bcrypt.hash(String(password), 10)
-  const result = await pool.query(
-    'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
-    [username, hash]
-  )
-  const user = result.rows[0]
-  const token = jwt.sign({ sub: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' })
-  return { token, username: user.username }
-})
-
+// No auth:register handler: new accounts are created directly in the database, never through the
+// app UI, so nobody can self-register without the owner's explicit action.
 ipcMain.handle('auth:login', async (_e, username, password) => {
   username = String(username || '').trim()
   const result = await pool.query('SELECT id, username, password_hash FROM users WHERE username = $1', [username])
@@ -106,10 +92,21 @@ ipcMain.handle('file:save', async (event, filename, base64Data) => {
   return { canceled: false, filePath: result.filePath }
 })
 
+// Opens a document in the user's default app for its file type (Word for .docx) — used so
+// "Принтирай" shows/prints the exact same generated document as "Изтегли", instead of a separate
+// print-only HTML rendering that can drift out of sync with the real .docx.
+ipcMain.handle('file:openTemp', async (_e, filename, base64Data) => {
+  const tempPath = path.join(os.tmpdir(), `napoyavane-${Date.now()}-${filename}`)
+  await fs.writeFile(tempPath, Buffer.from(base64Data, 'base64'))
+  const error = await shell.openPath(tempPath)
+  return error ? { error } : { ok: true }
+})
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
+    icon: path.join(__dirname, '..', 'build-icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

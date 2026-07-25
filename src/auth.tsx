@@ -8,7 +8,6 @@ interface AuthState {
   username: string | null
   token: string | null
   login: (username: string, password: string) => Promise<string | null>
-  register: (username: string, password: string) => Promise<string | null>
   logout: () => void
 }
 
@@ -41,16 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null
   }
 
-  async function register(u: string, p: string) {
-    if (!hasBackend) return 'Няма връзка с базата данни.'
-    const res = await window.api!.register(u, p)
-    if ('error' in res) return res.error
-    localStorage.setItem(TOKEN_KEY, res.token)
-    setToken(res.token)
-    setUsername(res.username)
-    return null
-  }
-
   function logout() {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
@@ -58,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ready, hasBackend, username, token, login, register, logout }}>
+    <AuthContext.Provider value={{ ready, hasBackend, username, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

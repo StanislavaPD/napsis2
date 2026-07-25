@@ -3,8 +3,7 @@ import { useAuth } from '../auth'
 import { Btn, Input, FormRow, Card } from './ui'
 
 export default function Login() {
-  const { login, register } = useAuth()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -13,8 +12,7 @@ export default function Login() {
   async function submit() {
     setError(null)
     setBusy(true)
-    const fn = mode === 'login' ? login : register
-    const err = await fn(username, password)
+    const err = await login(username, password)
     setBusy(false)
     if (err) setError(err)
   }
@@ -24,7 +22,7 @@ export default function Login() {
       <Card className="w-full max-w-sm p-8">
         <div className="mb-6 text-center">
           <p className="text-xl font-semibold text-gray-900">Напояване ХТР Ямбол</p>
-          <p className="mt-1 text-sm text-gray-500">{mode === 'login' ? 'Вход в акаунта' : 'Създаване на акаунт'}</p>
+          <p className="mt-1 text-sm text-gray-500">Вход в акаунта</p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -50,16 +48,8 @@ export default function Login() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Btn onClick={submit} disabled={busy || !username.trim() || !password}>
-            {busy ? 'Моля, изчакайте…' : mode === 'login' ? 'Вход' : 'Регистрация'}
+            {busy ? 'Моля, изчакайте…' : 'Вход'}
           </Btn>
-
-          <button
-            type="button"
-            onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(null) }}
-            className="text-center text-xs text-teal-700 hover:underline"
-          >
-            {mode === 'login' ? 'Нямаш акаунт? Регистрирай се' : 'Вече имаш акаунт? Влез'}
-          </button>
         </div>
       </Card>
     </div>

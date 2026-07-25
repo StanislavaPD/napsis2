@@ -36,7 +36,7 @@ const EMPTY: ContractForm = {
   totalDka: 0,
   cubicPerDka: 0,
   waterCubic: 0,
-  unitPrice: 0,
+  unitPrice: 0.0128,
   value: 0,
   irrigationNumber: '',
   month: '',

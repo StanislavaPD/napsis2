@@ -3,7 +3,7 @@ import PizZip from 'pizzip'
 import { useStore } from '../store'
 import type { Contract, Act, IrrigRequest, Contractor } from '../types'
 import { Btn, FormRow, Input, NumberInput, Select, num, DownloadIcon, PrinterIcon } from './ui'
-import { fillDocxTemplate, downloadBlob, docxFillErrorMessage, type DocxTagData } from '../lib/docx-fill'
+import { fillDocxTemplate, downloadBlob, openInDefaultApp, docxFillErrorMessage, type DocxTagData } from '../lib/docx-fill'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
 const DOC_TYPES = ['Акт', 'Фактура', 'Протокол', 'Разписка', 'Друго']
@@ -118,7 +118,7 @@ function xPageBreak(): string {
   return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 }
 
-type XParaOpts = { jc?: 'left' | 'center' | 'right' | 'both'; indent?: boolean; before?: number }
+type XParaOpts = { jc?: 'left' | 'center' | 'right' | 'both'; indent?: boolean; before?: number; after?: number }
 
 /** A paragraph wrapping the given run(s) XML. */
 function xp(runsXml: string, opts: XParaOpts = {}): string {
@@ -128,7 +128,7 @@ function xp(runsXml: string, opts: XParaOpts = {}): string {
   // stray left/first-line indent from the source template's Normal style — this was showing up as
   // unwanted space in front of table headers and values.
   props.push(opts.indent ? '<w:ind w:firstLine="708"/>' : '<w:ind w:left="0" w:right="0" w:firstLine="0"/>')
-  if (opts.before != null) props.push(`<w:spacing w:before="${opts.before}" w:after="0"/>`)
+  if (opts.before != null || opts.after != null) props.push(`<w:spacing w:before="${opts.before ?? 0}" w:after="${opts.after ?? 0}"/>`)
   return `<w:p><w:pPr>${props.join('')}</w:pPr>${runsXml}</w:p>`
 }
 
@@ -138,8 +138,8 @@ function xpm(parts: [string | number | undefined | null, boolean?, boolean?][], 
 }
 
 /** A centered bold section heading paragraph. */
-function xHeading(text: string): string {
-  return xp(xw(text, true), { jc: 'center', before: 240 })
+function xHeading(text: string, before = 240): string {
+  return xp(xw(text, true), { jc: 'center', before })
 }
 
 /** A justified, first-line-indented body paragraph, from plain text or [text,bold,caps] parts. */
@@ -158,7 +158,7 @@ function xtc(text: string | number | undefined | null, opts: XCellOpts = {}): st
   if (opts.vMerge === 'restart') tcPr.push('<w:vMerge w:val="restart"/>')
   if (opts.vMerge === 'continue') tcPr.push('<w:vMerge/>')
   if (opts.shade) tcPr.push(`<w:shd w:val="clear" w:color="auto" w:fill="${opts.shade}"/>`)
-  tcPr.push('<w:tcMar><w:left w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/></w:tcMar>')
+  tcPr.push('<w:tcMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tcMar>')
   tcPr.push('<w:vAlign w:val="center"/>')
   const jc = opts.align === 'right' ? 'right' : opts.align === 'center' ? 'center' : 'left'
   let content = opts.vMerge === 'continue' ? '<w:p/>' : (text !== undefined && text !== null && text !== '' ? xp(xw(text, opts.bold, false, opts.fontSize ?? 18), { jc }) : '<w:p/>')
@@ -175,12 +175,13 @@ function xtr(cellsXml: string, heightTwips?: number): string {
 }
 
 /** A bordered table with the given column widths (twips). */
-function xtable(rowsXml: string, colWidths: number[], indent = 0): string {
+function xtable(rowsXml: string, colWidths: number[], indent = 0, center = false): string {
   const total = colWidths.reduce((s, w) => s + w, 0)
   const grid = colWidths.map(w => `<w:gridCol w:w="${w}"/>`).join('')
   const borders = '<w:tblBorders><w:top w:val="single" w:sz="4" w:color="000000"/><w:left w:val="single" w:sz="4" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:color="000000"/><w:insideH w:val="single" w:sz="4" w:color="000000"/><w:insideV w:val="single" w:sz="4" w:color="000000"/></w:tblBorders>'
   const ind = indent ? `<w:tblInd w:w="${indent}" w:type="dxa"/>` : ''
-  return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${ind}${borders}<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${rowsXml}</w:tbl>`
+  const jc = center ? '<w:jc w:val="center"/>' : ''
+  return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${jc}${ind}${borders}<w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${rowsXml}</w:tbl>`
 }
 
 // ─── DOCX TEMPLATE UPLOAD + FILL ──────────────────────────────────────────────
@@ -276,7 +277,7 @@ function ContractGenerator() {
     village: htus[0]?.village ?? '',
     irrigationMethodId: irrigationMethods[0]?.id ?? '',
     cropId: crops[0]?.id ?? '',
-    area: 0, irrigationCount: 0, totalDka: 0, cubicPerDka: 0, waterCubic: 0, unitPrice: 0, value: 0,
+    area: 0, irrigationCount: 0, totalDka: 0, cubicPerDka: 0, waterCubic: 0, unitPrice: 0.0128, value: 0,
     irrigationNumber: '', month: '',
   })
   const [saved, setSaved] = useState(false)
@@ -300,7 +301,7 @@ function ContractGenerator() {
     setExtraRows(rows => [...rows, {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       htuId: htus[0]?.id ?? '', village: htus[0]?.village ?? '', cropId: crops[0]?.id ?? '',
-      irrigationMethodId: irrigationMethods[0]?.id ?? '', area: 0, cubicPerDka: 0, irrigationCount: 0, unitPrice: 0,
+      irrigationMethodId: irrigationMethods[0]?.id ?? '', area: 0, cubicPerDka: 0, irrigationCount: 0, unitPrice: 0.0128,
     }])
   }
   function updateExtraRow(id: string, patch: Partial<ExtraRow>) {
@@ -354,16 +355,16 @@ function ContractGenerator() {
     const { tableRows, totalNoVat, totalWithVat } = computeTableRows()
     const base = 'font-family:"Times New Roman",Times,serif;font-size:9pt;color:#000'
     const pJ = `${base};text-align:justify;text-indent:1.25cm;margin:4pt 0 0 0`
-    const pC = `${base};text-align:center;font-weight:bold;margin:12pt 0 4pt 0`
-    const td = `border:0.5pt solid #000;padding:2pt 2pt;${base}`
+    const pC = `${base};text-align:center;font-weight:bold;margin:12pt 0 0 0`
+    const td = `border:0.5pt solid #000;padding:2pt 3pt;${base}`
     const tdR = `${td};text-align:right`
     const tdC = `${td};text-align:center`
-    const tdH = `${td};text-align:center;background:#D9D9D9`
+    const tdH = `${td};text-align:center;background:#F2F2F2`
     const proxyClause = cont?.hasProxy
       ? `, чрез пълномощник ${esc(cont.proxyName || '…')}, ЕГН ${esc(cont.proxyEgn || '…')}, съгласно нот. зав. пълномощно № ${esc(cont.notaryDeedNumber || '…')}, издадено от нотариус ${esc(cont.notaryName || '…')} с район на действие: ${esc(cont.notaryJurisdiction || '…')}`
       : ''
     const party2Html = (!cont || cont.entityType === 'legal')
-      ? `<p style="${pJ}"><b>2. </b>${esc(cont?.name || '……………………………………………………………………………………………….')}, ЕИК
+      ? `<p style="${pJ}"><b>2. </b>„<b>${esc(cont?.name || '……………………………………………………………………………………………….')}</b>”, ЕИК
       ${esc(cont?.bulstat || '………………….……')}, със седалище и адрес на управление:
       ${esc(cont?.address || '………………………………………………………………………………………………………')}, ИН по ДДС ${esc(vatDisplay(cont))}, представлявано от
       ${esc(cont?.contact || '………………….……………………….')} – управител${proxyClause}, тел. ${esc(cont?.phone || '……………………….')}, наричано по-долу <b>ВОДОПОЛЗВАТЕЛ</b>,</p>`
@@ -387,8 +388,8 @@ function ContractGenerator() {
         <td style="${tdR}">${num(r.area, 2)}</td>
         <td style="${tdR}">${num(r.cubicPerDka, 0)}</td>
         <td style="${tdR}">${num(r.waterCubic, 0)}</td>
-        <td style="${tdR}">${r.isGravity ? `${num(r.waterCubic, 0)}${r.methodSubType ? `<div style="font-size:7pt;color:#666">${esc(r.methodSubType)}</div>` : ''}` : ''}</td>
-        <td style="${tdR}">${r.isPumped ? `${num(r.waterCubic, 0)}${r.methodSubType ? `<div style="font-size:7pt;color:#666">${esc(r.methodSubType)}</div>` : ''}` : ''}</td>
+        <td style="${tdR}">${r.isGravity ? `${num(r.waterCubic, 0)}${r.methodSubType ? `<div style="font-size:9pt;color:#666">${esc(r.methodSubType)}</div>` : ''}` : ''}</td>
+        <td style="${tdR}">${r.isPumped ? `${num(r.waterCubic, 0)}${r.methodSubType ? `<div style="font-size:9pt;color:#666">${esc(r.methodSubType)}</div>` : ''}` : ''}</td>
         <td style="${tdC}">${r.irrigationCount || ''}</td>
         <td style="${tdR}">${num(r.unitPrice, 4)}</td>
         <td style="${tdR}">${num(r.perWatering, 2)}</td>
@@ -396,7 +397,7 @@ function ContractGenerator() {
       </tr>`).join('')
 
     return `
-      <div style="text-align:center;margin-bottom:12pt;position:relative">
+      <div style="text-align:center;margin-bottom:24pt;position:relative">
         <p style="${base};font-weight:bold;margin:0">Д О Г О В О Р</p>
         <p style="${base};font-weight:bold;margin:0">ЗА ДОСТАВКА НА ВОДА ЗА НАПОЯВАНЕ</p>
         <p style="${base};text-align:right;margin:0">${esc(form.number || '___')}/${esc(formatShortDate(form.date))}</p>
@@ -408,19 +409,19 @@ function ContractGenerator() {
       на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по
       вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова,
       наричано по-долу <b>ДОСТАВЧИК</b></p>
-      <p style="${base};margin:4pt 0 0 0">и</p>
+      <p style="${base};margin:4pt 0 0 2.5cm">и</p>
       ${party2Html}
-      <p style="${pJ}">се сключи настоящия договор.</p>
+      <p style="${pJ};margin-top:24pt">се сключи настоящия договор.</p>
 
       <p style="${pC}">I. ПРЕДМЕТ НА ДОГОВОРА</p>
       <p style="${pJ}"><b>Чл.1.</b> ДОСТАВЧИКЪТ се задължава да доставя срещу възнаграждение вода за напояване за имоти и по култури,
       заявени от ВОДОПОЛЗВАТЕЛЯ, както следва:</p>
 
-      <table style="width:17cm;max-width:17cm;border-collapse:collapse;margin-top:6pt;table-layout:fixed">
+      <table style="width:18.63cm;max-width:18.63cm;margin-left:auto;margin-right:auto;border-collapse:collapse;margin-top:14pt;table-layout:fixed">
         <colgroup>
-          <col style="width:0.79cm"><col style="width:1.39cm"><col style="width:1.38cm"><col style="width:1.38cm">
-          <col style="width:1.16cm"><col style="width:1.48cm"><col style="width:1.15cm"><col style="width:1.15cm">
-          <col style="width:1.15cm"><col style="width:1.15cm"><col style="width:1.43cm"><col style="width:1.71cm"><col style="width:1.69cm">
+          <col style="width:0.55cm"><col style="width:1.33cm"><col style="width:1.54cm"><col style="width:1.32cm">
+          <col style="width:1.15cm"><col style="width:2.00cm"><col style="width:1.25cm"><col style="width:1.48cm">
+          <col style="width:1.48cm"><col style="width:1.38cm"><col style="width:1.33cm"><col style="width:1.71cm"><col style="width:2.13cm">
         </colgroup>
         <thead>
           <tr>
@@ -433,14 +434,13 @@ function ContractGenerator() {
             <th style="${tdH}" colspan="4">Начин на доставка (водни маси)</th>
             <th style="${tdH}" rowspan="2">Цена по Заповед</th>
             <th style="${tdH}" rowspan="2">Дължима цена за поливката, без ДДС</th>
-            <th style="${tdH}"></th>
+            <th style="${tdH}" rowspan="2">Дължима цена за всички поливки, без ДДС</th>
           </tr>
           <tr>
             <th style="${tdH}">Общо</th>
             <th style="${tdH}">Гравитачно</th>
             <th style="${tdH}">Помпено</th>
             <th style="${tdH}">поливки</th>
-            <th style="${tdH}">Дължима цена за всички поливки, без ДДС</th>
           </tr>
           <tr>
             <th style="${tdH}">дка</th>
@@ -468,11 +468,12 @@ function ContractGenerator() {
       <p style="${base};font-size:8pt;color:#666;margin:12pt 0 0 0">*Добавят се необходимия брой редове</p>
 
       <p style="${pC}">II. ОТЧИТАНЕ</p>
-      <p style="${pJ}"><b>Чл.2.</b> Доставената вода се отчита след всяка поливка по един от следните начини:</p>
-      <table style="width:100%;border-collapse:collapse;margin-top:4pt">
-        <tr><td style="${td};padding:6pt 8pt">по показание на монтираното водомерно устройство</td><td style="${tdC};padding:6pt 8pt" width="60">${meteringMethod === 'device' ? 'Х' : ''}</td></tr>
-        <tr><td style="${td};padding:6pt 8pt">по напоителна норма, съгласно Наредба за нормите за водопотребление</td><td style="${tdC};padding:6pt 8pt" width="60">${meteringMethod === 'norm' ? 'Х' : ''}</td></tr>
-        <tr><td style="${td};padding:6pt 8pt">по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката</td><td style="${tdC};padding:6pt 8pt" width="60">${meteringMethod === 'technical' ? 'Х' : ''}</td></tr>
+      <p style="${pJ};margin-top:14pt"><b>Чл.2.</b> Доставената вода се отчита след всяка поливка по един от следните начини:</p>
+      <table style="width:6.57in;border-collapse:collapse;margin-top:14pt;table-layout:fixed">
+        <colgroup><col style="width:5.96in"><col style="width:0.61in"></colgroup>
+        <tr><td style="${td};padding:10pt 8pt">по показание на монтираното водомерно устройство</td><td style="${tdC};padding:10pt 8pt">${meteringMethod === 'device' ? 'Х' : ''}</td></tr>
+        <tr><td style="${td};padding:10pt 8pt">по напоителна норма, съгласно Наредба за нормите за водопотребление</td><td style="${tdC};padding:10pt 8pt">${meteringMethod === 'norm' ? 'Х' : ''}</td></tr>
+        <tr><td style="${td};padding:10pt 8pt">по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката</td><td style="${tdC};padding:10pt 8pt">${meteringMethod === 'technical' ? 'Х' : ''}</td></tr>
       </table>
 
       <p style="${pC}">IІІ. ЦЕНА НА УСЛУГАТА. ЦЕНА НА ЗАЯВКА И ОБЩА ЦЕНА. ОКОНЧАТЕЛНА ЦЕНА.</p>
@@ -497,14 +498,16 @@ function ContractGenerator() {
       изписват: номер и срок на договора.</p>
       <p style="${pJ}">(3). ВОДОПОЛЗВАТЕЛЯТ заплаща сумата по фактурата по ал. 2 в петдневен срок от издаването й.</p>
       <p style="${pJ}">(4) Плащането на цената по ал. 2 се извършва в касата на ДОСТАВЧИКА при спазване на реда и
-      условията, предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА: Банкова сметка:
-      BG85IORT80481090732600, BIC: IORTBGSF, ИНВЕСТБАНК АД.</p>
+      условията, предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА:<br/>
+      Банкова сметка: BG85IORT80481090732600<br/>
+      BIC: IORTBGSF<br/>
+      ИНВЕСТБАНК АД.</p>
       <p style="${pJ}">(5) При установена разлика между цената чл. 3, ал.2 и цената по чл. 3 ал.4, същата се заплаща или
       възстановява по реда на чл.8, ал.7 от Общите условия, като ДОСТАВЧИКЪТ издава фактура или кредитно известие.</p>
       <p style="${pJ}">(6) Дължимата по фактурата по ал. 5 стойност се заплаща от ВОДОПОЛЗВАТЕЛЯ в 5 дневен срок от
       издаването й. Стойността на издаденото по ал.5 кредитно известие се възстановява от ДОСТАВЧИКА на ВОДОПОЛЗВАТЕЛЯ
       в срок от 5 дни от издаването му, по банков път, по следната посочена от ВОДОПОЛЗВАТЕЛЯ банкова сметка:
-      <b>${esc(cont?.iban || '…………………………………')}</b>, или в брой на каса на ДОСТАВЧИКА.</p>
+      <b>${esc(cont?.iban || '…………………………………')}</b>,<br/>или в брой на каса на ДОСТАВЧИКА.</p>
       <p style="${pJ}">(7) При забава в плащането по ал.2 и ал.6, предложение първо, ВОДОПОЛЗВАТЕЛЯТ дължи законна лихва.</p>
       <p style="${pJ}">(8) До първа поливка ВОДОПОЛЗВАТЕЛЯТ може авансово да заплати пълния размер на прогнозно
       изчислената за напоителния сезон цена по Договора.</p>
@@ -513,7 +516,7 @@ function ContractGenerator() {
       <p style="${pJ}"><b>Чл.5.</b> Настоящият договор се сключва за поливен сезон 2026г. и съобразно разрешителното за
       водовземане на ДОСТАВЧИКА.</p>
 
-      <p style="${pC}">V. ПРАВА И ЗАДЪЛЖЕНИЯ НА СТРАНИТЕ</p>
+      <p style="${pC};margin-top:0">V. ПРАВА И ЗАДЪЛЖЕНИЯ НА СТРАНИТЕ</p>
       <p style="${pJ}"><b>Чл.6.</b> Правата и задълженията на страните са определени в Общите условия, оповестени на страницата
       на „Напоителни системи“ ЕАД: https://nps.bg/.</p>
 
@@ -527,7 +530,7 @@ function ContractGenerator() {
       <p style="${pJ}"><b>Чл.8.</b> Отговорността на страните за неизпълнение, обезщетенията и неустойките са определени в
       Общите условия.</p>
 
-      <p style="${pC}">VIII. ПРЕКРАТЯВАНЕ НА ДОГОВОРА</p>
+      <p style="${pC};margin-top:0">VIII. ПРЕКРАТЯВАНЕ НА ДОГОВОРА</p>
       <p style="${pJ}"><b>Чл. 9.</b> (1) Настоящият договор се прекратява:</p>
       <p style="${pJ}">1. по взаимно съгласие на страните, изразено в писмена форма;</p>
       <p style="${pJ}">2. с изтичане на договорения срок;</p>
@@ -567,18 +570,18 @@ function ContractGenerator() {
         <table style="width:100%;border-collapse:collapse"><tr>
           <td style="${base};vertical-align:top;width:50%;padding:0 8pt 0 0">
             <p style="${base};margin:0"><b>ДОСТАВЧИК</b>: ...................................</p>
-            <p style="${base};margin:16pt 0 0 0">Управител на клон „Средна Тунджа”</p>
-            <p style="${base};margin:0">инж. Пламен Иванов Иванов</p>
-            <p style="${base};margin:16pt 0 0 0">Главен счетоводител клон ...................................</p>
-            <p style="${base};margin:0">Стоянка Бянова Карагьозова</p>
-            <p style="${base};margin:16pt 0 0 0">Р-л ХТР: ...................................</p>
-            <p style="${base};margin:0">инж. Николай Петров Касидов</p>
-            <p style="${base};margin:16pt 0 0 0">Изготвил: ...................................</p>
-            <p style="${base};margin:0">инж. УДВН Станислава Петрова Димитрова</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">Управител на клон „Средна Тунджа”</p>
+            <p style="${base};font-size:8pt;margin:0">инж. Пламен Иванов Иванов</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">Главен счетоводител клон ...................................</p>
+            <p style="${base};font-size:8pt;margin:0">Стоянка Бянова Карагьозова</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">Р-л ХТР: ...................................</p>
+            <p style="${base};font-size:8pt;margin:0">инж. Николай Петров Касидов</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">Изготвил: ...................................</p>
+            <p style="${base};font-size:8pt;margin:0">инж. УДВН Станислава Петрова Димитрова</p>
           </td>
           <td style="${base};vertical-align:top;width:50%;padding:0 0 0 8pt">
             <p style="${base};margin:0"><b>ВОДОПОЛЗВАТЕЛ</b>: ...................................</p>
-            <p style="${base};margin:16pt 0 0 0">/ ${esc(cont?.name || '')} /</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">/ ${esc(cont?.name || '')} /</p>
           </td>
         </tr></table>
       </div>
@@ -588,11 +591,13 @@ function ContractGenerator() {
   function buildContractOoxmlBody(): string {
     const { tableRows, totalNoVat, totalWithVat } = computeTableRows()
 
-    // Widths sum to 9638 twips, matching the full usable page width (A4 minus left/right margins).
-    // Wider than the usual 9638-twip text column, deliberately bleeding a little into the page margins.
-    const mainColWidths = [450, 790, 780, 780, 660, 840, 650, 650, 650, 650, 810, 968, 960]
+    // Column widths and row heights below are copied verbatim from the real template's
+    // word/document.xml (tblGrid/gridCol widths and trHeight values), not estimated from screenshots.
+    const mainColWidths = [312, 751, 871, 746, 652, 1133, 708, 839, 837, 782, 753, 969, 1207]
     const [w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12] = mainColWidths
-    const hdr: XCellOpts = { shade: 'D9D9D9' }
+    const hdr: XCellOpts = { shade: 'F2F2F2' }
+    // Row A: most headers vMerge down through rows B/C, except "Дължима цена за всички поливки,
+    // без ДДС" (w12), which the real template leaves blank here — its label actually starts in row B.
     const headerRowA = xtr(
       xtc('№', { ...hdr, align: 'center', vMerge: 'restart', width: w0 }) +
       xtc('напоителен канал, ПС', { ...hdr, align: 'center', vMerge: 'restart', width: w1 }) +
@@ -603,7 +608,8 @@ function ContractGenerator() {
       xtc('Начин на доставка (водни маси)', { ...hdr, align: 'center', gridSpan: 4, width: w6 + w7 + w8 + w9 }) +
       xtc('Цена по Заповед', { ...hdr, align: 'center', vMerge: 'restart', width: w10 }) +
       xtc('Дължима цена за поливката, без ДДС', { ...hdr, align: 'center', vMerge: 'restart', width: w11 }) +
-      xtc('', { ...hdr, align: 'center', width: w12 })
+      xtc('', { ...hdr, width: w12 }),
+      280
     )
     const headerRowB = xtr(
       xtc('', { ...hdr, vMerge: 'continue', width: w0 }) + xtc('', { ...hdr, vMerge: 'continue', width: w1 }) + xtc('', { ...hdr, vMerge: 'continue', width: w2 }) +
@@ -613,7 +619,8 @@ function ContractGenerator() {
       xtc('Помпено', { ...hdr, align: 'center', width: w8 }) +
       xtc('поливки', { ...hdr, align: 'center', width: w9 }) +
       xtc('', { ...hdr, vMerge: 'continue', width: w10 }) + xtc('', { ...hdr, vMerge: 'continue', width: w11 }) +
-      xtc('Дължима цена за всички поливки, без ДДС', { ...hdr, align: 'center', width: w12 })
+      xtc('Дължима цена за всички поливки, без ДДС', { ...hdr, align: 'center', width: w12 }),
+      1217
     )
     const headerRowC = xtr(
       xtc('', { ...hdr, vMerge: 'continue', width: w0 }) + xtc('', { ...hdr, vMerge: 'continue', width: w1 }) + xtc('', { ...hdr, vMerge: 'continue', width: w2 }) + xtc('', { ...hdr, vMerge: 'continue', width: w3 }) +
@@ -625,7 +632,8 @@ function ContractGenerator() {
       xtc('брой', { ...hdr, align: 'center', width: w9 }) +
       xtc('€', { ...hdr, align: 'center', width: w10 }) +
       xtc('€', { ...hdr, align: 'center', width: w11 }) +
-      xtc('€', { ...hdr, align: 'center', width: w12 })
+      xtc('€', { ...hdr, align: 'center', width: w12 }),
+      294
     )
     const fs = 14 // 7pt — data rows use a smaller font than the header so filled-in values fit the narrow columns
     const dataRows = padRows(tableRows, 3).map((r, i) => r === null ? xtr(
@@ -635,7 +643,8 @@ function ContractGenerator() {
       xtc('', { align: 'right', width: w6, fontSize: fs }) + xtc('', { align: 'right', width: w7, fontSize: fs }) +
       xtc('', { align: 'right', width: w8, fontSize: fs }) + xtc('', { align: 'center', width: w9, fontSize: fs }) +
       xtc('', { align: 'right', width: w10, fontSize: fs }) + xtc('', { align: 'right', width: w11, fontSize: fs }) +
-      xtc('', { align: 'right', width: w12, fontSize: fs })
+      xtc('', { align: 'right', width: w12, fontSize: fs }),
+      280
     ) : xtr(
       xtc(i + 1, { align: 'center', width: w0, fontSize: fs }) +
       xtc(r.equipment, { width: w1, fontSize: fs }) +
@@ -649,18 +658,20 @@ function ContractGenerator() {
       xtc(r.irrigationCount || '', { align: 'center', width: w9, fontSize: fs }) +
       xtc(num(r.unitPrice, 4), { align: 'right', width: w10, fontSize: fs }) +
       xtc(num(r.perWatering, 2), { align: 'right', width: w11, fontSize: fs }) +
-      xtc(num(r.rowTotal, 2), { bold: true, align: 'right', width: w12, fontSize: fs })
+      xtc(num(r.rowTotal, 2), { bold: true, align: 'right', width: w12, fontSize: fs }),
+      280
     )).join('')
     const totalsRows =
-      xtr(xtc('Общо прогнозна цена по договор без ДДС', { bold: true, align: 'right', gridSpan: 12, fontSize: 22 }) + xtc(num(totalNoVat, 2), { bold: true, align: 'right', width: w12, fontSize: 22 }), 500) +
-      xtr(xtc('Общо прогнозна цена по договор с ДДС', { bold: true, align: 'right', gridSpan: 12, fontSize: 22 }) + xtc(num(totalWithVat, 2), { bold: true, align: 'right', width: w12, fontSize: 22 }), 500)
-    const mainTable = xtable(headerRowA + headerRowB + headerRowC + dataRows + totalsRows, mainColWidths)
+      xtr(xtc('Общо прогнозна цена по договор без ДДС', { bold: true, align: 'right', gridSpan: 12, fontSize: 22 }) + xtc(num(totalNoVat, 2), { bold: true, align: 'right', width: w12, fontSize: 22 }), 280) +
+      xtr(xtc('Общо прогнозна цена по договор с ДДС', { bold: true, align: 'right', gridSpan: 12, fontSize: 22 }) + xtc(num(totalWithVat, 2), { bold: true, align: 'right', width: w12, fontSize: 22 }), 280)
+    const mainTable = xtable(headerRowA + headerRowB + headerRowC + dataRows + totalsRows, mainColWidths, 0, true)
 
+    // Total table width 6.57in = 9461 twips (matching the "Preferred width" of the real template's Чл.2 table).
     const meteringTable = xtable(
-      xtr(xtc('по показание на монтираното водомерно устройство', { width: 8738 }) + xtc(meteringMethod === 'device' ? 'Х' : '', { bold: true, align: 'center', width: 900 })) +
-      xtr(xtc('по напоителна норма, съгласно Наредба за нормите за водопотребление', { width: 8738 }) + xtc(meteringMethod === 'norm' ? 'Х' : '', { bold: true, align: 'center', width: 900 })) +
-      xtr(xtc('по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката', { width: 8738 }) + xtc(meteringMethod === 'technical' ? 'Х' : '', { bold: true, align: 'center', width: 900 })),
-      [8738, 900]
+      xtr(xtc('по показание на монтираното водомерно устройство', { width: 8578 }) + xtc(meteringMethod === 'device' ? 'Х' : '', { bold: true, align: 'center', width: 883 })) +
+      xtr(xtc('по напоителна норма, съгласно Наредба за нормите за водопотребление', { width: 8578 }) + xtc(meteringMethod === 'norm' ? 'Х' : '', { bold: true, align: 'center', width: 883 })) +
+      xtr(xtc('по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката', { width: 8578 }) + xtc(meteringMethod === 'technical' ? 'Х' : '', { bold: true, align: 'center', width: 883 }), 190),
+      [8578, 883]
     )
 
     const proxyClauseX = cont?.hasProxy
@@ -668,7 +679,7 @@ function ContractGenerator() {
       : ''
     const party2Xml = (!cont || cont.entityType === 'legal')
       ? xBody([
-          ['2. ', true], [cont?.name || '……………………………………………………………………………………………….', false],
+          ['2. ', true], ['„', false], [cont?.name || '……………………………………………………………………………………………….', true], ['”', false],
           [', ЕИК ', false], [cont?.bulstat || '………………….……', false],
           [', със седалище и адрес на управление: ' + (cont?.address || '………………………………………………………………………………………………………') + ', ИН по ДДС ' + vatDisplay(cont) + ', представлявано от ' + (cont?.contact || '………………….……………………….') + ' – управител' + proxyClauseX + ', тел. ' + (cont?.phone || '……………………….') + ', наричано по-долу ', false],
           ['ВОДОПОЛЗВАТЕЛ', true], [',', false],
@@ -687,42 +698,44 @@ function ContractGenerator() {
       xtr(
         `<w:tc><w:tcPr><w:tcW w:w="4800" w:type="dxa"/></w:tcPr>` +
           xp(xw('ДОСТАВЧИК', true) + xw(': ...................................'), { before: 320 }) +
-          xp(xw('Управител на клон „Средна Тунджа”'), { before: 320 }) +
-          xp(xw('инж. Пламен Иванов Иванов'), {}) +
-          xp(xw('Главен счетоводител клон ...................................'), { before: 320 }) +
-          xp(xw('Стоянка Бянова Карагьозова'), {}) +
-          xp(xw('Р-л ХТР: ...................................'), { before: 320 }) +
-          xp(xw('инж. Николай Петров Касидов'), {}) +
-          xp(xw('Изготвил: ...................................'), { before: 320 }) +
-          xp(xw('инж. УДВН Станислава Петрова Димитрова'), {}) +
+          xp(xw('Управител на клон „Средна Тунджа”', false, false, 16), { before: 320 }) +
+          xp(xw('инж. Пламен Иванов Иванов', false, false, 16), {}) +
+          xp(xw('Главен счетоводител клон ...................................', false, false, 16), { before: 320 }) +
+          xp(xw('Стоянка Бянова Карагьозова', false, false, 16), {}) +
+          xp(xw('Р-л ХТР: ...................................', false, false, 16), { before: 320 }) +
+          xp(xw('инж. Николай Петров Касидов', false, false, 16), {}) +
+          xp(xw('Изготвил: ...................................', false, false, 16), { before: 320 }) +
+          xp(xw('инж. УДВН Станислава Петрова Димитрова', false, false, 16), {}) +
         `</w:tc>` +
         `<w:tc><w:tcPr><w:tcW w:w="4800" w:type="dxa"/></w:tcPr>` +
           xp(xw('ВОДОПОЛЗВАТЕЛ', true) + xw(': ...................................'), { before: 320 }) +
-          xp(xw(`/ ${cont?.name || ''} /`), { before: 320 }) +
+          xp(xw(`/ ${cont?.name || ''} /`, false, false, 16), { before: 320 }) +
         `</w:tc>`
       ) +
       `</w:tbl>`
 
     return [
-      xp(`<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="18"/></w:rPr><w:tab/><w:t xml:space="preserve">Д О Г О В О Р</w:t></w:r>`, { jc: 'center' }),
+      xp(xw('Д О Г О В О Р', true), { jc: 'center' }),
       xp(xw('ЗА ДОСТАВКА НА ВОДА ЗА НАПОЯВАНЕ', true), { jc: 'center' }),
-      xBody(`Днес, ${formatDayMonth(form.date)} 2026. в гр. Ямбол, между:`),
+      xBody(`Днес, ${formatDayMonth(form.date)} 2026. в гр. Ямбол, между:`, 480),
       xBody([
         ['1. ', true], ['„', false], ['Напоителни системи', true, true], [' “', false], ['ЕАД', true],
         [' – клон „Средна Тунджа”, ЕИК: 831160078, със седалище и адрес на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова, наричано по-долу ', false],
         ['ДОСТАВЧИК', true],
       ]),
-      xp(xw('и'), { before: 80 }),
+      `<w:p><w:pPr><w:ind w:left="1417" w:firstLine="0"/><w:spacing w:before="80" w:after="0"/></w:pPr>${xw('и')}</w:p>`,
       party2Xml,
-      xBody('се сключи настоящия договор.'),
+      xBody('се сключи настоящия договор.', 480),
 
       xHeading('I. ПРЕДМЕТ НА ДОГОВОРА'),
       xBody([['Чл.1.', true], [' ДОСТАВЧИКЪТ се задължава да доставя срещу възнаграждение вода за напояване за имоти и по култури, заявени от ВОДОПОЛЗВАТЕЛЯ, както следва:', false]]),
+      xp(xw('')),
       mainTable,
       xp(`<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="16"/><w:color w:val="808080"/></w:rPr><w:t xml:space="preserve">*Добавят се необходимия брой редове</w:t></w:r>`, { before: 240 }),
 
       xHeading('II. ОТЧИТАНЕ'),
-      xBody([['Чл.2.', true], [' Доставената вода се отчита след всяка поливка по един от следните начини:', false]]),
+      xBody([['Чл.2.', true], [' Доставената вода се отчита след всяка поливка по един от следните начини:', false]], 200),
+      xp(xw('')),
       meteringTable,
 
       xHeading('IІІ. ЦЕНА НА УСЛУГАТА. ЦЕНА НА ЗАЯВКА И ОБЩА ЦЕНА. ОКОНЧАТЕЛНА ЦЕНА.'),
@@ -736,16 +749,28 @@ function ContractGenerator() {
       xBody([['Чл.4.', true], [' (1) Дължимата от ВОДОПОЛЗВАТЕЛЯ по договора цена се заплаща периодично, след всяка поливка и издаване на фактура.', false]]),
       xBody('(2). Фактурата се издава в петдневен срок от съставяне от ДОСТАВЧИКА на „Акт за доставен обем вода“ за съответната поливка. Във фактурата освен задължителните реквизити по Закона за счетоводството задължително се изписват: номер и срок на договора.'),
       xBody('(3). ВОДОПОЛЗВАТЕЛЯТ заплаща сумата по фактурата по ал. 2 в петдневен срок от издаването й.'),
-      xBody('(4) Плащането на цената по ал. 2 се извършва в касата на ДОСТАВЧИКА при спазване на реда и условията, предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА: Банкова сметка: BG85IORT80481090732600, BIC: IORTBGSF, ИНВЕСТБАНК АД.'),
+      xp(
+        xw('(4) Плащането на цената по ал. 2 се извършва в касата на ДОСТАВЧИКА при спазване на реда и условията, предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА:') +
+        '<w:r><w:br/></w:r>' + xw('Банкова сметка: BG85IORT80481090732600') +
+        '<w:r><w:br/></w:r>' + xw('BIC: IORTBGSF') +
+        '<w:r><w:br/></w:r>' + xw('ИНВЕСТБАНК АД.'),
+        { jc: 'both', indent: true, before: 80 }
+      ),
       xBody('(5) При установена разлика между цената чл. 3, ал.2 и цената по чл. 3 ал.4, същата се заплаща или възстановява по реда на чл.8, ал.7 от Общите условия, като ДОСТАВЧИКЪТ издава фактура или кредитно известие.'),
-      xBody([['(6) Дължимата по фактурата по ал. 5 стойност се заплаща от ВОДОПОЛЗВАТЕЛЯ в 5 дневен срок от издаването й. Стойността на издаденото по ал.5 кредитно известие се възстановява от ДОСТАВЧИКА на ВОДОПОЛЗВАТЕЛЯ в срок от 5 дни от издаването му, по банков път, по следната посочена от ВОДОПОЛЗВАТЕЛЯ банкова сметка: ', false], [cont?.iban || '…………………………………', true], [', или в брой на каса на ДОСТАВЧИКА.', false]]),
+      xp(
+        xw('(6) Дължимата по фактурата по ал. 5 стойност се заплаща от ВОДОПОЛЗВАТЕЛЯ в 5 дневен срок от издаването й. Стойността на издаденото по ал.5 кредитно известие се възстановява от ДОСТАВЧИКА на ВОДОПОЛЗВАТЕЛЯ в срок от 5 дни от издаването му, по банков път, по следната посочена от ВОДОПОЛЗВАТЕЛЯ банкова сметка: ') +
+        xw(cont?.iban || '…………………………………', true) +
+        xw(',') +
+        '<w:r><w:br/></w:r>' + xw('или в брой на каса на ДОСТАВЧИКА.'),
+        { jc: 'both', indent: true, before: 80 }
+      ),
       xBody('(7) При забава в плащането по ал.2 и ал.6, предложение първо, ВОДОПОЛЗВАТЕЛЯТ дължи законна лихва.'),
       xBody('(8) До първа поливка ВОДОПОЛЗВАТЕЛЯТ може авансово да заплати пълния размер на прогнозно изчислената за напоителния сезон цена по Договора.'),
 
       xHeading('IV. СРОК НА ДОГОВОРА'),
       xBody([['Чл.5.', true], [' Настоящият договор се сключва за поливен сезон 2026г. и съобразно разрешителното за водовземане на ДОСТАВЧИКА.', false]]),
 
-      xHeading('V. ПРАВА И ЗАДЪЛЖЕНИЯ НА СТРАНИТЕ'),
+      xHeading('V. ПРАВА И ЗАДЪЛЖЕНИЯ НА СТРАНИТЕ', 0),
       xBody([['Чл.6.', true], [' Правата и задълженията на страните са определени в Общите условия, оповестени на страницата на „Напоителни системи“ ЕАД: https://nps.bg/.', false]]),
 
       xHeading('VI. ЛИЧНИ ДАННИ'),
@@ -754,7 +779,7 @@ function ContractGenerator() {
       xHeading('VII. ОТГОВОРНОСТ ЗА НЕИЗПЪЛНЕНИЕ'),
       xBody([['Чл.8.', true], [' Отговорността на страните за неизпълнение, обезщетенията и неустойките са определени в Общите условия.', false]]),
 
-      xHeading('VIII. ПРЕКРАТЯВАНЕ НА ДОГОВОРА'),
+      xHeading('VIII. ПРЕКРАТЯВАНЕ НА ДОГОВОРА', 0),
       xBody([['Чл. 9.', true], [' (1) Настоящият договор се прекратява:', false]]),
       xBody('1. по взаимно съгласие на страните, изразено в писмена форма;'),
       xBody('2. с изтичане на договорения срок;'),
@@ -786,14 +811,19 @@ function ContractGenerator() {
   }
 
   async function buildContractDocxBlob(): Promise<Blob> {
-    const res = await fetch('/templates/dogovor-dostavka-voda.docx')
+    // A leading "/" resolves against the filesystem root under Electron's file:// protocol (not the
+    // app folder), so the fetch would 404 and silently fall back to the plain-HTML .doc — use a
+    // relative path instead, which works the same under file:// and the http:// dev server.
+    const res = await fetch('./templates/dogovor-dostavka-voda.docx')
     const buf = await res.arrayBuffer()
     const zip = new PizZip(buf)
 
     // Running page header (repeats on every page): contract number/date, right-aligned.
     const headerRId = 'rId101'
     const headerXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${DOCX_NS}>` +
-      xp(xw(`${form.number || '___'}/${formatShortDate(form.date)}`, false), { jc: 'right' }) +
+      // Header-from-top is 0 (matches the real template), so give the line itself breathing room
+      // from the page edge instead — otherwise it sits flush against the very top.
+      xp(xw(`${form.number || '___'}/${formatShortDate(form.date)}`, false), { jc: 'right', before: 500 }) +
       `</w:hdr>`
     zip.file('word/header2.xml', headerXml)
 
@@ -815,7 +845,8 @@ function ContractGenerator() {
       ))
     }
 
-    const sectPr = `<w:sectPr><w:headerReference w:type="default" r:id="${headerRId}"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1417" w:left="1134" w:header="450" w:footer="1134" w:gutter="0"/></w:sectPr>`
+    // Header from Top: 0", Footer from Bottom: 0.79" (1138 twips) — from the real template's Header & Footer settings.
+    const sectPr = `<w:sectPr><w:headerReference w:type="default" r:id="${headerRId}"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1417" w:left="1134" w:header="0" w:footer="1138" w:gutter="0"/></w:sectPr>`
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${DOCX_NS}><w:body>${buildContractOoxmlBody()}${sectPr}</w:body></w:document>`
     zip.file('word/document.xml', documentXml)
     return zip.generate({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }) as Blob
@@ -831,7 +862,17 @@ function ContractGenerator() {
     }
   }
 
-  function handlePrint() {
+  // Opens the exact same .docx as "Изтегли" in Word, so printing (via Word's own print dialog)
+  // never drifts from the downloaded document — rather than a separate HTML rendering to print.
+  async function handlePrint() {
+    const filename = `${(form.number || 'Договор').trim()} ${(cont?.name || '').trim()}`.trim() + '.docx'
+    try {
+      const blob = await buildContractDocxBlob()
+      await openInDefaultApp(blob, filename)
+      return
+    } catch {
+      // fall through to the HTML print fallback below
+    }
     const w = window.open('', '_blank')
     if (!w) return
     w.document.write(`<html><head><meta charset="utf-8"><title>Договор</title>
@@ -1011,15 +1052,15 @@ function ContractGenerator() {
             <>
               {/* PAGE 1 */}
               <div className={pageClass} style={pageStyle}>
-                <div className="relative text-center mb-5">
-                  <p className="absolute top-0 right-0 text-[9px] text-gray-400">
+                <div className="relative text-center mb-10">
+                  <p className="absolute top-0 right-0 text-[9px] text-gray-900">
                     {form.number || '___'}/{formatShortDate(form.date)}
                   </p>
                   <p className="text-[9px] font-bold text-gray-900 tracking-wide">Д О Г О В О Р</p>
                   <p className="text-[9px] font-semibold text-gray-700 tracking-wide">ЗА ДОСТАВКА НА ВОДА ЗА НАПОЯВАНЕ</p>
                 </div>
                 <div className={contClass}>
-                <p className="text-justify indent-6">
+                <p className="text-justify indent-6 mt-8">
                   Днес, {formatDayMonth(form.date)} 2026. в гр. Ямбол, между:
                 </p>
 
@@ -1029,10 +1070,10 @@ function ContractGenerator() {
                   вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова,
                   наричано по-долу <strong>ДОСТАВЧИК</strong>
                 </p>
-                <p>и</p>
+                <p className="pl-10">и</p>
                 {(!cont || cont.entityType === 'legal') ? (
                   <p className="text-justify indent-6">
-                    <strong>2. </strong>{cont?.name || '……………………………………………………………………………………………….'}, ЕИК{' '}
+                    <strong>2. </strong>„<strong>{cont?.name || '……………………………………………………………………………………………….'}</strong>”, ЕИК{' '}
                     {cont?.bulstat || '………………….……'}, със седалище и адрес на управление:{' '}
                     {cont?.address || '………………………………………………………………………………………………………'}, ИН по ДДС {vatDisplay(cont)}, представлявано от{' '}
                     {cont?.contact || '………………….……………………….'} – управител
@@ -1052,7 +1093,7 @@ function ContractGenerator() {
                     , тел. {cont.phone || '……………………….'}, наричано <strong>ВОДОПОЛЗВАТЕЛ</strong>,
                   </p>
                 )}
-                <p className="text-justify indent-6">се сключи настоящия договор.</p>
+                <p className="text-justify indent-6 mt-8">се сключи настоящия договор.</p>
 
                 <div>
                   <p className="font-semibold text-gray-900 text-center mt-2">I. ПРЕДМЕТ НА ДОГОВОРА</p>
@@ -1062,10 +1103,10 @@ function ContractGenerator() {
                   </p>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto mt-3">
                   <table className="w-full text-[9px] border-collapse">
                     <thead className="font-normal">
-                      <tr style={{ background: '#D9D9D9' }}>
+                      <tr style={{ background: '#F2F2F2' }}>
                         <th rowSpan={3} className="border border-gray-200 px-1 py-1">№</th>
                         <th rowSpan={3} className="border border-gray-200 px-1 py-1">напоителен канал, ПС</th>
                         <th rowSpan={3} className="border border-gray-200 px-1 py-1">землище</th>
@@ -1075,16 +1116,15 @@ function ContractGenerator() {
                         <th colSpan={4} className="border border-gray-200 px-1 py-1">Начин на доставка (водни маси)</th>
                         <th rowSpan={2} className="border border-gray-200 px-1 py-1">Цена по Заповед</th>
                         <th rowSpan={2} className="border border-gray-200 px-1 py-1">Дължима цена за поливката, без ДДС</th>
-                        <th className="border border-gray-200 px-1 py-1"></th>
+                        <th rowSpan={2} className="border border-gray-200 px-1 py-1">Дължима цена за всички поливки, без ДДС</th>
                       </tr>
-                      <tr style={{ background: '#D9D9D9' }}>
+                      <tr style={{ background: '#F2F2F2' }}>
                         <th className="border border-gray-200 px-1 py-1">Общо</th>
                         <th className="border border-gray-200 px-1 py-1">Гравитачно</th>
                         <th className="border border-gray-200 px-1 py-1">Помпено</th>
                         <th className="border border-gray-200 px-1 py-1">поливки</th>
-                        <th className="border border-gray-200 px-1 py-1">Дължима цена за всички поливки, без ДДС</th>
                       </tr>
-                      <tr style={{ background: '#D9D9D9' }}>
+                      <tr style={{ background: '#F2F2F2' }}>
                         <th className="border border-gray-200 px-1 py-1">дка</th>
                         <th className="border border-gray-200 px-1 py-1">м³</th>
                         <th className="border border-gray-200 px-1 py-1">м³</th>
@@ -1126,7 +1166,7 @@ function ContractGenerator() {
                                 {r.isGravity && (
                                   <>
                                     <div>{num(r.waterCubic, 0)}</div>
-                                    {r.methodSubType && <div className="text-[7px] text-gray-500">{r.methodSubType}</div>}
+                                    {r.methodSubType && <div className="text-[9px] text-gray-500">{r.methodSubType}</div>}
                                   </>
                                 )}
                               </td>
@@ -1134,7 +1174,7 @@ function ContractGenerator() {
                                 {r.isPumped && (
                                   <>
                                     <div>{num(r.waterCubic, 0)}</div>
-                                    {r.methodSubType && <div className="text-[7px] text-gray-500">{r.methodSubType}</div>}
+                                    {r.methodSubType && <div className="text-[9px] text-gray-500">{r.methodSubType}</div>}
                                   </>
                                 )}
                               </td>
@@ -1163,22 +1203,22 @@ function ContractGenerator() {
 
                 <div>
                   <p className="font-semibold text-gray-900 text-center mt-2">II. ОТЧИТАНЕ</p>
-                  <p className="mt-1 text-justify indent-6">
+                  <p className="mt-3 text-justify indent-6">
                     <strong>Чл.2.</strong> Доставената вода се отчита след всяка поливка по един от следните начини:
                   </p>
-                  <table className="w-full text-[9px] border-collapse mt-2">
+                  <table className="text-[9px] border-collapse mt-3" style={{ width: '6.57in', maxWidth: '100%', tableLayout: 'fixed' }}>
                     <tbody>
                       <tr>
-                        <td className="border border-gray-200 px-2 py-1.5">по показание на монтираното водомерно устройство</td>
-                        <td className="border border-gray-200 px-2 py-1.5 w-8 text-center font-semibold">{meteringMethod === 'device' ? 'Х' : ''}</td>
+                        <td className="border border-gray-200 px-2 py-3">по показание на монтираното водомерно устройство</td>
+                        <td className="border border-gray-200 px-2 py-3 w-8 text-center font-semibold">{meteringMethod === 'device' ? 'Х' : ''}</td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-200 px-2 py-1.5">по напоителна норма, съгласно Наредба за нормите за водопотребление</td>
-                        <td className="border border-gray-200 px-2 py-1.5 w-8 text-center font-semibold">{meteringMethod === 'norm' ? 'Х' : ''}</td>
+                        <td className="border border-gray-200 px-2 py-3">по напоителна норма, съгласно Наредба за нормите за водопотребление</td>
+                        <td className="border border-gray-200 px-2 py-3 w-8 text-center font-semibold">{meteringMethod === 'norm' ? 'Х' : ''}</td>
                       </tr>
                       <tr>
-                        <td className="border border-gray-200 px-2 py-1.5">по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката</td>
-                        <td className="border border-gray-200 px-2 py-1.5 w-8 text-center font-semibold">{meteringMethod === 'technical' ? 'Х' : ''}</td>
+                        <td className="border border-gray-200 px-2 py-3">по технически параметри на поливна техника (описва се вида техника и се прилагат съответните документи, както и конкретните параметри) и времетраене на поливката</td>
+                        <td className="border border-gray-200 px-2 py-3 w-8 text-center font-semibold">{meteringMethod === 'technical' ? 'Х' : ''}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1233,8 +1273,10 @@ function ContractGenerator() {
                   </p>
                   <p className="mt-1 text-justify indent-6">
                     (4) Плащането на цената по ал. 2 се извършва в касата на ДОСТАВЧИКА при спазване на реда и условията,
-                    предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА: Банкова сметка:{' '}
-                    <span className="break-all">BG85IORT80481090732600</span>, BIC: IORTBGSF, ИНВЕСТБАНК АД.
+                    предвидени в ЗОПБ, или по банков път, по следната банкова сметка на ДОСТАВЧИКА:
+                    <br />Банкова сметка: <span className="break-all">BG85IORT80481090732600</span>
+                    <br />BIC: IORTBGSF
+                    <br />ИНВЕСТБАНК АД.
                   </p>
                   <p className="mt-1 text-justify indent-6">
                     (5) При установена разлика между цената чл. 3, ал.2 и цената по чл. 3 ал.4, същата се заплаща или
@@ -1245,7 +1287,8 @@ function ContractGenerator() {
                     (6) Дължимата по фактурата по ал. 5 стойност се заплаща от ВОДОПОЛЗВАТЕЛЯ в 5 дневен срок от
                     издаването й. Стойността на издаденото по ал.5 кредитно известие се възстановява от ДОСТАВЧИКА на
                     ВОДОПОЛЗВАТЕЛЯ в срок от 5 дни от издаването му, по банков път, по следната посочена от
-                    ВОДОПОЛЗВАТЕЛЯ банкова сметка: <strong className="break-all">{cont?.iban || '…………………………………'}</strong>, или в брой на каса на ДОСТАВЧИКА.
+                    ВОДОПОЛЗВАТЕЛЯ банкова сметка: <strong className="break-all">{cont?.iban || '…………………………………'}</strong>,
+                    <br />или в брой на каса на ДОСТАВЧИКА.
                   </p>
                   <p className="mt-1 text-justify indent-6">
                     (7) При забава в плащането по ал.2 и ал.6, предложение първо, ВОДОПОЛЗВАТЕЛЯТ дължи законна лихва.
@@ -1353,18 +1396,18 @@ function ContractGenerator() {
                   <div className="grid grid-cols-2 gap-8">
                     <div>
                       <p><strong>ДОСТАВЧИК</strong>: ...................................</p>
-                      <p className="mt-4">Управител на клон „Средна Тунджа”</p>
-                      <p>инж. Пламен Иванов Иванов</p>
-                      <p className="mt-4">Главен счетоводител клон ...................................</p>
-                      <p>Стоянка Бянова Карагьозова</p>
-                      <p className="mt-4">Р-л ХТР: ...................................</p>
-                      <p>инж. Николай Петров Касидов</p>
-                      <p className="mt-4">Изготвил: ...................................</p>
-                      <p>инж. УДВН Станислава Петрова Димитрова</p>
+                      <p className="mt-4 text-[8px]">Управител на клон „Средна Тунджа”</p>
+                      <p className="text-[8px]">инж. Пламен Иванов Иванов</p>
+                      <p className="mt-4 text-[8px]">Главен счетоводител клон ...................................</p>
+                      <p className="text-[8px]">Стоянка Бянова Карагьозова</p>
+                      <p className="mt-4 text-[8px]">Р-л ХТР: ...................................</p>
+                      <p className="text-[8px]">инж. Николай Петров Касидов</p>
+                      <p className="mt-4 text-[8px]">Изготвил: ...................................</p>
+                      <p className="text-[8px]">инж. УДВН Станислава Петрова Димитрова</p>
                     </div>
                     <div>
                       <p><strong>ВОДОПОЛЗВАТЕЛ</strong>: ...................................</p>
-                      <p className="mt-4">/ {cont?.name || ''} /</p>
+                      <p className="mt-4 text-[8px]">/ {cont?.name || ''} /</p>
                     </div>
                   </div>
                 </div>
@@ -1412,7 +1455,7 @@ function ActGenerator() {
     irrigationMethodId: irrigationMethods[0]?.id ?? '',
     cropId: crops[0]?.id ?? '',
     irrigationNumber: '',
-    area: 0, cubicPerDka: 0, waterCubic: 0, unitPrice: 0, value: 0, month: '',
+    area: 0, cubicPerDka: 0, waterCubic: 0, unitPrice: 0.0128, value: 0, month: '',
   })
   const [saved, setSaved] = useState(false)
   const [templateFile, setTemplateFile] = useState<File | null>(null)

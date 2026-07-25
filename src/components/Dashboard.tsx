@@ -38,7 +38,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
   return (
     <div>
       <PageHeader
-        title={`Добър ден, ${username ?? 'оператор'}`}
+        title={`Добър ден, ${username ?? 'оператор'}!`}
         subtitle={`Обобщение на поливния сезон · ${currentMonthLabel()}`}
       />
 

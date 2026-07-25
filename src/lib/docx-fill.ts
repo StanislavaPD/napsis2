@@ -50,6 +50,22 @@ export async function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * Opens a Blob (e.g. the generated .docx) in the user's default app for that file type — used so
+ * "Принтирай" shows/prints the exact same document as "Изтегли" (via Word's own print dialog),
+ * instead of a separate HTML rendering that can visually drift from the real .docx. In Electron this
+ * writes to a temp file and asks the OS to open it; outside Electron it falls back to a new tab.
+ */
+export async function openInDefaultApp(blob: Blob, filename: string) {
+  if (typeof window !== 'undefined' && window.api) {
+    const base64 = await blobToBase64(blob)
+    await window.api.openTempFile(filename, base64)
+    return
+  }
+  const url = URL.createObjectURL(blob)
+  window.open(url, '_blank')
+}
+
 interface DocxTemplaterErrorDetail {
   properties?: { explanation?: string }
   message?: string
