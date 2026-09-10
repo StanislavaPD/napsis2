@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import type { HTU } from '../types'
-import { Modal, Btn, FormRow, Input, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, EditIcon, TrashIcon } from './ui'
+import { Modal, Btn, FormRow, Input, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, EditIcon, TrashIcon, CopyIcon } from './ui'
 
 const EMPTY: Omit<HTU, 'id'> = { htuName: '', equipment: '', village: '' }
 
@@ -12,18 +12,37 @@ export default function HTUModule() {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
 
-  const filtered = htus.filter(h =>
-    h.htuName.toLowerCase().includes(search.toLowerCase()) ||
-    h.equipment.toLowerCase().includes(search.toLowerCase()) ||
-    h.village.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = htus
+    .filter(h =>
+      h.htuName.toLowerCase().includes(search.toLowerCase()) ||
+      h.equipment.toLowerCase().includes(search.toLowerCase()) ||
+      h.village.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => a.htuName.localeCompare(b.htuName, 'bg') || a.equipment.localeCompare(b.equipment, 'bg'))
 
-  function openAdd() { setForm(EMPTY); setAdding(true) }
-  function openEdit(h: HTU) { setForm({ htuName: h.htuName, equipment: h.equipment, village: h.village }); setEditing(h) }
+  function openAdd() { setForm(EMPTY); setFormError(null); setAdding(true) }
+  function openEdit(h: HTU) { setForm({ htuName: h.htuName, equipment: h.equipment, village: h.village }); setFormError(null); setEditing(h) }
+  function openDuplicate(h: HTU) { setForm({ htuName: h.htuName, equipment: h.equipment, village: h.village }); setFormError(null); setAdding(true) }
+
+/** Repeating the same ХТУ name with a different съоражение (or village) is fine — one ХТУ can have
+   several съоражения. Only a fully identical name+съоражение+землище combo counts as a duplicate. */
+  function findDuplicateHtu(): HTU | undefined {
+    const norm = (s: string) => s.trim().toLowerCase()
+    return htus.find(h =>
+      h.id !== editing?.id &&
+      norm(h.htuName) === norm(form.htuName) &&
+      norm(h.equipment) === norm(form.equipment) &&
+      norm(h.village) === norm(form.village)
+    )
+  }
 
   function save() {
     if (!form.htuName.trim()) return
+    const dup = findDuplicateHtu()
+    if (dup) { setFormError(`Вече съществува точно този запис: "${form.htuName}" / "${form.equipment}" / "${form.village}".`); return }
+    setFormError(null)
     if (adding) {
       setHtus([...htus, { ...form, id: Date.now().toString() }])
       setAdding(false)
@@ -73,6 +92,7 @@ export default function HTUModule() {
                     <td className="px-4 py-3 text-gray-600">{h.village}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5">
+                        <Btn size="sm" variant="ghost" onClick={() => openDuplicate(h)}><CopyIcon /></Btn>
                         <Btn size="sm" variant="ghost" onClick={() => openEdit(h)}><EditIcon /></Btn>
                         <Btn size="sm" variant="ghost" onClick={() => setDeleteId(h.id)}><TrashIcon /></Btn>
                       </div>
@@ -89,6 +109,7 @@ export default function HTUModule() {
         <Modal
           title={adding ? 'Ново ХТУ / Съоражение' : 'Редактирай ХТУ / Съоражение'}
           onClose={() => { setAdding(false); setEditing(null) }}
+          onSave={save}
         >
           <div className="flex flex-col gap-4">
             <FormRow label="ХТУ" required>
@@ -101,6 +122,7 @@ export default function HTUModule() {
               <Input value={form.village} onChange={e => setForm({ ...form, village: e.target.value })} placeholder="Горно Езерово" />
             </FormRow>
           </div>
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
           <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
             <Btn variant="secondary" onClick={() => { setAdding(false); setEditing(null) }}>Откажи</Btn>
             <Btn onClick={save} disabled={!form.htuName.trim()}>Запази</Btn>

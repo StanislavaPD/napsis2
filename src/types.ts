@@ -108,3 +108,4 @@ export type Module =
   | 'gen-contract'
   | 'gen-act'
   | 'gen-request'
+  | 'settings'

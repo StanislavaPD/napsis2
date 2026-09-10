@@ -16,7 +16,7 @@ import {
   EditIcon,
   TrashIcon
 } from './ui'
-import { parseSpreadsheetFile, findByField, rowGet } from '../lib/spreadsheet'
+import { parseSpreadsheetFile, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
 
 function MethodList() {
 
@@ -38,14 +38,13 @@ function MethodList() {
   const [importResult,setImportResult] =
     useState<{added:number,errors:string[]}|null>(null)
 
+  const [formError,setFormError] = useState<string|null>(null)
 
 
   const filtered =
-    irrigationMethods.filter(m =>
-      m.name
-      .toLowerCase()
-      .includes(search.toLowerCase())
-    )
+    irrigationMethods
+      .filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name, 'bg'))
 
 
 
@@ -54,6 +53,16 @@ function MethodList() {
     if(!name.trim())
       return
 
+    const dup = findByField(
+      irrigationMethods.filter(m => m.id !== editing?.id),
+      'name',
+      name
+    )
+    if(dup){
+      setFormError(`Вече съществува начин на напояване "${name}".`)
+      return
+    }
+    setFormError(null)
 
     if(adding){
 
@@ -110,9 +119,9 @@ function MethodList() {
       }
 
       if(
-        findByField(irrigationMethods,'name',name)
+        findSimilarByField(irrigationMethods,'name',name)
         ||
-        findByField(added,'name',name)
+        findSimilarByField(added,'name',name)
       ){
         errors.push(`Ред ${rowNum}: начин на напояване "${name}" вече съществува`)
         return
@@ -186,6 +195,7 @@ function MethodList() {
           <Btn
             onClick={()=>{
               setName('')
+              setFormError(null)
               setAdding(true)
             }}
           >
@@ -253,6 +263,7 @@ function MethodList() {
                           variant="ghost"
                           onClick={()=>{
                             setName(m.name)
+                            setFormError(null)
                             setEditing(m)
                           }}
                         >
@@ -302,6 +313,7 @@ function MethodList() {
             setAdding(false)
             setEditing(null)
           }}
+          onSave={save}
         >
 
           <FormRow
@@ -317,6 +329,7 @@ function MethodList() {
 
           </FormRow>
 
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
 
           <div className="flex gap-3 justify-end mt-6">
 
@@ -409,14 +422,13 @@ function CropList(){
   const [importResult,setImportResult] =
     useState<{added:number,errors:string[]}|null>(null)
 
+  const [formError,setFormError] = useState<string|null>(null)
 
 
   const filtered =
-    crops.filter(c=>
-      c.name
-      .toLowerCase()
-      .includes(search.toLowerCase())
-    )
+    crops
+      .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name, 'bg'))
 
 
 
@@ -426,6 +438,16 @@ function CropList(){
     if(!name.trim())
       return
 
+    const dup = findByField(
+      crops.filter(c => c.id !== editing?.id),
+      'name',
+      name
+    )
+    if(dup){
+      setFormError(`Вече съществува култура "${name}".`)
+      return
+    }
+    setFormError(null)
 
     if(adding){
 
@@ -485,9 +507,9 @@ function CropList(){
       }
 
       if(
-        findByField(crops,'name',name)
+        findSimilarByField(crops,'name',name)
         ||
-        findByField(added,'name',name)
+        findSimilarByField(added,'name',name)
       ){
         errors.push(`Ред ${rowNum}: култура "${name}" вече съществува`)
         return
@@ -575,6 +597,7 @@ function CropList(){
             onClick={()=>{
 
               setName('')
+              setFormError(null)
               setAdding(true)
 
             }}
@@ -667,6 +690,7 @@ function CropList(){
                           onClick={()=>{
 
                             setName(c.name)
+                            setFormError(null)
                             setEditing(c)
 
                           }}
@@ -729,6 +753,8 @@ function CropList(){
 
           }}
 
+          onSave={save}
+
         >
 
 
@@ -754,7 +780,7 @@ function CropList(){
 
           </FormRow>
 
-
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
 
           <div className="flex gap-3 justify-end mt-6">
 

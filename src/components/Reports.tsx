@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useStore } from '../store'
-import { PageHeader, StatCard, Card, Select, Btn, num, ExportIcon } from './ui'
-import { exportStyledWorkbook } from '../lib/spreadsheet'
+import { PageHeader, StatCard, Card, Select, Input, Btn, num, ExportIcon } from './ui'
+import { countActs, countContracts } from '../lib/acts'
+import { exportStyledWorkbook, exportFilename } from '../lib/spreadsheet'
 import { downloadBlob } from '../lib/docx-fill'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -34,27 +35,27 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
   return (
     <div className="overflow-x-auto">
 
-      <table className="w-full text-sm whitespace-nowrap">
+      <table className="w-full text-sm">
 
         <thead>
           <tr className={`bg-gradient-to-br ${ANALYSIS_COLORS[color]}`}>
 
-            {[
-              'Наименование',
-              'Договори бр.',
-              'Вода договори м³',
-              'Стойност договори €',
-              'Актове бр.',
-              'Актувана вода м³',
-              'Актувана площ дка',
-              'Стойност актове €'
-            ].map(h => (
+            {([
+              ['Наименование', 'Наименование'],
+              [<>Договори<br/>бр.</>, 'Договори бр.'],
+              [<>Вода<br/>договори<br/>м³</>, 'Вода договори м³'],
+              [<>Стойност<br/>договори €</>, 'Стойност договори €'],
+              [<>Актове<br/>бр.</>, 'Актове бр.'],
+              [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
+              [<>Актувана<br/>площ дка</>, 'Актувана площ дка'],
+              [<>Стойност<br/>актове €</>, 'Стойност актове €'],
+            ] as [React.ReactNode, string][]).map(([label, key], idx) => (
 
               <th
-                key={h}
-                className="text-left px-3 py-3 text-xs font-semibold text-white"
+                key={key}
+                className={`${idx === 0 ? 'text-left' : 'text-center'} px-3 py-3 text-xs font-semibold text-white leading-tight`}
               >
-                {h}
+                {label}
               </th>
 
             ))}
@@ -74,35 +75,35 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
               }`}
             >
 
-              <td className="px-3 py-2 font-medium">
+              <td className="px-3 py-2 font-medium text-left">
                 {x.name}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {x.contractCount}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {num(x.contractWater, 0)}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {num(x.contractValue, 2)}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {x.actCount}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {num(x.actWater, 0)}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {num(x.actArea, 2)}
               </td>
 
-              <td className="px-3 py-2">
+              <td className="px-3 py-2 text-center">
                 {num(x.actValue, 2)}
               </td>
 
@@ -146,28 +147,37 @@ useState<
 
 
 
+const contractorQuery = filterContractor.trim().toLowerCase()
+
 const filteredContracts = useMemo(()=>{
 
-return contracts.filter(c =>
+return contracts.filter(c => {
 
-(!filterContractor ||
-c.contractorId === filterContractor)
+const contractorName = contractors.find(x=>x.id===c.contractorId)?.name.toLowerCase() ?? ''
+const htuName = htus.find(h=>h.id===c.htuId)?.htuName ?? ''
+
+return (
+(!contractorQuery ||
+contractorName.includes(contractorQuery))
 
 &&
 
 (!filterHTU ||
-c.htuId === filterHTU)
+htuName === filterHTU)
 
 &&
 
 (!filterMonth ||
 c.month === filterMonth)
-
 )
+
+})
 
 },[
 contracts,
-filterContractor,
+contractors,
+htus,
+contractorQuery,
 filterHTU,
 filterMonth
 ])
@@ -176,26 +186,33 @@ filterMonth
 
 const filteredActs = useMemo(()=>{
 
-return acts.filter(a =>
+return acts.filter(a => {
 
-(!filterContractor ||
-a.contractorId === filterContractor)
+const contractorName = contractors.find(x=>x.id===a.contractorId)?.name.toLowerCase() ?? ''
+const htuName = htus.find(h=>h.id===a.htuId)?.htuName ?? ''
+
+return (
+(!contractorQuery ||
+contractorName.includes(contractorQuery))
 
 &&
 
 (!filterHTU ||
-a.htuId === filterHTU)
+htuName === filterHTU)
 
 &&
 
 (!filterMonth ||
 a.month === filterMonth)
-
 )
+
+})
 
 },[
 acts,
-filterContractor,
+contractors,
+htus,
+contractorQuery,
 filterHTU,
 filterMonth
 ])
@@ -272,7 +289,7 @@ return {
 name:month,
 
 
-contractCount:c.length,
+contractCount: countContracts(c),
 
 contractWater:
 c.reduce(
@@ -287,7 +304,7 @@ c.reduce(
 ),
 
 
-actCount:a.length,
+actCount:countActs(a),
 
 actWater:
 a.reduce(
@@ -348,8 +365,7 @@ return {
 name:crop.name,
 
 
-contractCount:
-c.length,
+contractCount: countContracts(c),
 
 
 contractWater:
@@ -430,7 +446,7 @@ return {
 name: `${cropName} — ${month || 'без месец'}`,
 sortCrop: cropName,
 sortMonth: MONTHS.indexOf(month),
-contractCount: c.length,
+contractCount: countContracts(c),
 contractWater: c.reduce((s,x)=>s+x.waterCubic,0),
 contractValue: c.reduce((s,x)=>s+x.value,0),
 actCount: a.length,
@@ -469,25 +485,26 @@ filteredActs
 
 const analysisByHtuCropMonth = useMemo(()=>{
 
+const htuNameOf = (id: string) => htus.find(x=>x.id===id)?.htuName ?? '—'
+
 const keys = new Set<string>()
 
-filteredContracts.forEach(c=>keys.add(`${c.htuId}|${c.cropId}|${c.month}`))
-filteredActs.forEach(a=>keys.add(`${a.htuId}|${a.cropId}|${a.month}`))
+filteredContracts.forEach(c=>keys.add(`${htuNameOf(c.htuId)}|${c.cropId}|${c.month}`))
+filteredActs.forEach(a=>keys.add(`${htuNameOf(a.htuId)}|${a.cropId}|${a.month}`))
 
 const rows = [...keys].map(key=>{
 
-const [htuId,cropId,month] = key.split('|')
-const htuName = htus.find(x=>x.id===htuId)?.htuName ?? '—'
+const [htuName,cropId,month] = key.split('|')
 const cropName = crops.find(x=>x.id===cropId)?.name ?? '—'
 
-const c = filteredContracts.filter(x=>x.htuId===htuId && x.cropId===cropId && x.month===month)
-const a = filteredActs.filter(x=>x.htuId===htuId && x.cropId===cropId && x.month===month)
+const c = filteredContracts.filter(x=>htuNameOf(x.htuId)===htuName && x.cropId===cropId && x.month===month)
+const a = filteredActs.filter(x=>htuNameOf(x.htuId)===htuName && x.cropId===cropId && x.month===month)
 
 return {
 name: `${htuName} / ${cropName} — ${month || 'без месец'}`,
 sortKey: `${htuName} / ${cropName}`,
 sortMonth: MONTHS.indexOf(month),
-contractCount: c.length,
+contractCount: countContracts(c),
 contractWater: c.reduce((s,x)=>s+x.waterCubic,0),
 contractValue: c.reduce((s,x)=>s+x.value,0),
 actCount: a.length,
@@ -529,29 +546,31 @@ filteredActs
 
 const analysisByHTU = useMemo(()=>{
 
-return htus.map(htu=>{
+const htuNameOf = (id: string) => htus.find(x=>x.id===id)?.htuName ?? '—'
+const names = [...new Set(htus.map(h=>h.htuName))]
+
+return names.map(name=>{
 
 
 const c =
 filteredContracts.filter(
-x=>x.htuId===htu.id
+x=>htuNameOf(x.htuId)===name
 )
 
 
 const a =
 filteredActs.filter(
-x=>x.htuId===htu.id
+x=>htuNameOf(x.htuId)===name
 )
 
 
 
 return {
 
-name:htu.htuName,
+name,
 
 
-contractCount:
-c.length,
+contractCount: countContracts(c),
 
 
 contractWater:
@@ -569,7 +588,7 @@ c.reduce(
 
 
 actCount:
-a.length,
+countActs(a),
 
 
 actWater:
@@ -650,6 +669,14 @@ function buildActRows() {
   })
 }
 
+function reportFilenameFilters() {
+  return [
+    filterContractor ? contractors.find(c => c.id === filterContractor)?.name ?? null : null,
+    filterHTU ? htus.find(h => h.id === filterHTU)?.htuName ?? null : null,
+    filterMonth || null,
+  ]
+}
+
 async function exportExcel() {
   const contractRows = buildContractRows()
   const actRows = buildActRows()
@@ -683,7 +710,7 @@ async function exportExcel() {
       sheetName: 'Анализ ХТУ', headers: ANALYSIS_HEADERS, rows: analysisRows(analysisByHTU),
       headerColor: '14B8A6', totalColor: 'CCFBF1', numericColumns: ANALYSIS_NUMERIC_COLS,
     },
-  ], `Напояване_ХТР_Ямбол_Справка_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  ], exportFilename('Напояване_ХТР_Ямбол_Справка', reportFilenameFilters()))
 }
 
 
@@ -742,8 +769,8 @@ function exportPDF() {
   const AMBER: [number, number, number] = [245, 158, 11]
 
   addTable('Обобщение', ['Показател', 'Стойност'], [
-    ['Договори', String(filteredContracts.length)],
-    ['Актове', String(filteredActs.length)],
+    ['Договори', String(countContracts(filteredContracts))],
+    ['Актове', String(countActs(filteredActs))],
     ['Вода договори', `${num(totalWaterContracts, 0)} м³`],
     ['Вода актове', `${num(totalWaterActs, 0)} м³`],
     ['Стойност договори', `${num(totalValueContracts, 2)} €`],
@@ -765,7 +792,7 @@ function exportPDF() {
 
   const pdfOutput = doc.output('arraybuffer')
   const blob = new Blob([pdfOutput], { type: 'application/pdf' })
-  downloadBlob(blob, `Напояване_ХТР_Ямбол_${new Date().toISOString().slice(0, 10)}.pdf`)
+  downloadBlob(blob, exportFilename('Напояване_ХТР_Ямбол', reportFilenameFilters(), 'pdf'))
 }
 
 
@@ -831,29 +858,12 @@ onClick={exportExcel}
 </label>
 
 
-<Select
+<Input
 value={filterContractor}
 onChange={e=>setFilterContractor(e.target.value)}
+placeholder="Търсене по контрагент..."
 className="w-52"
->
-
-<option value="">
-Всички
-</option>
-
-
-{contractors.map(c=>(
-
-<option
-key={c.id}
-value={c.id}
->
-{c.name}
-</option>
-
-))}
-
-</Select>
+/>
 
 </div>
 
@@ -878,13 +888,13 @@ className="w-48"
 </option>
 
 
-{htus.map(h=>(
+{[...new Set(htus.map(h=>h.htuName))].map(name=>(
 
 <option
-key={h.id}
-value={h.id}
+key={name}
+value={name}
 >
-{h.htuName}
+{name}
 </option>
 
 ))}
@@ -946,7 +956,7 @@ value={m}
 
 <StatCard
 label="Договори"
-value={filteredContracts.length}
+value={countContracts(filteredContracts)}
 sub={`Площ ${num(totalArea,2)} дка`}
 color="teal"
 />
@@ -970,7 +980,7 @@ color="emerald"
 <StatCard
 label="Актувана стойност"
 value={`${num(totalValueActs,2)} €`}
-sub={`${filteredActs.length} акта`}
+sub={`${countActs(filteredActs)} акта`}
 color="amber"
 />
 
@@ -1144,11 +1154,11 @@ color="teal"
   </div>
   <div className="rounded-xl p-4 bg-gradient-to-br from-amber-400 to-amber-500 text-white">
     <p className="text-xs text-amber-50">Договори</p>
-    <p className="mt-1 text-xl font-semibold">{filteredContracts.length}</p>
+    <p className="mt-1 text-xl font-semibold">{countContracts(filteredContracts)}</p>
   </div>
   <div className="rounded-xl p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
     <p className="text-xs text-emerald-50">Актове</p>
-    <p className="mt-1 text-xl font-semibold">{filteredActs.length}</p>
+    <p className="mt-1 text-xl font-semibold">{countActs(filteredActs)}</p>
   </div>
   <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
     <p className="text-xs text-teal-50">Площ договори</p>

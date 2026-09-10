@@ -10,7 +10,7 @@ const EMPTY: Omit<Contractor, 'id'> = {
   hasProxy: false, proxyName: '', proxyEgn: '', notaryDeedNumber: '', notaryName: '', notaryJurisdiction: '',
 }
 
-type SortField = 'name' | 'address'
+type SortField = 'name' | 'bulstat' | 'address' | 'contact' | 'phone' | 'iban'
 
 export default function Contractors() {
   const { contractors, setContractors } = useStore()
@@ -19,6 +19,8 @@ export default function Contractors() {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState(EMPTY)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<{ added: number; errors: string[] } | null>(null)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -40,15 +42,25 @@ export default function Contractors() {
     )
     .sort((a, b) => {
       if (!sortField) return 0
-      const cmp = a[sortField].localeCompare(b[sortField], 'bg')
+      const cmp = a[sortField].localeCompare(b[sortField], 'bg', { numeric: true })
       return sortDir === 'asc' ? cmp : -cmp
     })
 
-  function openAdd() { setForm(EMPTY); setAdding(true) }
-  function openEdit(c: Contractor) { const { id, ...rest } = c; void id; setForm(rest); setEditing(c) }
+  function openAdd() { setForm(EMPTY); setFormError(null); setAdding(true) }
+  function openEdit(c: Contractor) { const { id, ...rest } = c; void id; setForm(rest); setFormError(null); setEditing(c) }
+
+  /** Legal/farmer entities are identified by БУЛСТАТ, individuals by ЕГН — matches the import's duplicate check. */
+  function findDuplicate(): Contractor | undefined {
+    const others = contractors.filter(c => c.id !== editing?.id)
+    if (form.entityType === 'individual') return findByField(others, 'egn', form.egn)
+    return findByField(others, 'bulstat', form.bulstat)
+  }
 
   function save() {
     if (!form.name.trim()) return
+    const dup = findDuplicate()
+    if (dup) { setFormError(`Вече съществува контрагент "${dup.name}" с този ${form.entityType === 'individual' ? 'ЕГН' : 'БУЛСТАТ'}.`); return }
+    setFormError(null)
     if (adding) {
       setContractors([...contractors, { ...form, id: Date.now().toString() }])
       setAdding(false)
@@ -63,6 +75,11 @@ export default function Contractors() {
       setContractors(contractors.filter(c => c.id !== deleteId))
       setDeleteId(null)
     }
+  }
+
+  function confirmDeleteAll() {
+    setContractors([])
+    setDeleteAllConfirm(false)
   }
 
   async function handleImport(file: File) {
@@ -105,6 +122,9 @@ export default function Contractors() {
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по наименование, БУЛСТАТ..." />
             <ImportButton onFile={handleImport} />
+            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={contractors.length === 0}>
+              <TrashIcon /> Изтрий всичко
+            </Btn>
             <Btn onClick={openAdd}>+ Добави</Btn>
           </>
         }
@@ -115,22 +135,23 @@ export default function Contractors() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-br from-teal-500 to-teal-600">
-                <th
-                  onClick={() => toggleSort('name')}
-                  className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:bg-white/10 transition-colors"
-                >
-                  Наименование {sortField === 'name' && (sortDir === 'asc' ? '▲' : '▼')}
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap">БУЛСТАТ</th>
-                <th
-                  onClick={() => toggleSort('address')}
-                  className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:bg-white/10 transition-colors"
-                >
-                  Адрес {sortField === 'address' && (sortDir === 'asc' ? '▲' : '▼')}
-                </th>
-                {['МОЛ / Контакт', 'Телефон', 'IBAN', 'Действия'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap">{h}</th>
+                {([
+                  ['name', 'Наименование'],
+                  ['bulstat', 'БУЛСТАТ'],
+                  ['address', 'Адрес'],
+                  ['contact', 'МОЛ / Контакт'],
+                  ['phone', 'Телефон'],
+                  ['iban', 'IBAN'],
+                ] as [SortField, string][]).map(([field, label]) => (
+                  <th
+                    key={field}
+                    onClick={() => toggleSort(field)}
+                    className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:bg-white/10 transition-colors"
+                  >
+                    {label} {sortField === field && (sortDir === 'asc' ? '▲' : '▼')}
+                  </th>
                 ))}
+                <th className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap">Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -141,7 +162,7 @@ export default function Contractors() {
                   <tr key={c.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
                     <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{c.bulstat}</td>
-                    <td className="px-4 py-3 text-gray-600 max-w-48 truncate">{c.address}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-xs whitespace-normal break-words">{c.address}</td>
                     <td className="px-4 py-3 text-gray-600">{c.contact}</td>
                     <td className="px-4 py-3 text-gray-600">{c.phone}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{c.iban}</td>
@@ -163,6 +184,7 @@ export default function Contractors() {
         <Modal
           title={adding ? 'Нов Контрагент' : 'Редактирай Контрагент'}
           onClose={() => { setAdding(false); setEditing(null) }}
+          onSave={save}
         >
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -275,6 +297,7 @@ export default function Contractors() {
               </>
             )}
           </div>
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
           <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
             <Btn variant="secondary" onClick={() => { setAdding(false); setEditing(null) }}>Откажи</Btn>
             <Btn onClick={save} disabled={!form.name.trim()}>Запази</Btn>
@@ -287,6 +310,14 @@ export default function Contractors() {
           message="Сигурни ли сте, че искате да изтриете този контрагент?"
           onConfirm={confirmDelete}
           onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {deleteAllConfirm && (
+        <ConfirmDialog
+          message={`Сигурни ли сте, че искате да изтриете ВСИЧКИ контрагенти (${contractors.length})? Това действие е необратимо.`}
+          onConfirm={confirmDeleteAll}
+          onCancel={() => setDeleteAllConfirm(false)}
         />
       )}
 

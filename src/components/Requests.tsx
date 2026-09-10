@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store'
 import type { IrrigRequest } from '../types'
-import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, Badge, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, num } from './ui'
-import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToNum, cellToDateStr, findByField, rowGet } from '../lib/spreadsheet'
+import { Modal, Btn, FormRow, Input, NumberInput, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, Badge, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, num } from './ui'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToNum, cellToDateStr, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
 
 type ReqForm = Omit<IrrigRequest, 'id'>
 
@@ -17,6 +17,7 @@ const EMPTY: ReqForm = {
 const APPROACHING_WINDOW_DAYS = 7
 
 type ReqStatus = 'completed' | 'overdue' | 'approaching' | 'active' | 'noDeadline'
+type SortField = 'contractorName' | 'crops' | 'area' | 'irrigationNumber' | 'startDate' | 'endDate' | 'status'
 
 function computeStatus(r: IrrigRequest, isCompleted: boolean, today: string): ReqStatus {
   if (isCompleted) return 'completed'
@@ -30,14 +31,34 @@ function computeStatus(r: IrrigRequest, isCompleted: boolean, today: string): Re
 }
 
 export default function Requests() {
-  const { requests, setRequests, contractors, crops, acts, contracts } = useStore()
+  const { requests, setRequests, contractors, crops, acts, contracts, htus, findOrCreateContractor } = useStore()
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<IrrigRequest | null>(null)
   const [form, setForm] = useState<ReqForm>(EMPTY)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<{ added: number; errors: string[] } | null>(null)
   const [statusFilter, setStatusFilter] = useState<ReqStatus | null>(null)
+  const [htuFilter, setHtuFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
+
+  /** A request has no ХТУ field of its own — derived from the ХТУ(та) of its contractor's contracts. */
+  function requestHtuIds(r: IrrigRequest): string[] {
+    return [...new Set(contracts.filter(c => c.contractorId === r.contractorId).map(c => c.htuId).filter(Boolean))]
+  }
+
+  /** Tabs aggregate by ХТУ name across all its съоражения, not per individual съоражение row. */
+  function htuIdsForName(name: string): string[] {
+    return htus.filter(h => h.htuName === name).map(h => h.id)
+  }
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -55,16 +76,40 @@ export default function Requests() {
   const completedCount = [...statusById.values()].filter(s => s === 'completed').length
   const noDeadlineCount = [...statusById.values()].filter(s => s === 'noDeadline').length
 
+  function sortValue(r: IrrigRequest, field: SortField): string | number {
+    switch (field) {
+      case 'contractorName': return contractors.find(x => x.id === r.contractorId)?.name ?? ''
+      case 'crops': return r.items.map(i => crops.find(c => c.id === i.cropId)?.name).filter(Boolean).join(', ')
+      case 'area': return r.items.reduce((sum, i) => sum + (i.area || 0), 0)
+      case 'irrigationNumber': return r.irrigationNumber
+      case 'startDate': return r.startDate
+      case 'endDate': return r.endDate
+      case 'status': return statusById.get(r.id) ?? ''
+    }
+  }
+
+  const htuNames = [...new Set(htus.map(h => h.htuName))]
+  const htuCounts = htuNames.map(name => ({
+    name,
+    count: requests.filter(r => requestHtuIds(r).some(id => htuIdsForName(name).includes(id))).length,
+  }))
+
   const filtered = requests.filter(r => {
     const cont = contractors.find(x => x.id === r.contractorId)
     const q = search.toLowerCase()
     return (
       (!statusFilter || statusById.get(r.id) === statusFilter) &&
+      (!htuFilter || requestHtuIds(r).some(id => htuIdsForName(htuFilter).includes(id))) &&
       (
         (cont?.name.toLowerCase().includes(q) ?? false) ||
         r.irrigationNumber.toLowerCase().includes(q)
       )
     )
+  }).sort((a, b) => {
+    if (!sortField) return 0
+    const va = sortValue(a, sortField), vb = sortValue(b, sortField)
+    const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'bg', { numeric: true })
+    return sortDir === 'asc' ? cmp : -cmp
   })
 
   function itemsFromContractor(contractorId: string): { cropId: string; area: number }[] {
@@ -78,7 +123,19 @@ export default function Requests() {
 
   function openAdd() {
     setForm(defaultForm())
+    setFormError(null)
     setAdding(true)
+  }
+
+  /** Same contractor + same № поливка counts as a duplicate request (only when both are filled in). */
+  function findDuplicateRequest(): IrrigRequest | undefined {
+    const num = form.irrigationNumber.trim().toLowerCase()
+    if (!num || !form.contractorId) return undefined
+    return requests.find(r =>
+      r.id !== editing?.id &&
+      r.contractorId === form.contractorId &&
+      r.irrigationNumber.trim().toLowerCase() === num
+    )
   }
 
   function setContractor(contractorId: string) {
@@ -103,11 +160,14 @@ export default function Requests() {
     const { id, ...rest } = r
     void id
     setForm(rest)
+    setFormError(null)
     setEditing(r)
   }
 
   function save() {
     if (!form.contractorId) return
+    if (findDuplicateRequest()) { setFormError('Вече има заявка с този контрагент и № поливка.'); return }
+    setFormError(null)
     if (adding) {
       setRequests([...requests, { ...form, id: Date.now().toString() }])
       setAdding(false)
@@ -119,12 +179,19 @@ export default function Requests() {
 
   function saveAndNew() {
     if (!form.contractorId || !adding) return
+    if (findDuplicateRequest()) { setFormError('Вече има заявка с този контрагент и № поливка.'); return }
+    setFormError(null)
     setRequests([...requests, { ...form, id: Date.now().toString() }])
     setForm(defaultForm())
   }
 
   function confirmDelete() {
     if (deleteId) { setRequests(requests.filter(r => r.id !== deleteId)); setDeleteId(null) }
+  }
+
+  function confirmDeleteAll() {
+    setRequests([])
+    setDeleteAllConfirm(false)
   }
 
   async function handleImport(file: File) {
@@ -138,7 +205,7 @@ export default function Requests() {
       const contractor = findByField(contractors, 'name', contractorName)
       if (!contractor) { errors.push(`Ред ${rowNum}: контрагент "${contractorName}" не е намерен`); return }
       const cropName = String(rowGet(row, 'Култура') ?? '').trim()
-      const crop = cropName ? findByField(crops, 'name', cropName) : undefined
+      const crop = cropName ? findSimilarByField(crops, 'name', cropName) : undefined
       if (cropName && !crop) errors.push(`Ред ${rowNum}: култура "${cropName}" не е намерена, оставена празна`)
       added.push({
         id: `${Date.now()}-${i}`,
@@ -166,7 +233,8 @@ export default function Requests() {
         'Статус': statusLabel[statusById.get(r.id) ?? 'active'],
       }
     })
-    exportStyledRowsToSpreadsheet(headers, rows, 'Заявки', `Заявки_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+    const filename = exportFilename('Заявки', [htuFilter, statusFilter ? statusLabel[statusFilter] : null])
+    exportStyledRowsToSpreadsheet(headers, rows, 'Заявки', filename, {
       headerColor: '14B8A6', totalColor: 'CCFBF1',
       numericColumns: ['Дка'],
     })
@@ -184,10 +252,30 @@ export default function Requests() {
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по контрагент, № поливка..." />
             <ImportButton onFile={handleImport} />
             <Btn variant="secondary" onClick={exportRequests}><ExportIcon /> Експорт</Btn>
+            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={requests.length === 0}>
+              <TrashIcon /> Изтрий всичко
+            </Btn>
             <Btn onClick={openAdd}>+ Нова заявка</Btn>
           </>
         }
       />
+
+      <div className="grid grid-cols-5 gap-3 mb-6">
+        {htuCounts.map(({ name, count }, i) => {
+          const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
+          const isActive = htuFilter === name
+          return (
+            <button
+              key={name}
+              onClick={() => setHtuFilter(f => f === name ? null : name)}
+              className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
+            >
+              <p className="text-xs font-medium opacity-90 truncate">{name}</p>
+              <p className="mt-1 text-2xl font-semibold">{count}</p>
+            </button>
+          )
+        })}
+      </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
         <button
@@ -233,8 +321,17 @@ export default function Requests() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-br from-teal-500 to-teal-600">
-                {['Контрагент', 'Култури', 'Дка', '№ поливка', 'Начална дата', 'Крайна дата', 'Статус', 'Действия'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap">{h}</th>
+                {([
+                  ['Контрагент', 'contractorName'], ['Култури', 'crops'], ['Дка', 'area'], ['№ поливка', 'irrigationNumber'],
+                  ['Начална дата', 'startDate'], ['Крайна дата', 'endDate'], ['Статус', 'status'], ['Действия', null],
+                ] as [string, SortField | null][]).map(([h, field]) => (
+                  <th
+                    key={h}
+                    onClick={field ? () => toggleSort(field) : undefined}
+                    className={`text-left px-4 py-3 text-xs font-semibold text-white uppercase tracking-wide whitespace-nowrap ${field ? 'cursor-pointer select-none hover:bg-white/10 transition-colors' : ''}`}
+                  >
+                    {h}{field && sortField === field && (sortDir === 'asc' ? ' ▲' : ' ▼')}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -278,13 +375,16 @@ export default function Requests() {
       </Card>
 
       {isOpen && (
-        <Modal title={adding ? 'Нова Заявка' : 'Редактирай Заявка'} onClose={() => { setAdding(false); setEditing(null) }}>
+        <Modal title={adding ? 'Нова Заявка' : 'Редактирай Заявка'} onClose={() => { setAdding(false); setEditing(null) }} onSave={save}>
           <div className="flex flex-col gap-4">
             <FormRow label="Контрагент" required>
-              <Select value={form.contractorId} onChange={e => setContractor(e.target.value)}>
-                <option value="">— Избери —</option>
-                {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
+              <Combobox
+                value={form.contractorId}
+                onChange={setContractor}
+                options={contractors.map(c => ({ id: c.id, label: c.name }))}
+                onCreate={name => findOrCreateContractor(name)}
+                placeholder="Избери или въведи контрагент..."
+              />
             </FormRow>
             <FormRow label="Култури и площи по договор">
               {(() => {
@@ -328,6 +428,7 @@ export default function Requests() {
               <Input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} />
             </FormRow>
           </div>
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
           <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
             <Btn variant="secondary" onClick={() => { setAdding(false); setEditing(null) }}>Откажи</Btn>
             {adding && <Btn variant="secondary" onClick={saveAndNew} disabled={!form.contractorId}>Запис и нов</Btn>}
@@ -341,6 +442,14 @@ export default function Requests() {
           message="Сигурни ли сте, че искате да изтриете тази заявка?"
           onConfirm={confirmDelete}
           onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {deleteAllConfirm && (
+        <ConfirmDialog
+          message={`Сигурни ли сте, че искате да изтриете ВСИЧКИ заявки (${requests.length})? Това действие е необратимо.`}
+          onConfirm={confirmDeleteAll}
+          onCancel={() => setDeleteAllConfirm(false)}
         />
       )}
 

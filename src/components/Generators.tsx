@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import PizZip from 'pizzip'
 import { useStore } from '../store'
 import type { Contract, Act, IrrigRequest, Contractor } from '../types'
-import { Btn, FormRow, Input, NumberInput, Select, num, DownloadIcon, PrinterIcon } from './ui'
+import { Btn, FormRow, Input, NumberInput, Select, Autocomplete, num, DownloadIcon, PrinterIcon } from './ui'
 import { fillDocxTemplate, downloadBlob, openInDefaultApp, docxFillErrorMessage, type DocxTagData } from '../lib/docx-fill'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
@@ -36,6 +36,12 @@ function esc(s: string | number | undefined | null): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+/** Formats a дка (area) value for a generated document: whole numbers print without decimals (55, not 55.00); fractional values keep up to 2. */
+function numArea(v: number | string): string {
+  const n = Number(v)
+  return isNaN(n) ? '0' : n.toLocaleString('bg-BG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
 /** Pads a list with `null` placeholders so it renders at least `min` table rows (blank ones for manual filling), matching the real template's pre-ruled blank rows. */
 function padRows<T>(rows: T[], min: number): (T | null)[] {
   return rows.length >= min ? rows : [...rows, ...Array(min - rows.length).fill(null)]
@@ -55,14 +61,16 @@ function bgTwoDigits(n: number): string {
   return t ? BG_TENS[t] : BG_ONES[o]
 }
 
-/** Spells out a 0-999 number in Bulgarian words. */
+/** Spells out a 0-999 number in Bulgarian words (e.g. 310 -> "триста и десет", 325 -> "триста двадесет и пет"). */
 function bgThreeDigits(n: number): string {
   const h = Math.floor(n / 100)
   const rem = n % 100
-  const segs: string[] = []
-  if (h) segs.push(BG_HUNDREDS[h])
-  if (rem) segs.push(bgTwoDigits(rem))
-  return segs.join(' ')
+  if (!h) return bgTwoDigits(rem)
+  if (!rem) return BG_HUNDREDS[h]
+  // bgTwoDigits already inserts its own "и" when rem has both tens and ones (e.g. "двадесет и пет") —
+  // in that case join with a plain space; otherwise (a bare ten/teen remainder) join with "и".
+  const hasInternalAnd = rem >= 20 && rem % 10 !== 0
+  return `${BG_HUNDREDS[h]}${hasInternalAnd ? ' ' : ' и '}${bgTwoDigits(rem)}`
 }
 
 /** Spells out a non-negative integer (up to millions) in Bulgarian words. */
@@ -92,6 +100,17 @@ function amountToWordsBG(amount: number): string {
 function vatDisplay(cont: Contractor | undefined): string {
   if (cont?.vatRegistered) return `BG${cont.bulstat || ''}`
   return cont?.vatNumber || '………………'
+}
+
+/**
+ * Signature-line name: for a company, the МОЛ/manager (not the firm name) — nobody signs "/ Агро
+ * Фарм ЕООД /". For a private person or ЗП, their own name, with a leading "ЗП" label stripped
+ * since it's redundant on a signature line.
+ */
+function signatureName(cont: Contractor | undefined): string {
+  if (!cont) return ''
+  if (cont.entityType === 'legal') return cont.contact || cont.name || ''
+  return cont.name.replace(/^\s*зп\.?\s+/i, '').trim()
 }
 
 /** Triggers a browser download of a text/HTML blob, saved as a Word-openable .doc file. */
@@ -385,7 +404,7 @@ function ContractGenerator() {
         <td style="${td}">${esc(r.equipment)}</td>
         <td style="${td}">${esc(r.village)}</td>
         <td style="${td}">${esc(r.cropName)}</td>
-        <td style="${tdR}">${num(r.area, 2)}</td>
+        <td style="${tdR}">${numArea(r.area)}</td>
         <td style="${tdR}">${num(r.cubicPerDka, 0)}</td>
         <td style="${tdR}">${num(r.waterCubic, 0)}</td>
         <td style="${tdR}">${r.isGravity ? `${num(r.waterCubic, 0)}${r.methodSubType ? `<div style="font-size:9pt;color:#666">${esc(r.methodSubType)}</div>` : ''}` : ''}</td>
@@ -407,7 +426,7 @@ function ContractGenerator() {
 
       <p style="${pJ}"><b>1. </b>„<b style="text-transform:uppercase">Напоителни системи</b> “<b>ЕАД</b> – клон „Средна Тунджа”, ЕИК: 831160078, със седалище и адрес
       на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по
-      вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова,
+      вписванията, представлявано от управителя инж. Митошка Ишмериева и гл. счетоводител Стоянка Карагьозова,
       наричано по-долу <b>ДОСТАВЧИК</b></p>
       <p style="${base};margin:4pt 0 0 2.5cm">и</p>
       ${party2Html}
@@ -483,14 +502,14 @@ function ContractGenerator() {
       ЦЕНИ НА ВОДАТА.</p>
       <p style="${pJ}">(2). Общата дължима по договора цена е <b>${num(totalWithVat, 2)} €</b> /с думи: ${esc(amountToWordsBG(totalWithVat))}/ евро и е формирана като сбор от
       цените за всички поливки с ДДС.</p>
-      <p style="${pJ};page-break-before:always">(3). Размерът на дължимата за всяка поливка цена се определя по реда на чл. 8, ал. 4 от Общите условия
+      <p style="${pJ}">(3). Размерът на дължимата за всяка поливка цена се определя по реда на чл. 8, ал. 4 от Общите условия
       към договора за доставка на вода за напояване /Общите условия/ и се записва във всяка подадена Заявка за поливка
       /Приложение № 4 / към Общите условия.</p>
       <p style="${pJ}">(4). Окончателната цена на предоставената по договора услуга се определя въз основа на съставения
       по реда на чл.8, ал.6 от Общите условия Констативен протокол за действително доставен обем вода през поливен
       сезон 2026г. – /Приложение № 3/.</p>
 
-      <p style="${pC}">IІІ. НАЧИН НА ПЛАЩАНЕ.</p>
+      <p style="${pC};page-break-before:always">IІІ. НАЧИН НА ПЛАЩАНЕ.</p>
       <p style="${pJ}"><b>Чл.4.</b> (1) Дължимата от ВОДОПОЛЗВАТЕЛЯ по договора цена се заплаща периодично, след всяка поливка и
       издаване на фактура.</p>
       <p style="${pJ}">(2). Фактурата се издава в петдневен срок от съставяне от ДОСТАВЧИКА на „Акт за доставен обем вода“
@@ -544,10 +563,10 @@ function ContractGenerator() {
       <p style="${pJ}"><b>Чл.10.</b> Всички съобщения и уведомления между страните се изпращат на следните адреси:</p>
       <p style="${pJ}">За ДОСТАВЧИКА: гр. Сливен, ул. „Д. Пехливанов” № 2</p>
       <p style="${pJ}">За ВОДОПОЛЗВАТЕЛЯ: ${esc(cont?.address || '__________________________________________')}</p>
-      <p style="${pJ};page-break-before:always"><b>Чл.11.</b> При промяна на адреса за кореспонденция, страната, която го е променила, се задължава да
+      <p style="${pJ}"><b>Чл.11.</b> При промяна на адреса за кореспонденция, страната, която го е променила, се задължава да
       уведоми другата страна. В противен случай, всички изпратени съобщения ще се считат за получени.</p>
 
-      <p style="${pC}">IX. ДОПЪЛНИТЕЛНИ РАЗПОРЕДБИ</p>
+      <p style="${pC};page-break-before:always">IX. ДОПЪЛНИТЕЛНИ РАЗПОРЕДБИ</p>
       <p style="${pJ}"><b>Чл.12.</b>С подписването на настоящия договор ВОДОПОЛЗВАТЕЛЯТ декларира, че е запознат и приема
       Общите условия за доставка на вода за напояване и се съгласява с тях.</p>
       <p style="${pJ}"><b>Чл.13.</b> За неуредените в този договор въпроси се прилагат Общите условия.</p>
@@ -571,7 +590,7 @@ function ContractGenerator() {
           <td style="${base};vertical-align:top;width:50%;padding:0 8pt 0 0">
             <p style="${base};margin:0"><b>ДОСТАВЧИК</b>: ...................................</p>
             <p style="${base};font-size:8pt;margin:16pt 0 0 0">Управител на клон „Средна Тунджа”</p>
-            <p style="${base};font-size:8pt;margin:0">инж. Пламен Иванов Иванов</p>
+            <p style="${base};font-size:8pt;margin:0">инж. Митошка Ишмериева</p>
             <p style="${base};font-size:8pt;margin:16pt 0 0 0">Главен счетоводител клон ...................................</p>
             <p style="${base};font-size:8pt;margin:0">Стоянка Бянова Карагьозова</p>
             <p style="${base};font-size:8pt;margin:16pt 0 0 0">Р-л ХТР: ...................................</p>
@@ -581,7 +600,7 @@ function ContractGenerator() {
           </td>
           <td style="${base};vertical-align:top;width:50%;padding:0 0 0 8pt">
             <p style="${base};margin:0"><b>ВОДОПОЛЗВАТЕЛ</b>: ...................................</p>
-            <p style="${base};font-size:8pt;margin:16pt 0 0 0">/ ${esc(cont?.name || '')} /</p>
+            <p style="${base};font-size:8pt;margin:16pt 0 0 0">/ ${esc(signatureName(cont))} /</p>
           </td>
         </tr></table>
       </div>
@@ -650,7 +669,7 @@ function ContractGenerator() {
       xtc(r.equipment, { width: w1, fontSize: fs }) +
       xtc(r.village, { width: w2, fontSize: fs }) +
       xtc(r.cropName, { width: w3, fontSize: fs }) +
-      xtc(num(r.area, 2), { align: 'right', width: w4, fontSize: fs }) +
+      xtc(numArea(r.area), { align: 'right', width: w4, fontSize: fs }) +
       xtc(num(r.cubicPerDka, 0), { align: 'right', width: w5, fontSize: fs }) +
       xtc(num(r.waterCubic, 0), { align: 'right', width: w6, fontSize: fs }) +
       xtc(r.isGravity ? num(r.waterCubic, 0) : '', { align: 'right', subText: r.isGravity ? r.methodSubType : undefined, width: w7, fontSize: fs }) +
@@ -699,7 +718,7 @@ function ContractGenerator() {
         `<w:tc><w:tcPr><w:tcW w:w="4800" w:type="dxa"/></w:tcPr>` +
           xp(xw('ДОСТАВЧИК', true) + xw(': ...................................'), { before: 320 }) +
           xp(xw('Управител на клон „Средна Тунджа”', false, false, 16), { before: 320 }) +
-          xp(xw('инж. Пламен Иванов Иванов', false, false, 16), {}) +
+          xp(xw('инж. Митошка Ишмериева', false, false, 16), {}) +
           xp(xw('Главен счетоводител клон ...................................', false, false, 16), { before: 320 }) +
           xp(xw('Стоянка Бянова Карагьозова', false, false, 16), {}) +
           xp(xw('Р-л ХТР: ...................................', false, false, 16), { before: 320 }) +
@@ -709,7 +728,7 @@ function ContractGenerator() {
         `</w:tc>` +
         `<w:tc><w:tcPr><w:tcW w:w="4800" w:type="dxa"/></w:tcPr>` +
           xp(xw('ВОДОПОЛЗВАТЕЛ', true) + xw(': ...................................'), { before: 320 }) +
-          xp(xw(`/ ${cont?.name || ''} /`, false, false, 16), { before: 320 }) +
+          xp(xw(`/ ${signatureName(cont)} /`, false, false, 16), { before: 320 }) +
         `</w:tc>`
       ) +
       `</w:tbl>`
@@ -720,7 +739,7 @@ function ContractGenerator() {
       xBody(`Днес, ${formatDayMonth(form.date)} 2026. в гр. Ямбол, между:`, 480),
       xBody([
         ['1. ', true], ['„', false], ['Напоителни системи', true, true], [' “', false], ['ЕАД', true],
-        [' – клон „Средна Тунджа”, ЕИК: 831160078, със седалище и адрес на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова, наричано по-долу ', false],
+        [' – клон „Средна Тунджа”, ЕИК: 831160078, със седалище и адрес на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по вписванията, представлявано от управителя инж. Митошка Ишмериева и гл. счетоводител Стоянка Карагьозова, наричано по-долу ', false],
         ['ДОСТАВЧИК', true],
       ]),
       `<w:p><w:pPr><w:ind w:left="1417" w:firstLine="0"/><w:spacing w:before="80" w:after="0"/></w:pPr>${xw('и')}</w:p>`,
@@ -741,10 +760,10 @@ function ContractGenerator() {
       xHeading('IІІ. ЦЕНА НА УСЛУГАТА. ЦЕНА НА ЗАЯВКА И ОБЩА ЦЕНА. ОКОНЧАТЕЛНА ЦЕНА.'),
       xBody([['Чл.3. (1) Цената на услугата „доставка на вода за напояване“ за куб. метър е определена, както следва: доставка на вода за напояване по гравитачен път ', false], ['0.0128', true], [' евро без ДДС; за помпено доставяне: ', false], ['0.0194', true], [' евро без ДДС. Цената е оповестена на интернет страницата на дружеството на адрес: https://nps.bg/ - раздел ЦЕНИ НА ВОДАТА.', false]]),
       xBody([['(2). Общата дължима по договора цена е ', false], [`${num(totalWithVat, 2)} €`, true], [` /с думи: ${amountToWordsBG(totalWithVat)}/ евро и е формирана като сбор от цените за всички поливки с ДДС.`, false]]),
-      xPageBreak(),
       xBody('(3). Размерът на дължимата за всяка поливка цена се определя по реда на чл. 8, ал. 4 от Общите условия към договора за доставка на вода за напояване /Общите условия/ и се записва във всяка подадена Заявка за поливка /Приложение № 4 / към Общите условия.'),
       xBody('(4). Окончателната цена на предоставената по договора услуга се определя въз основа на съставения по реда на чл.8, ал.6 от Общите условия Констативен протокол за действително доставен обем вода през поливен сезон 2026г. – /Приложение № 3/.'),
 
+      xPageBreak(),
       xHeading('IІІ. НАЧИН НА ПЛАЩАНЕ.'),
       xBody([['Чл.4.', true], [' (1) Дължимата от ВОДОПОЛЗВАТЕЛЯ по договора цена се заплаща периодично, след всяка поливка и издаване на фактура.', false]]),
       xBody('(2). Фактурата се издава в петдневен срок от съставяне от ДОСТАВЧИКА на „Акт за доставен обем вода“ за съответната поливка. Във фактурата освен задължителните реквизити по Закона за счетоводството задължително се изписват: номер и срок на договора.'),
@@ -789,9 +808,9 @@ function ContractGenerator() {
       xBody([['Чл.10.', true], [' Всички съобщения и уведомления между страните се изпращат на следните адреси:', false]]),
       xBody('За ДОСТАВЧИКА: гр. Сливен, ул. „Д. Пехливанов” № 2'),
       xBody(`За ВОДОПОЛЗВАТЕЛЯ: ${cont?.address || '__________________________________________'}`),
-      xPageBreak(),
       xBody([['Чл.11.', true], [' При промяна на адреса за кореспонденция, страната, която го е променила, се задължава да уведоми другата страна. В противен случай, всички изпратени съобщения ще се считат за получени.', false]]),
 
+      xPageBreak(),
       xHeading('IX. ДОПЪЛНИТЕЛНИ РАЗПОРЕДБИ'),
       xBody([['Чл.12.', true], ['С подписването на настоящия договор ВОДОПОЛЗВАТЕЛЯТ декларира, че е запознат и приема Общите условия за доставка на вода за напояване и се съгласява с тях.', false]]),
       xBody([['Чл.13.', true], [' За неуредените в този договор въпроси се прилагат Общите условия.', false]]),
@@ -938,9 +957,12 @@ function ContractGenerator() {
           </FormRow>
           <div className="col-span-2">
             <FormRow label="Контрагент">
-              <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
-                {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
+              <Autocomplete
+                value={form.contractorId ?? ''}
+                onChange={id => setF({ contractorId: id })}
+                options={contractors.map(c => ({ id: c.id, label: c.name }))}
+                placeholder="Търси по име..."
+              />
             </FormRow>
           </div>
           <FormRow label="ХТУ, Съоражение">
@@ -962,7 +984,7 @@ function ContractGenerator() {
             <Input type="number" value={form.area || ''} onChange={e => setF({ area: parseFloat(e.target.value) || 0 })} />
           </FormRow>
           <FormRow label="Бр. поливки">
-            <Input type="number" step="0.01" value={form.irrigationCount || ''} onChange={e => setF({ irrigationCount: parseFloat(e.target.value) || 0 })} />
+            <NumberInput value={form.irrigationCount ?? 0} onChange={n => setF({ irrigationCount: n })} />
           </FormRow>
           <FormRow label="Напоителна норма м³/дка">
             <Input type="number" value={form.cubicPerDka || ''} onChange={e => setF({ cubicPerDka: parseFloat(e.target.value) || 0 })} />
@@ -1013,7 +1035,7 @@ function ContractGenerator() {
                 <Input type="number" value={row.cubicPerDka || ''} onChange={e => updateExtraRow(row.id, { cubicPerDka: parseFloat(e.target.value) || 0 })} />
               </FormRow>
               <FormRow label="Бр. поливки">
-                <Input type="number" step="0.01" value={row.irrigationCount || ''} onChange={e => updateExtraRow(row.id, { irrigationCount: parseFloat(e.target.value) || 0 })} />
+                <NumberInput value={row.irrigationCount} onChange={n => updateExtraRow(row.id, { irrigationCount: n })} />
               </FormRow>
               <FormRow label="Ед. цена">
                 <NumberInput value={row.unitPrice} onChange={n => updateExtraRow(row.id, { unitPrice: n })} />
@@ -1067,7 +1089,7 @@ function ContractGenerator() {
                 <p className="text-justify indent-6">
                   <strong>1. </strong>„<strong className="uppercase">Напоителни системи</strong> “<strong>ЕАД</strong> – клон „Средна Тунджа”, ЕИК: 831160078, със седалище и адрес
                   на управление гр. Сливен, ул. „Д. Пехливанов” № 2, вписано в Търговския регистър при Агенция по
-                  вписванията, представлявано от управителя инж. Пламен Иванов и гл. счетоводител Стоянка Карагьозова,
+                  вписванията, представлявано от управителя инж. Митошка Ишмериева и гл. счетоводител Стоянка Карагьозова,
                   наричано по-долу <strong>ДОСТАВЧИК</strong>
                 </p>
                 <p className="pl-10">и</p>
@@ -1159,7 +1181,7 @@ function ContractGenerator() {
                               <td className="border border-gray-200 px-1 py-1">{r.equipment}</td>
                               <td className="border border-gray-200 px-1 py-1">{r.village}</td>
                               <td className="border border-gray-200 px-1 py-1">{r.cropName}</td>
-                              <td className="border border-gray-200 px-1 py-1 text-right">{num(r.area, 2)}</td>
+                              <td className="border border-gray-200 px-1 py-1 text-right">{numArea(r.area)}</td>
                               <td className="border border-gray-200 px-1 py-1 text-right">{num(r.cubicPerDka, 0)}</td>
                               <td className="border border-gray-200 px-1 py-1 text-right">{num(r.waterCubic, 0)}</td>
                               <td className="border border-gray-200 px-1 py-1 text-right">
@@ -1397,7 +1419,7 @@ function ContractGenerator() {
                     <div>
                       <p><strong>ДОСТАВЧИК</strong>: ...................................</p>
                       <p className="mt-4 text-[8px]">Управител на клон „Средна Тунджа”</p>
-                      <p className="text-[8px]">инж. Пламен Иванов Иванов</p>
+                      <p className="text-[8px]">инж. Митошка Ишмериева</p>
                       <p className="mt-4 text-[8px]">Главен счетоводител клон ...................................</p>
                       <p className="text-[8px]">Стоянка Бянова Карагьозова</p>
                       <p className="mt-4 text-[8px]">Р-л ХТР: ...................................</p>
@@ -1407,7 +1429,7 @@ function ContractGenerator() {
                     </div>
                     <div>
                       <p><strong>ВОДОПОЛЗВАТЕЛ</strong>: ...................................</p>
-                      <p className="mt-4 text-[8px]">/ {cont?.name || ''} /</p>
+                      <p className="mt-4 text-[8px]">/ {signatureName(cont)} /</p>
                     </div>
                   </div>
                 </div>
@@ -1486,7 +1508,7 @@ function ActGenerator() {
       zemlishte: form.village ?? '',
       nachin_polivane: method?.name ?? '',
       kultura: crop?.name ?? '',
-      ploshte: num(form.area ?? 0, 2),
+      ploshte: numArea(form.area ?? 0),
       kub_m_dka: num(form.cubicPerDka ?? 0, 0),
       voda_kub_m: num(form.waterCubic ?? 0, 0),
       ed_cena: num(form.unitPrice ?? 0, 4),
@@ -1577,7 +1599,7 @@ function ActGenerator() {
           </div>
           <FormRow label="ХТУ">
             <Select value={form.htuId} onChange={e => { const h = htus.find(x => x.id === e.target.value); setF({ htuId: e.target.value, village: h?.village ?? '' }) }}>
-              {htus.map(h => <option key={h.id} value={h.id}>{h.htuName}</option>)}
+              {htus.map(h => <option key={h.id} value={h.id}>{h.htuName} — {h.equipment}</option>)}
             </Select>
           </FormRow>
           <FormRow label="Землище">

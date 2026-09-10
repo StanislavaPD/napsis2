@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { Contractor, HTU, IrrigationMethod, Crop, Contract, Act, IrrigRequest, Payment } from './types'
+import { buildArchive, BACKUP_FOLDER_KEY, LAST_AUTO_BACKUP_KEY } from './lib/backup'
+import { blobToBase64 } from './lib/docx-fill'
 
 interface StoreState {
   contractors: Contractor[]
@@ -18,6 +20,7 @@ interface StoreState {
   setActs: (v: Act[]) => void
   setRequests: (v: IrrigRequest[]) => void
   setPayments: (v: Payment[]) => void
+  findOrCreateContractor: (name: string) => string
 }
 
 const StoreContext = createContext<StoreState | null>(null)
@@ -37,59 +40,50 @@ const CONTRACTOR_EXTRA_DEFAULTS = {
   hasProxy: false, proxyName: '', proxyEgn: '', notaryDeedNumber: '', notaryName: '', notaryJurisdiction: '',
 }
 
-const SAMPLE_CONTRACTORS: Contractor[] = [
-  { id: '1', name: 'Агро Фарм ЕООД', bulstat: '123456789', address: 'с. Горно Езерово, ул. Главна 5', contact: 'Иван Петров', phone: '0888 123 456', iban: '', ...CONTRACTOR_EXTRA_DEFAULTS },
-  { id: '2', name: 'Зелена Нива АД', bulstat: '987654321', address: 'гр. Пловдив, бул. Марица 12', contact: 'Мария Стоянова', phone: '0877 654 321', iban: '', ...CONTRACTOR_EXTRA_DEFAULTS },
-  { id: '3', name: 'Слънчева Долина ЕТ', bulstat: '456789123', address: 'с. Долно Езерово, ул. Тракия 3', contact: 'Георги Николов', phone: '0899 321 654', iban: '', ...CONTRACTOR_EXTRA_DEFAULTS },
-]
+const SAMPLE_CONTRACTORS: Contractor[] = []
 
 const SAMPLE_HTUS: HTU[] = [
-  { id: '1', htuName: 'ХТУ Безмер', equipment: 'Помпена станция П-1', village: 'Безмер' },
-  { id: '2', htuName: 'ХТУ Ямбол', equipment: 'Помпена станция П-2', village: 'Ямбол' },
-  { id: '3', htuName: 'ХТУ Зимница', equipment: 'Хидровъзел Г-3', village: 'Зимница' },
-  { id: '4', htuName: 'ХТУ Болярово', equipment: 'Помпена станция П-4', village: 'Болярово' },
-  { id: '5', htuName: 'ХТУ Стралджа', equipment: 'Помпена станция П-5', village: 'Стралджа' },
+  { id: '2',            htuName: 'ХТУ  "Ямбол"',    equipment: 'ЯГ -4 ПС ДЗС', village: 'гр. Ямбол' },
+  { id: '3',            htuName: 'ХТУ  "Зимница"', equipment: 'Р-9',           village: 'с. Зимница' },
+  { id: '4',            htuName: 'ХТУ  "Болярово"',equipment: 'Р-4',           village: 'гр. Болярово' },
+  { id: '5',            htuName: 'ХТУ  "Стралджа"',equipment: 'ГСТ',           village: 'гр. Стралджа' },
+  { id: '1786719120870',htuName: 'ХТУ  "Безмер"',  equipment: 'M-1-3',         village: 'с. Гълъбинци' },
+  { id: '1786719673623',htuName: 'ХТУ  "Безмер"',  equipment: 'M-1-3',         village: 'с. Безмер' },
+  { id: '1786719734094',htuName: 'ХТУ  "Безмер"',  equipment: 'M-1-3',         village: 'с. Болярско' },
+  { id: '1786720010999',htuName: 'ХТУ  "Зимница"', equipment: 'Р-9',           village: 'с. Веселиново' },
+  { id: '1786720024548',htuName: 'ХТУ  "Зимница"', equipment: 'Р-10',          village: 'с. Зимница' },
+  { id: '1786720040348',htuName: 'ХТУ  "Зимница"', equipment: 'Р-9',           village: 'с. Завой' },
 ]
 
 const SAMPLE_METHODS: IrrigationMethod[] = [
-  { id: '1', name: 'Гравитачно напояване - Капково' },
-  { id: '2', name: 'Гравитачно напояване - Дъждуване' },
-  { id: '3', name: 'Гравитачно напояване - С водомер' },
-  { id: '4', name: 'Помпено напояване - Капково' },
-  { id: '5', name: 'Помпено напояване - Дъждуване' },
-  { id: '6', name: 'Помпено напояване - С водомер' },
+  { id: '1',            name: 'Гравитачно  - капково' },
+  { id: '2',            name: 'Гравитачно - дъждуване' },
+  { id: '3',            name: 'Гравитачно  - с водомер' },
+  { id: '4',            name: 'Помпено  - капково' },
+  { id: '5',            name: 'Помпено  - дъждуване' },
+  { id: '6',            name: 'Помпено - с водомер' },
+  { id: '1786720870979',name: 'Гравитачно' },
+  { id: '1786720955889',name: 'Помпено' },
 ]
 
 const SAMPLE_CROPS: Crop[] = [
-  { id: '1', name: 'Пшеница' },
-  { id: '2', name: 'Царевица' },
-  { id: '3', name: 'Слънчоглед' },
-  { id: '4', name: 'Домати' },
-  { id: '5', name: 'Краставици' },
-  { id: '6', name: 'Картофи' },
+  { id: '1',            name: 'Пшеница' },
+  { id: '2',            name: 'Царевица' },
+  { id: '3',            name: 'Слънчоглед' },
+  { id: '4',            name: 'Домати' },
+  { id: '5',            name: 'Краставици' },
+  { id: '6',            name: 'Картофи' },
+  { id: '1786720213915',name: 'Маточина' },
+  { id: '1786720325062',name: 'Лозя' },
+  { id: '1786720364345',name: 'Люцерна' },
+  { id: '1786720410777',name: 'Бостан' },
+  { id: '1786720461585',name: 'Тр. насаждения' },
+  { id: '1786720513396',name: 'Зеленчуци' },
+  { id: '1786721942956',name: 'Бадем' },
+  { id: '1786721954695',name: 'Сливи' },
 ]
 
-const SAMPLE_CONTRACTS: Contract[] = [
-  {
-    id: '1',
-    date: '2024-03-15',
-    number: 'Д-001/2024',
-    contractorId: '1',
-    htuId: '1',
-    village: 'Горно Езерово',
-    irrigationMethodId: '1',
-    cropId: '2',
-    area: 50,
-    irrigationCount: 4,
-    totalDka: 200,
-    cubicPerDka: 380,
-    waterCubic: 76000,
-    unitPrice: 0.08,
-    value: 6080,
-    irrigationNumber: '1',
-    month: 'Юни',
-  },
-]
+const SAMPLE_CONTRACTS: Contract[] = []
 
 /**
  * Renames legacy "Фурмово напояване" entries (however cased) to "Помпено напояване", and adds
@@ -100,7 +94,7 @@ function migrateMethods(methods: IrrigationMethod[]): IrrigationMethod[] {
   const renamed = methods.map(m =>
     m.name.trim().toLowerCase() === 'фурмово напояване' ? { ...m, name: 'Помпено напояване' } : m
   )
-  const haveCombos = renamed.some(m => /^(гравитачно|помпено) напояване - /i.test(m.name.trim()))
+  const haveCombos = renamed.some(m => /^(гравитачно|помпено)(\s+напояване)?\s*-/i.test(m.name.trim()))
   if (haveCombos) return renamed
   const missing = SAMPLE_METHODS
     .filter(sm => !renamed.some(m => m.name.trim() === sm.name))
@@ -109,22 +103,18 @@ function migrateMethods(methods: IrrigationMethod[]): IrrigationMethod[] {
 }
 
 /**
- * Ensures all 5 named ХТУ exist. Drops duplicate-named entries (data corruption cleanup from an
- * earlier migration bug that could repeatedly add the same name) and backfills any of the 5 that
- * are still missing — never removes entries with names outside the canonical set.
+ * Drops entries that are fully identical (same ХТУ name, съоражение AND землище) — data corruption
+ * cleanup from an earlier migration bug. Same ХТУ name with a *different* съоражение or землище is a
+ * legit, intentional record (one ХТУ can have several съоражения), so only the full combo is a dup.
  */
 function migrateHtus(htus: HTU[]): HTU[] {
   const seen = new Set<string>()
-  const deduped = htus.filter(h => {
-    const key = h.htuName.trim()
+  return htus.filter(h => {
+    const key = `${h.htuName.trim().toLowerCase()}|${h.equipment.trim().toLowerCase()}|${h.village.trim().toLowerCase()}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
   })
-  const missing = SAMPLE_HTUS
-    .filter(sh => !deduped.some(h => h.htuName.trim() === sh.htuName))
-    .map((sh, i) => ({ ...sh, id: `htu-${Date.now()}-${i}` }))
-  return [...deduped, ...missing]
 }
 
 /** Converts payments saved before multi-crop/area support (`cropId` or `cropIds`, no per-crop `area`) to the `items` shape. */
@@ -226,6 +216,19 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
     return () => { cancelled = true }
   }, [useBackend, token])
 
+  /** Resolves a typed contractor name to an id, creating a bare-bones Contractor record if no existing one matches (case/whitespace-insensitive) — backs the contractor Combobox on the Requests/Contracts/Acts/Payments forms so operators can type a name instead of only picking from the register. */
+  function findOrCreateContractor(name: string): string {
+    const trimmed = name.trim()
+    const existing = contractors.find(c => c.name.trim().toLowerCase() === trimmed.toLowerCase())
+    if (existing) return existing.id
+    const id = Date.now().toString()
+    setContractors([...contractors, {
+      id, name: trimmed, bulstat: '', address: '', contact: '', phone: '', iban: '',
+      ...CONTRACTOR_EXTRA_DEFAULTS,
+    }])
+    return id
+  }
+
   function persist(collection: string, value: unknown[]) {
     if (!loaded) return
     if (useBackend && token) window.api!.setCollection(token, collection, value as Record<string, unknown>[])
@@ -241,6 +244,22 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
   useEffect(() => { persist('requests', requests) }, [requests, loaded])
   useEffect(() => { persist('payments', payments) }, [payments, loaded])
 
+  // Silent daily backup: writes the same fixed filename each time (no save dialog), so it's purely
+  // a local safety net — only runs once per calendar day, tracked via a localStorage date stamp.
+  useEffect(() => {
+    if (!loaded || !useBackend) return
+    const today = new Date().toISOString().slice(0, 10)
+    if (localStorage.getItem(LAST_AUTO_BACKUP_KEY) === today) return
+    const archive = buildArchive({ contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments })
+    const blob = new Blob([JSON.stringify(archive)], { type: 'application/json' })
+    blobToBase64(blob).then(base64 => {
+      const folder = localStorage.getItem(BACKUP_FOLDER_KEY)
+      window.api!.writeAutoBackup(folder, base64).then(res => {
+        if (!('error' in res)) localStorage.setItem(LAST_AUTO_BACKUP_KEY, today)
+      })
+    })
+  }, [loaded, useBackend, contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments])
+
   if (!loaded) return null
 
   return (
@@ -253,6 +272,7 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
       acts, setActs,
       requests, setRequests,
       payments, setPayments,
+      findOrCreateContractor,
     }}>
       {children}
     </StoreContext.Provider>

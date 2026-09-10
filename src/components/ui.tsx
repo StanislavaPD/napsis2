@@ -3,16 +3,30 @@ import { useRef, useState, useEffect, type ReactNode, type ChangeEvent, type Inp
 export function Modal({
   title,
   onClose,
+  onSave,
   children,
   wide = false,
   extraWide = false,
 }: {
   title: string
   onClose: () => void
+  onSave?: () => void
   children: ReactNode
   wide?: boolean
   extraWide?: boolean
 }) {
+  useEffect(() => {
+    if (!onSave) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+        e.preventDefault()
+        onSave!()
+      }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onSave])
+
   const w = extraWide ? 'max-w-6xl' : wide ? 'max-w-3xl' : 'max-w-lg'
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -134,6 +148,45 @@ export function SaveIcon({ className = 'w-4 h-4' }: { className?: string }) {
   )
 }
 
+export function CopyIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <rect x="8" y="8" width="11" height="13" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 8V6.5A1.5 1.5 0 0014.5 5h-9A1.5 1.5 0 004 6.5v11A1.5 1.5 0 005.5 19H8" />
+    </svg>
+  )
+}
+
+export function ArchiveBoxIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <rect x="3.75" y="4.5" width="16.5" height="4" rx="1" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.75 8.5v9a1.5 1.5 0 001.5 1.5h11.5a1.5 1.5 0 001.5-1.5v-9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 12.5h4" />
+    </svg>
+  )
+}
+
+export function ChartBarIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 20.25h16" />
+      <rect x="6" y="12.5" width="3" height="7.5" rx="0.75" />
+      <rect x="10.5" y="8" width="3" height="12" rx="0.75" />
+      <rect x="15" y="4.5" width="3" height="15.5" rx="0.75" />
+    </svg>
+  )
+}
+
+export function ClockIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <circle cx="12" cy="12" r="8.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5V12l3 2" />
+    </svg>
+  )
+}
+
 export function FormRow({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
@@ -194,6 +247,160 @@ export function NumberInput({
       }}
       className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition ${className}`}
     />
+  )
+}
+
+/**
+ * A text input that filters a dropdown of options as you type, instead of a long native <select>
+ * list — used where the option list is long enough that scrolling through it is slower than typing.
+ */
+export function Autocomplete({
+  value,
+  onChange,
+  options,
+  placeholder = 'Търсене...',
+}: {
+  value: string
+  onChange: (id: string) => void
+  options: { id: string; label: string }[]
+  placeholder?: string
+}) {
+  const selected = options.find(o => o.id === value)
+  const [query, setQuery] = useState(selected?.label ?? '')
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setQuery(selected?.label ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
+  const q = query.trim().toLowerCase()
+  const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q)) : options
+
+  function select(o: { id: string; label: string }) {
+    onChange(o.id)
+    setQuery(o.label)
+    setOpen(false)
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        placeholder={placeholder}
+      />
+      {open && (
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-gray-400">Няма съвпадения</p>
+          ) : (
+            filtered.map(o => (
+              <button
+                key={o.id}
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => select(o)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-teal-50 ${o.id === value ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'}`}
+              >
+                {o.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Like Autocomplete, but lets the user commit a name that isn't in the option list yet — `onCreate`
+ * is called with the typed text (on blur, Enter, or clicking the "+ Add" row) and must return the id
+ * to select, e.g. finding-or-creating a record. Used where a field is normally picked from a small
+ * register (contractors, etc.) but operators need to add one on the fly while filling in a form.
+ */
+export function Combobox({
+  value,
+  onChange,
+  options,
+  onCreate,
+  placeholder = 'Търсене или въвеждане...',
+}: {
+  value: string
+  onChange: (id: string) => void
+  options: { id: string; label: string }[]
+  onCreate?: (name: string) => string
+  placeholder?: string
+}) {
+  const selected = options.find(o => o.id === value)
+  const [query, setQuery] = useState(selected?.label ?? '')
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setQuery(selected?.label ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
+  const q = query.trim().toLowerCase()
+  const filtered = q ? options.filter(o => o.label.toLowerCase().includes(q)) : options
+  const exactMatch = options.find(o => o.label.trim().toLowerCase() === q)
+
+  function select(o: { id: string; label: string }) {
+    onChange(o.id)
+    setQuery(o.label)
+    setOpen(false)
+  }
+
+  function commit() {
+    setOpen(false)
+    const trimmed = query.trim()
+    if (!trimmed) { onChange(''); return }
+    const match = options.find(o => o.label.trim().toLowerCase() === trimmed.toLowerCase())
+    if (match) { select(match); return }
+    if (onCreate) onChange(onCreate(trimmed))
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        value={query}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit() } }}
+        placeholder={placeholder}
+      />
+      {open && (
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {filtered.map(o => (
+            <button
+              key={o.id}
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => select(o)}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-teal-50 ${o.id === value ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'}`}
+            >
+              {o.label}
+            </button>
+          ))}
+          {filtered.length === 0 && !onCreate && (
+            <p className="px-3 py-2 text-sm text-gray-400">Няма съвпадения</p>
+          )}
+          {onCreate && q && !exactMatch && (
+            <button
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={commit}
+              className="w-full text-left px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 border-t border-gray-100"
+            >
+              + Добави "{query.trim()}" като нов
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -1,10 +1,23 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useStore } from '../store'
-import type { Act } from '../types'
-import { Modal, Btn, FormRow, Input, NumberInput, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon } from './ui'
-import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, cellToDateStr, cellToNum, findByField, rowGet } from '../lib/spreadsheet'
+import type { Act, Contract } from '../types'
+import { Modal, Btn, FormRow, Input, NumberInput, Select, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon } from './ui'
+import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToDateStr, cellToNum, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
+import { countActs, findDuplicateAct } from '../lib/acts'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
+
+type BulkField = 'unitPrice' | 'area' | 'cubicPerDka' | 'htuId' | 'irrigationMethodId' | 'cropId'
+const BULK_FIELDS: BulkField[] = ['unitPrice', 'area', 'cubicPerDka', 'htuId', 'irrigationMethodId', 'cropId']
+const BULK_REF_FIELDS: BulkField[] = ['htuId', 'irrigationMethodId', 'cropId']
+const BULK_LABELS: Record<BulkField, string> = {
+  unitPrice: 'Ед. цена', area: 'Площ (дка)', cubicPerDka: 'куб.м./дка',
+  htuId: 'ХТУ', irrigationMethodId: 'Начин на поливане', cropId: 'Култура',
+}
+const EMPTY_BULK_ENABLED: Record<BulkField, boolean> = { unitPrice: false, area: false, cubicPerDka: false, htuId: false, irrigationMethodId: false, cropId: false }
+const EMPTY_BULK_VALUES: Record<BulkField, string> = { unitPrice: '', area: '', cubicPerDka: '', htuId: '', irrigationMethodId: '', cropId: '' }
+
+type SortField = 'date' | 'number' | 'contractorName' | 'htuName' | 'equipment' | 'village' | 'methodName' | 'cropName' | 'irrigationNumber' | 'area'
 const DOC_TYPES = ['Акт', 'Фактура', 'Протокол', 'Разписка', 'Друго']
 
 type ActForm = Omit<Act, 'id'>
@@ -35,26 +48,62 @@ function calcAct(f: ActForm): ActForm {
 }
 
 export default function Acts() {
-  const { acts, setActs, contractors, htus, irrigationMethods, crops } = useStore()
+  const { acts, setActs, contractors, htus, irrigationMethods, crops, contracts, findOrCreateContractor } = useStore()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Act | null>(null)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState<ActForm>(EMPTY)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteAllConfirm, setDeleteAllConfirm] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkModal, setBulkModal] = useState(false)
-  const [bulkField, setBulkField] = useState<'unitPrice' | 'area' | 'cubicPerDka'>('unitPrice')
-  const [bulkValue, setBulkValue] = useState('')
+  const [bulkEnabled, setBulkEnabled] = useState<Record<BulkField, boolean>>(EMPTY_BULK_ENABLED)
+  const [bulkValues, setBulkValues] = useState<Record<BulkField, string>>(EMPTY_BULK_VALUES)
+
+  function toggleBulkField(field: BulkField) {
+    setBulkEnabled(e => ({ ...e, [field]: !e[field] }))
+  }
+  function setBulkValue(field: BulkField, value: string) {
+    setBulkValues(v => ({ ...v, [field]: value }))
+  }
+  const bulkHasSelection = BULK_FIELDS.some(f => bulkEnabled[f] && bulkValues[f] !== '')
   const [importResult, setImportResult] = useState<{ added: number; errors: string[] } | null>(null)
   const [htuFilter, setHtuFilter] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  const htuCounts = htus.map(h => ({ htu: h, count: acts.filter(a => a.htuId === h.id).length }))
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
+
+  function sortValue(a: Act, field: SortField): string | number {
+    switch (field) {
+      case 'date': return a.date
+      case 'number': return a.number
+      case 'contractorName': return contractors.find(x => x.id === a.contractorId)?.name ?? ''
+      case 'htuName': return htus.find(x => x.id === a.htuId)?.htuName ?? ''
+      case 'equipment': return htus.find(x => x.id === a.htuId)?.equipment ?? ''
+      case 'village': return a.village
+      case 'methodName': return irrigationMethods.find(x => x.id === a.irrigationMethodId)?.name ?? ''
+      case 'cropName': return crops.find(x => x.id === a.cropId)?.name ?? ''
+      case 'irrigationNumber': return a.irrigationNumber
+      case 'area': return a.area
+    }
+  }
+
+  const htuNames = [...new Set(htus.map(h => h.htuName))]
+  const htuCounts = htuNames.map(name => ({
+    name,
+    count: countActs(acts.filter(a => htus.find(h => h.id === a.htuId)?.htuName === name)),
+  }))
 
   const filtered = acts.filter(a => {
     const cont = contractors.find(x => x.id === a.contractorId)
     const q = search.toLowerCase()
     return (
-      (!htuFilter || a.htuId === htuFilter) &&
+      (!htuFilter || htus.find(h => h.id === a.htuId)?.htuName === htuFilter) &&
       (
         a.number.toLowerCase().includes(q) ||
         a.docType.toLowerCase().includes(q) ||
@@ -64,14 +113,54 @@ export default function Acts() {
         a.irrigationNumber.toLowerCase().includes(q)
       )
     )
+  }).sort((a, b) => {
+    if (!sortField) return 0
+    const va = sortValue(a, sortField), vb = sortValue(b, sortField)
+    const cmp = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'bg', { numeric: true })
+    return sortDir === 'asc' ? cmp : -cmp
   })
 
+  /** Contracts signed with the given contractor — used to auto-suggest a crop's contracted area, ХТУ, начин на поливане, норма and цена when filling in an act. */
+  function contractsForContractor(contractorId: string) {
+    return contracts.filter(c => c.contractorId === contractorId)
+  }
+
+  /** Pulls the fields tied to a specific contract (area, ХТУ, землище, начин на поливане, норма, цена) onto a form patch — the operator can still edit any of them afterward. */
+  function withContractDefaults(patch: Partial<ActForm>, match: Contract | undefined): Partial<ActForm> {
+    if (!match) return patch
+    return {
+      ...patch,
+      area: match.area,
+      htuId: match.htuId,
+      village: match.village,
+      irrigationMethodId: match.irrigationMethodId,
+      cubicPerDka: match.cubicPerDka,
+      unitPrice: match.unitPrice,
+    }
+  }
+
   function defaultForm(): ActForm {
-    return { ...EMPTY, contractorId: contractors[0]?.id ?? '', htuId: htus[0]?.id ?? '', village: htus[0]?.village ?? '', irrigationMethodId: irrigationMethods[0]?.id ?? '', cropId: crops[0]?.id ?? '' }
+    const contractorId = contractors[0]?.id ?? ''
+    const match = contractsForContractor(contractorId)[0]
+    const base: ActForm = { ...EMPTY, contractorId, htuId: htus[0]?.id ?? '', village: htus[0]?.village ?? '', irrigationMethodId: irrigationMethods[0]?.id ?? '', cropId: crops[0]?.id ?? '' }
+    return { ...base, ...withContractDefaults({ cropId: match?.cropId ?? base.cropId }, match) }
+  }
+
+  /** Selecting a contractor auto-fills crop, площ, ХТУ etc. from their first signed contract (if any) — corrigible afterward. */
+  function setContractor(contractorId: string) {
+    const match = contractsForContractor(contractorId)[0]
+    setF(withContractDefaults({ contractorId, cropId: match?.cropId ?? form.cropId }, match))
+  }
+
+  /** Switching culture (when a contractor has several contracted crops) re-applies that crop's own contract data. */
+  function setCrop(cropId: string) {
+    const match = contractsForContractor(form.contractorId).find(c => c.cropId === cropId)
+    setF(withContractDefaults({ cropId }, match))
   }
 
   function openAdd() {
     setForm(defaultForm())
+    setFormError(null)
     setAdding(true)
   }
 
@@ -79,6 +168,7 @@ export default function Acts() {
     const { id, ...rest } = a
     void id
     setForm(rest)
+    setFormError(null)
     setEditing(a)
   }
 
@@ -95,6 +185,7 @@ export default function Acts() {
       unitPrice: a.unitPrice,
       date: new Date().toISOString().slice(0, 10),
     })
+    setFormError(null)
     setAdding(true)
   }
 
@@ -104,6 +195,9 @@ export default function Acts() {
 
   function save() {
     if (!form.number.trim() || !form.contractorId) return
+    const dup = findDuplicateAct(acts, form, editing?.id)
+    if (dup) { setFormError(`Вече съществува акт с номер "${form.number}" от ${form.date} за тази култура.`); return }
+    setFormError(null)
     if (adding) {
       setActs([...acts, { ...form, id: Date.now().toString() }])
       setAdding(false)
@@ -115,12 +209,19 @@ export default function Acts() {
 
   function saveAndNew() {
     if (!form.number.trim() || !form.contractorId || !adding) return
+    if (findDuplicateAct(acts, form)) { setFormError(`Вече съществува акт с номер "${form.number}" от ${form.date} за тази култура.`); return }
+    setFormError(null)
     setActs([...acts, { ...form, id: Date.now().toString() }])
     setForm(defaultForm())
   }
 
   function confirmDelete() {
     if (deleteId) { setActs(acts.filter(a => a.id !== deleteId)); setDeleteId(null) }
+  }
+
+  function confirmDeleteAll() {
+    setActs([])
+    setDeleteAllConfirm(false)
   }
 
   function toggleSelect(id: string) {
@@ -135,16 +236,26 @@ export default function Acts() {
   }
 
   function applyBulk() {
-    const val = parseFloat(bulkValue)
-    if (isNaN(val)) return
+    const activeFields = BULK_FIELDS.filter(f => bulkEnabled[f] && bulkValues[f] !== '')
+    if (activeFields.length === 0) return
     setActs(acts.map(a => {
       if (!selected.has(a.id)) return a
-      const updated = { ...a, [bulkField]: val }
+      const patch: Partial<Act> = {}
+      activeFields.forEach(f => {
+        if (BULK_REF_FIELDS.includes(f)) (patch as Record<string, string>)[f] = bulkValues[f]
+        else (patch as Record<string, number>)[f] = parseFloat(bulkValues[f])
+      })
+      if (activeFields.includes('htuId')) {
+        const htu = htus.find(h => h.id === bulkValues.htuId)
+        if (htu) patch.village = htu.village
+      }
+      const updated = { ...a, ...patch }
       return { ...updated, ...calcAct(updated) }
     }))
     setBulkModal(false)
     setSelected(new Set())
-    setBulkValue('')
+    setBulkEnabled(EMPTY_BULK_ENABLED)
+    setBulkValues(EMPTY_BULK_VALUES)
   }
 
   function handleHtuChange(htuId: string) {
@@ -164,13 +275,13 @@ export default function Acts() {
       const contractor = findByField(contractors, 'name', contractorName)
       if (!contractor) { errors.push(`Ред ${rowNum}: контрагент "${contractorName}" не е намерен`); return }
       const htuName = String(rowGet(row, 'ХТУ') ?? '').trim()
-      const htu = htuName ? findByField(htus, 'htuName', htuName) : undefined
+      const htu = htuName ? findSimilarByField(htus, 'htuName', htuName) : undefined
       if (htuName && !htu) errors.push(`Ред ${rowNum}: ХТУ "${htuName}" не е намерено, оставено празно`)
       const methodName = String(rowGet(row, 'Начин на поливане') ?? '').trim()
-      const method = methodName ? findByField(irrigationMethods, 'name', methodName) : undefined
+      const method = methodName ? findSimilarByField(irrigationMethods, 'name', methodName) : undefined
       if (methodName && !method) errors.push(`Ред ${rowNum}: начин на поливане "${methodName}" не е намерен, оставено празно`)
       const cropName = String(rowGet(row, 'Култура') ?? '').trim()
-      const crop = cropName ? findByField(crops, 'name', cropName) : undefined
+      const crop = cropName ? findSimilarByField(crops, 'name', cropName) : undefined
       if (cropName && !crop) errors.push(`Ред ${rowNum}: култура "${cropName}" не е намерена, оставена празна`)
       const docType = String(rowGet(row, 'Вид документ', 'Вид') ?? '').trim() || 'Акт'
       const base: ActForm = {
@@ -211,7 +322,8 @@ export default function Acts() {
         'Ед. цена': a.unitPrice, 'Стойност': a.value, 'Месец': a.month,
       }
     })
-    exportStyledRowsToSpreadsheet(headers, rows, 'Актове', `Актове_${new Date().toISOString().slice(0, 10)}.xlsx`, {
+    const filename = exportFilename('Актове', [htuFilter])
+    exportStyledRowsToSpreadsheet(headers, rows, 'Актове', filename, {
       headerColor: '3B82F6', totalColor: 'DBEAFE',
       numericColumns: ['Площ', 'Вода куб.м.', 'Стойност'],
     })
@@ -225,7 +337,7 @@ export default function Acts() {
     <div>
       <PageHeader
         title="Актове"
-        subtitle={`${acts.length} записа`}
+        subtitle={`${countActs(acts)} акта (${acts.length} записа)`}
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по номер, контрагент..." />
@@ -236,22 +348,25 @@ export default function Acts() {
             )}
             <ImportButton onFile={handleImport} />
             <Btn variant="secondary" onClick={exportActs}><ExportIcon /> Експорт</Btn>
+            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={acts.length === 0}>
+              <TrashIcon /> Изтрий всичко
+            </Btn>
             <Btn onClick={openAdd}>+ Нов акт</Btn>
           </>
         }
       />
 
       <div className="grid grid-cols-5 gap-3 mb-6">
-        {htuCounts.map(({ htu, count }, i) => {
+        {htuCounts.map(({ name, count }, i) => {
           const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
-          const isActive = htuFilter === htu.id
+          const isActive = htuFilter === name
           return (
             <button
-              key={htu.id}
-              onClick={() => setHtuFilter(f => f === htu.id ? null : htu.id)}
+              key={name}
+              onClick={() => setHtuFilter(f => f === name ? null : name)}
               className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
             >
-              <p className="text-xs font-medium opacity-90 truncate">{htu.htuName}</p>
+              <p className="text-xs font-medium opacity-90 truncate">{name}</p>
               <p className="mt-1 text-2xl font-semibold">{count}</p>
             </button>
           )
@@ -263,11 +378,22 @@ export default function Acts() {
           <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-gradient-to-br from-blue-500 to-blue-600">
-                <th className="px-3 py-3 w-10">
+                <th className="px-2 py-2.5 w-10">
                   <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
                 </th>
-                {['Дата', 'Номер', 'Контрагент', 'ХТУ', 'Съоражение', 'Землище', 'Начин на поливане', 'Култура', '№ поливка', 'Площ', 'куб.м./дка', 'Вода куб.м.', 'Ед. цена', 'Стойност', 'Месец', 'Действия'].map(h => (
-                  <th key={h} className="text-left px-3 py-3 text-xs font-semibold text-white uppercase tracking-wide">{h}</th>
+                {([
+                  ['Дата', 'date'], ['Номер', 'number'], ['Контрагент', 'contractorName'], [<span className="block text-center">ХТУ</span>, 'htuName', 'ХТУ'],
+                  [<span className="block text-center">Съоражение</span>, 'equipment', 'Съоражение'], ['Землище', 'village'], ['Начин на поливане', 'methodName'], ['Култура', 'cropName'],
+                  [<span className="block text-center leading-tight">№<br/>поливка</span>, 'irrigationNumber', '№ поливка'], ['Площ', 'area'], [<span className="block text-center leading-tight">куб.м./дка</span>, null, 'куб.м./дка'], [<span className="block text-center leading-tight">Вода куб.м.</span>, null, 'Вода куб.м.'],
+                  ['Ед. цена', null], ['Стойност', null], ['Месец', null], ['Действия', null],
+                ] as [React.ReactNode, SortField | null, string?][]).map(([h, field, key]) => (
+                  <th
+                    key={key ?? String(h)}
+                    onClick={field ? () => toggleSort(field) : undefined}
+                    className={`text-center px-2 py-2.5 text-xs font-semibold text-white uppercase tracking-wide ${field ? 'cursor-pointer select-none hover:bg-white/10 transition-colors' : ''}`}
+                  >
+                    {h}{field && sortField === field && (sortDir === 'asc' ? ' ▲' : ' ▼')}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -282,25 +408,25 @@ export default function Acts() {
                   const crop = crops.find(x => x.id === a.cropId)
                   return (
                     <tr key={a.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'} ${selected.has(a.id) ? 'bg-teal-50' : ''}`}>
-                      <td className="px-3 py-2.5 text-center">
+                      <td className="px-2 py-2 text-center">
                         <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggleSelect(a.id)} className="rounded" />
                       </td>
-                      <td className="px-3 py-2.5 text-gray-600">{a.date}</td>
-                      <td className="px-3 py-2.5 font-medium text-gray-900">{a.number}</td>
-                      <td className="px-3 py-2.5 text-gray-700">{cont?.name ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{h?.htuName ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{h?.equipment ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{a.village}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{method?.name ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{crop?.name ?? '—'}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{a.irrigationNumber}</td>
-                      <td className="px-3 py-2.5 text-right text-xs">{num(a.area, 2)}</td>
-                      <td className="px-3 py-2.5 text-right text-xs">{num(a.cubicPerDka, 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-xs">{num(a.waterCubic, 0)}</td>
-                      <td className="px-3 py-2.5 text-right text-xs">{num(a.unitPrice, 4)}</td>
-                      <td className="px-3 py-2.5 text-right text-xs font-semibold text-teal-700">{num(a.value, 2)}</td>
-                      <td className="px-3 py-2.5 text-gray-600">{a.month}</td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2 text-gray-600">{a.date}</td>
+                      <td className="px-2 py-2 font-medium text-gray-900">{a.number}</td>
+                      <td className="px-2 py-2 text-gray-700">{cont?.name ?? '—'}</td>
+                      <td className="px-2 py-2 text-gray-600 text-center">{h?.htuName ?? '—'}</td>
+                      <td className="px-2 py-2 text-gray-600 text-center">{h?.equipment ?? '—'}</td>
+                      <td className="px-2 py-2 text-gray-600">{a.village}</td>
+                      <td className="px-2 py-2 text-gray-600">{method?.name ?? '—'}</td>
+                      <td className="px-2 py-2 text-gray-600">{crop?.name ?? '—'}</td>
+                      <td className="px-2 py-2 text-gray-600 text-center">{a.irrigationNumber}</td>
+                      <td className="px-2 py-2 text-right text-xs">{num(a.area, 2)}</td>
+                      <td className="px-2 py-2 text-center text-xs">{num(a.cubicPerDka, 0)}</td>
+                      <td className="px-2 py-2 text-center text-xs">{num(a.waterCubic, 0)}</td>
+                      <td className="px-2 py-2 text-right text-xs">{num(a.unitPrice, 4)}</td>
+                      <td className="px-2 py-2 text-center text-xs font-semibold text-teal-700">{num(a.value, 2)}</td>
+                      <td className="px-2 py-2 text-gray-600">{a.month}</td>
+                      <td className="px-2 py-2">
                         <div className="flex gap-1">
                           <Btn size="sm" variant="ghost" onClick={() => useAsTemplate(a)}>📋</Btn>
                           <Btn size="sm" variant="ghost" onClick={() => openEdit(a)}><EditIcon /></Btn>
@@ -322,13 +448,8 @@ export default function Acts() {
       </Card>
 
       {isOpen && (
-        <Modal title={adding ? 'Нов Акт' : 'Редактирай Акт'} onClose={() => { setAdding(false); setEditing(null) }} wide>
+        <Modal title={adding ? 'Нов Акт' : 'Редактирай Акт'} onClose={() => { setAdding(false); setEditing(null) }} onSave={save} wide>
           <div className="grid grid-cols-3 gap-4">
-            <FormRow label="Вид документ">
-              <Select value={form.docType} onChange={e => setF({ docType: e.target.value })}>
-                {DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </Select>
-            </FormRow>
             <FormRow label="Дата" required>
               <Input type="date" value={form.date} onChange={e => setF({ date: e.target.value })} />
             </FormRow>
@@ -338,10 +459,13 @@ export default function Acts() {
 
             <div className="col-span-2">
               <FormRow label="Контрагент" required>
-                <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
-                  <option value="">— Избери —</option>
-                  {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </Select>
+                <Combobox
+                  value={form.contractorId}
+                  onChange={setContractor}
+                  options={contractors.map(c => ({ id: c.id, label: c.name }))}
+                  onCreate={name => findOrCreateContractor(name)}
+                  placeholder="Избери или въведи контрагент..."
+                />
               </FormRow>
             </div>
             <FormRow label="БУЛСТАТ">
@@ -351,7 +475,7 @@ export default function Acts() {
             <FormRow label="ХТУ">
               <Select value={form.htuId} onChange={e => handleHtuChange(e.target.value)}>
                 <option value="">— Избери —</option>
-                {htus.map(h => <option key={h.id} value={h.id}>{h.htuName}</option>)}
+                {htus.map(h => <option key={h.id} value={h.id}>{h.htuName} — {h.equipment}</option>)}
               </Select>
             </FormRow>
             <FormRow label="Съоражение">
@@ -367,12 +491,22 @@ export default function Acts() {
                 {irrigationMethods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </Select>
             </FormRow>
-            <FormRow label="Култура">
-              <Select value={form.cropId} onChange={e => setF({ cropId: e.target.value })}>
-                <option value="">— Избери —</option>
-                {crops.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
-            </FormRow>
+            <div className="col-span-3">
+              <FormRow label="Култура">
+                <Select value={form.cropId} onChange={e => setCrop(e.target.value)}>
+                  <option value="">— Избери —</option>
+                  {crops.map(c => {
+                    const match = contractsForContractor(form.contractorId).find(x => x.cropId === c.id)
+                    return <option key={c.id} value={c.id}>{c.name}{match ? ` — по договор: ${num(match.area, 2)} дка` : ''}</option>
+                  })}
+                </Select>
+                {form.contractorId && contractsForContractor(form.contractorId).length > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    По договор с този контрагент: {contractsForContractor(form.contractorId).map(c => `${crops.find(x => x.id === c.cropId)?.name ?? '—'} (${num(c.area, 2)} дка)`).join(', ')}. Площта, ХТУ, начинът на поливане, куб.м./дка и ед. цената се попълват автоматично при избор — може да ги коригирате при нужда.
+                  </p>
+                )}
+              </FormRow>
+            </div>
             <FormRow label="№ поливка">
               <Input value={form.irrigationNumber} onChange={e => setF({ irrigationNumber: e.target.value })} placeholder="1" />
             </FormRow>
@@ -396,6 +530,7 @@ export default function Acts() {
               </div>
             </FormRow>
           </div>
+          {formError && <p className="text-sm text-red-500 mt-4">{formError}</p>}
           <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
             <Btn variant="secondary" onClick={() => { setAdding(false); setEditing(null) }}>Откажи</Btn>
             {adding && <Btn variant="secondary" onClick={saveAndNew} disabled={!form.number.trim() || !form.contractorId}>Запис и нов</Btn>}
@@ -406,21 +541,49 @@ export default function Acts() {
 
       {bulkModal && (
         <Modal title={`Масово редактиране (${selected.size} записа)`} onClose={() => setBulkModal(false)}>
-          <div className="flex flex-col gap-4">
-            <FormRow label="Поле за редактиране">
-              <Select value={bulkField} onChange={e => setBulkField(e.target.value as typeof bulkField)}>
-                <option value="unitPrice">Ед. цена</option>
-                <option value="area">Площ (дка)</option>
-                <option value="cubicPerDka">куб.м./дка</option>
-              </Select>
-            </FormRow>
-            <FormRow label="Нова стойност">
-              <Input type="number" step="0.0001" value={bulkValue} onChange={e => setBulkValue(e.target.value)} placeholder="Въведете стойност" autoFocus />
-            </FormRow>
+          <p className="text-xs text-gray-400 mb-3">Отметни полетата, които искаш да зададеш за всички избрани записи — можеш да смениш повече от едно наведнъж.</p>
+          <div className="flex flex-col gap-3">
+            {BULK_FIELDS.map(field => (
+              <div key={field} className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={bulkEnabled[field]}
+                  onChange={() => toggleBulkField(field)}
+                  className="rounded shrink-0"
+                />
+                <span className="w-40 shrink-0 text-sm text-gray-700">{BULK_LABELS[field]}</span>
+                <div className="flex-1">
+                  {field === 'htuId' ? (
+                    <Select value={bulkValues.htuId} onChange={e => setBulkValue('htuId', e.target.value)} disabled={!bulkEnabled.htuId}>
+                      <option value="">— Избери —</option>
+                      {htus.map(h => <option key={h.id} value={h.id}>{h.htuName} — {h.equipment}</option>)}
+                    </Select>
+                  ) : field === 'irrigationMethodId' ? (
+                    <Select value={bulkValues.irrigationMethodId} onChange={e => setBulkValue('irrigationMethodId', e.target.value)} disabled={!bulkEnabled.irrigationMethodId}>
+                      <option value="">— Избери —</option>
+                      {irrigationMethods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </Select>
+                  ) : field === 'cropId' ? (
+                    <Select value={bulkValues.cropId} onChange={e => setBulkValue('cropId', e.target.value)} disabled={!bulkEnabled.cropId}>
+                      <option value="">— Избери —</option>
+                      {crops.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </Select>
+                  ) : (
+                    <Input
+                      type="number" step="0.0001"
+                      value={bulkValues[field]}
+                      onChange={e => setBulkValue(field, e.target.value)}
+                      disabled={!bulkEnabled[field]}
+                      placeholder="Стойност"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100">
             <Btn variant="secondary" onClick={() => setBulkModal(false)}>Откажи</Btn>
-            <Btn onClick={applyBulk} disabled={!bulkValue}>Приложи</Btn>
+            <Btn onClick={applyBulk} disabled={!bulkHasSelection}>Приложи</Btn>
           </div>
         </Modal>
       )}
@@ -430,6 +593,14 @@ export default function Acts() {
           message="Сигурни ли сте, че искате да изтриете този акт?"
           onConfirm={confirmDelete}
           onCancel={() => setDeleteId(null)}
+        />
+      )}
+
+      {deleteAllConfirm && (
+        <ConfirmDialog
+          message={`Сигурни ли сте, че искате да изтриете ВСИЧКИ актове (${acts.length})? Това действие е необратимо.`}
+          onConfirm={confirmDeleteAll}
+          onCancel={() => setDeleteAllConfirm(false)}
         />
       )}
 

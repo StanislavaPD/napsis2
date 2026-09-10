@@ -2,16 +2,38 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('node:path')
 const os = require('node:os')
 const fs = require('node:fs/promises')
+const fssync = require('node:fs')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { Pool } = require('pg')
-// In a packaged build, extraResources puts .env next to the app (resourcesPath), not inside the
-// asar alongside this file — in dev it sits one level up from electron/.
-const envPath = app.isPackaged ? path.join(process.resourcesPath, '.env') : path.join(__dirname, '..', '.env')
-require('dotenv').config({ path: envPath, quiet: true })
+const provision = require('./provision.cjs')
 
-const JWT_SECRET = process.env.JWT_SECRET
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+// Dev keeps using the repo-root .env unchanged. Packaged builds have no such file — each installed
+// machine provisions its own independent PostgreSQL instance on first run (see provision.cjs), and
+// the resulting config is written to userData (always writable, unlike resourcesPath).
+const devEnvPath = path.join(__dirname, '..', '.env')
+function loadConfig() {
+  if (!app.isPackaged && fssync.existsSync(devEnvPath)) {
+    require('dotenv').config({ path: devEnvPath, quiet: true })
+    return
+  }
+  const userConfigPath = provision.configPath()
+  if (fssync.existsSync(userConfigPath)) {
+    require('dotenv').config({ path: userConfigPath, quiet: true })
+  }
+}
+loadConfig()
+
+let pool = null
+function getPool() {
+  if (!process.env.DATABASE_URL) return null
+  if (!pool) pool = new Pool({ connectionString: process.env.DATABASE_URL })
+  return pool
+}
+
+function getJwtSecret() {
+  return process.env.JWT_SECRET
+}
 
 const COLLECTIONS = ['contractors', 'htus', 'irrigationMethods', 'crops', 'contracts', 'acts', 'requests', 'payments']
 const TABLE_BY_COLLECTION = {
@@ -26,23 +48,28 @@ const TABLE_BY_COLLECTION = {
 }
 
 function verifyToken(token) {
+  const secret = getJwtSecret()
+  if (!secret) return null
   try {
-    return jwt.verify(token, JWT_SECRET)
+    return jwt.verify(token, secret)
   } catch {
     return null
   }
 }
 
-// No auth:register handler: new accounts are created directly in the database, never through the
-// app UI, so nobody can self-register without the owner's explicit action.
+// No auth:register handler: new accounts are created directly in the database (or once, through
+// auth:bootstrapAdmin during first-run setup), never through the regular app UI, so nobody can
+// self-register without the owner's explicit action.
 ipcMain.handle('auth:login', async (_e, username, password) => {
   username = String(username || '').trim()
-  const result = await pool.query('SELECT id, username, password_hash FROM users WHERE username = $1', [username])
+  const p = getPool()
+  if (!p) return { error: 'Базата данни не е настроена.' }
+  const result = await p.query('SELECT id, username, password_hash FROM users WHERE username = $1', [username])
   const user = result.rows[0]
   if (!user) return { error: 'Грешно потребителско име или парола.' }
   const ok = await bcrypt.compare(String(password || ''), user.password_hash)
   if (!ok) return { error: 'Грешно потребителско име или парола.' }
-  const token = jwt.sign({ sub: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' })
+  const token = jwt.sign({ sub: user.id, username: user.username }, getJwtSecret(), { expiresIn: '30d' })
   return { token, username: user.username }
 })
 
@@ -52,12 +79,64 @@ ipcMain.handle('auth:verify', async (_e, token) => {
   return { username: payload.username }
 })
 
+ipcMain.handle('setup:status', async () => {
+  const p = getPool()
+  if (!p) return { provisioned: false, hasAdmin: false }
+  try {
+    const r = await p.query('SELECT count(*)::int AS c FROM users')
+    return { provisioned: true, hasAdmin: r.rows[0].c > 0 }
+  } catch (err) {
+    return { provisioned: false, hasAdmin: false, error: String(err.message || err) }
+  }
+})
+
+ipcMain.handle('setup:detectPostgres', async () => {
+  const existing = await provision.detectExistingPostgres()
+  const hasSavedPassword = await provision.hasSavedState()
+  return { existing, hasSavedPassword }
+})
+
+ipcMain.handle('setup:runProvisioning', async (event, existingSuperuserPassword) => {
+  try {
+    const env = await provision.runProvisioning({
+      existingSuperuserPassword: existingSuperuserPassword || undefined,
+      onProgress: message => event.sender.send('setup:progress', message),
+    })
+    process.env.DATABASE_URL = env.DATABASE_URL
+    process.env.JWT_SECRET = env.JWT_SECRET
+    pool = null
+    return { ok: true }
+  } catch (err) {
+    return { error: String(err.message || err) }
+  }
+})
+
+// Only usable once: guarded by an empty users table, so it can't be used to add a second account
+// after the initial setup wizard runs.
+ipcMain.handle('auth:bootstrapAdmin', async (_e, username, password) => {
+  username = String(username || '').trim()
+  if (!username || !password) return { error: 'Въведете потребителско име и парола.' }
+  const p = getPool()
+  if (!p) return { error: 'Базата данни не е настроена.' }
+  const countRes = await p.query('SELECT count(*)::int AS c FROM users')
+  if (countRes.rows[0].c > 0) return { error: 'Вече има създаден администратор.', alreadyExists: true }
+  const hash = await bcrypt.hash(password, 10)
+  const ins = await p.query(
+    'INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username',
+    [username, hash],
+  )
+  const token = jwt.sign({ sub: ins.rows[0].id, username: ins.rows[0].username }, getJwtSecret(), { expiresIn: '30d' })
+  return { token, username: ins.rows[0].username }
+})
+
 ipcMain.handle('data:getAll', async (_e, token) => {
   if (!verifyToken(token)) return { error: 'Неоторизиран достъп.' }
+  const p = getPool()
+  if (!p) return { error: 'Базата данни не е настроена.' }
   const out = {}
   for (const collection of COLLECTIONS) {
     const table = TABLE_BY_COLLECTION[collection]
-    const result = await pool.query(`SELECT id, data FROM ${table}`)
+    const result = await p.query(`SELECT id, data FROM ${table}`)
     out[collection] = result.rows.map(r => ({ ...r.data, id: r.id }))
   }
   return { data: out }
@@ -67,7 +146,9 @@ ipcMain.handle('data:setCollection', async (_e, token, collection, items) => {
   if (!verifyToken(token)) return { error: 'Неоторизиран достъп.' }
   const table = TABLE_BY_COLLECTION[collection]
   if (!table) return { error: `Непознат тип данни: ${collection}` }
-  const client = await pool.connect()
+  const p = getPool()
+  if (!p) return { error: 'Базата данни не е настроена.' }
+  const client = await p.connect()
   try {
     await client.query('BEGIN')
     await client.query(`DELETE FROM ${table}`)
@@ -100,6 +181,31 @@ ipcMain.handle('file:openTemp', async (_e, filename, base64Data) => {
   await fs.writeFile(tempPath, Buffer.from(base64Data, 'base64'))
   const error = await shell.openPath(tempPath)
   return error ? { error } : { ok: true }
+})
+
+function defaultBackupFolder() {
+  return path.join(app.getPath('documents'), 'Напояване ХТР Ямбол - Архив')
+}
+
+ipcMain.handle('backup:pickFolder', async event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const result = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })
+  if (result.canceled || !result.filePaths[0]) return { canceled: true }
+  return { canceled: false, folderPath: result.filePaths[0] }
+})
+
+// Writes straight to disk (no save dialog) so the daily auto-backup can run silently, always
+// overwriting the same filename — that's the point of an unattended backup.
+ipcMain.handle('backup:writeAuto', async (_e, folderPath, base64Data) => {
+  try {
+    const dir = folderPath || defaultBackupFolder()
+    await fs.mkdir(dir, { recursive: true })
+    const filePath = path.join(dir, 'napoyavane-avtomatichen-arhiv.json')
+    await fs.writeFile(filePath, Buffer.from(base64Data, 'base64'))
+    return { ok: true, filePath }
+  } catch (err) {
+    return { error: String(err.message || err) }
+  }
 })
 
 function createWindow() {

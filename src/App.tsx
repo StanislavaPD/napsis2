@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StoreProvider } from './store'
 import { AuthProvider, useAuth } from './auth'
 import type { Module } from './types'
 import Sidebar from './components/Sidebar'
 import Login from './components/Login'
+import SetupWizard from './setup/SetupWizard'
 import Contractors from './components/Contractors'
 import HTUModule from './components/HTU'
 import Methods from './components/Methods'
@@ -14,6 +15,7 @@ import Payments from './components/Payments'
 import Reports from './components/Reports'
 import Generators from './components/Generators'
 import Dashboard from './components/Dashboard'
+import Settings from './components/Settings'
 
 function AppContent() {
   const { logout } = useAuth()
@@ -33,6 +35,7 @@ function AppContent() {
       case 'gen-contract': return <Generators defaultTab="contract" />
       case 'gen-act': return <Generators defaultTab="act" />
       case 'gen-request': return <Generators defaultTab="request" />
+      case 'settings': return <Settings />
     }
   }
 
@@ -49,8 +52,27 @@ function AppContent() {
 }
 
 function Gate() {
-  const { ready, hasBackend, username, token } = useAuth()
+  const { ready, hasBackend, username, token, setSession } = useAuth()
+  const [setupChecked, setSetupChecked] = useState(!hasBackend)
+  const [needsSetup, setNeedsSetup] = useState(false)
 
+  useEffect(() => {
+    if (!hasBackend) return
+    window.api!.setupStatus().then(res => {
+      setNeedsSetup(!res.provisioned || !res.hasAdmin)
+      setSetupChecked(true)
+    })
+  }, [hasBackend])
+
+  if (hasBackend && !setupChecked) return null
+  if (hasBackend && needsSetup) {
+    return (
+      <SetupWizard
+        onComplete={(t, u) => { setSession(t, u); setNeedsSetup(false) }}
+        onSkipToLogin={() => setNeedsSetup(false)}
+      />
+    )
+  }
   if (hasBackend && !ready) return null
   if (hasBackend && !username) return <Login />
 

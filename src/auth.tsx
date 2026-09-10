@@ -9,6 +9,7 @@ interface AuthState {
   token: string | null
   login: (username: string, password: string) => Promise<string | null>
   logout: () => void
+  setSession: (token: string, username: string) => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -46,8 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null)
   }
 
+  function setSession(t: string, u: string) {
+    localStorage.setItem(TOKEN_KEY, t)
+    setToken(t)
+    setUsername(u)
+  }
+
   return (
-    <AuthContext.Provider value={{ ready, hasBackend, username, token, login, logout }}>
+    <AuthContext.Provider value={{ ready, hasBackend, username, token, login, logout, setSession }}>
       {children}
     </AuthContext.Provider>
   )

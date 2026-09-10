@@ -19,7 +19,7 @@ export async function fillDocxTemplate(file: File, data: DocxTagData): Promise<B
   }) as Blob
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
+export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onloadend = () => resolve(((reader.result as string) || '').split(',')[1] ?? '')

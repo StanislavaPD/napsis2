@@ -86,6 +86,15 @@ function ChartLineIcon() {
   )
 }
 
+function SettingsIcon() {
+  return (
+    <NavIcon>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </NavIcon>
+  )
+}
+
 function ChevronIcon({ flipped }: { flipped: boolean }) {
   return (
     <svg
@@ -111,7 +120,8 @@ const NAV = [
   { id: 'requests' as Module, label: 'Заявки', icon: <DocumentIcon accent="lines" /> },
   { id: 'acts' as Module, label: 'Актове', icon: <DocumentIcon accent="lines" /> },
   { id: 'payments' as Module, label: 'Плащания', icon: <InvoiceIcon /> },
-  { id: 'reports' as Module, label: 'Справки и експорт', icon: <ChartLineIcon /> },
+  { id: 'reports' as Module, label: 'Справки', icon: <ChartLineIcon /> },
+  { id: 'settings' as Module, label: 'Настройки', icon: <SettingsIcon /> },
 ]
 
 export default function Sidebar({ active, onNavigate, onLogout }: { active: Module; onNavigate: (m: Module) => void; onLogout?: () => void }) {

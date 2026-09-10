@@ -139,6 +139,21 @@ export async function exportStyledWorkbook(sheets: StyledSheetSpec[], filename: 
   await downloadBlob(blob, filename)
 }
 
+/** Strips characters Windows/macOS disallow in filenames, so a filter label can drop straight into one. */
+function sanitizeFilenamePart(s: string): string {
+  return s.replace(/[\\/:*?"<>|]/g, '').trim()
+}
+
+/**
+ * Builds an export filename as "<base>_<filter1>_<filter2>..._<yyyy-mm-dd>.xlsx" — any active filter
+ * label (ХТУ, status, paid/unpaid, ...) gets folded in so a filtered export is distinguishable from
+ * the full list on disk. Falsy filters (no filter applied) are skipped.
+ */
+export function exportFilename(base: string, filters: (string | null | undefined | false)[], ext = 'xlsx'): string {
+  const parts = [base, ...filters.filter((f): f is string => !!f).map(sanitizeFilenamePart)]
+  return `${parts.join('_')}_${new Date().toISOString().slice(0, 10)}.${ext}`
+}
+
 /** Looks up a value in a row by one or more possible header names, case/whitespace-insensitive. */
 export function rowGet(row: SheetRow, ...names: string[]): unknown {
   const normalized = Object.entries(row).map(([k, v]) => [k.trim().toLowerCase(), v] as const)
@@ -156,14 +171,15 @@ export function cellToStr(v: unknown): string {
   return String(v).trim()
 }
 
-/** Parses a date cell (Excel Date, "yyyy-mm-dd" or "dd.mm.yyyy"/"dd/mm/yyyy") into "yyyy-mm-dd". */
+/** Parses a date cell (Excel Date, "yyyy-mm-dd" or "dd.mm.yyyy"/"dd/mm/yyyy", 2- or 4-digit year) into "yyyy-mm-dd". */
 export function cellToDateStr(v: unknown): string {
   if (v == null || v === '') return ''
-  if (v instanceof Date) return v.toISOString().slice(0, 10)
+  if (v instanceof Date) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
   const s = String(v).trim()
-  const m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/)
+  const m = s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2}|\d{4})$/)
   if (m) {
-    const [, d, mo, y] = m
+    const [, d, mo, yRaw] = m
+    const y = yRaw.length === 2 ? `20${yRaw}` : yRaw
     return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`
   }
   return s
@@ -177,7 +193,44 @@ export function cellToNum(v: unknown): number {
 
 /** Finds an item in a list whose given field matches the value, case/whitespace-insensitive. */
 export function findByField<T extends object>(list: T[], field: keyof T, value: string): T | undefined {
-  const q = value.trim().toLowerCase()
+  const q = normStr(value)
   if (!q) return undefined
-  return list.find(x => String(x[field] ?? '').trim().toLowerCase() === q)
+  return list.find(x => normStr(String(x[field] ?? '')) === q)
+}
+
+/** Normalises a string for loose comparison: lowercase, collapse whitespace, strip dots,
+ *  and strip spaces around hyphens so "A - B" ≡ "A-B". */
+function normStr(s: string): string {
+  return s.trim().toLowerCase().replace(/\./g, '').replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ')
+}
+
+function normalizeWords(s: string): string[] {
+  return normStr(s).split(' ').filter(Boolean)
+}
+
+/**
+ * True if the words of the shorter name all appear among the words of the longer one — regardless
+ * of order or position. So a shortened form ("Помпено" vs "Помпено напояване") or a qualified/variant
+ * form of a shorter base name ("Царевица за силаж" / "Други зеленчуци" vs "Царевица" / "Зеленчуци")
+ * counts as the same thing. Meant for small curated lists (crops, irrigation methods, ХТУ) where a
+ * shortened/qualified name should still count as the same record — not for open-ended freeform names
+ * (contractors, invoice numbers) where this could match the wrong record.
+ */
+export function namesMatch(a: string, b: string): boolean {
+  const aWords = normalizeWords(a)
+  const bWords = normalizeWords(b)
+  if (aWords.length === 0 || bWords.length === 0) return false
+  const aSet = new Set(aWords)
+  const bSet = new Set(bWords)
+  const [shorter, longer] = aWords.length <= bWords.length ? [aSet, bSet] : [bSet, aSet]
+  for (const w of shorter) if (!longer.has(w)) return false
+  return true
+}
+
+/** Like `findByField`, but falls back to `namesMatch` against each entry's field when there's no exact match. */
+export function findSimilarByField<T extends object>(list: T[], field: keyof T, value: string): T | undefined {
+  const exact = findByField(list, field, value)
+  if (exact) return exact
+  if (!value.trim()) return undefined
+  return list.find(x => namesMatch(String(x[field] ?? ''), value))
 }

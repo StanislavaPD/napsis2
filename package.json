@@ -14,7 +14,8 @@
     "format": "oxfmt",
     "electron": "electron electron/main.cjs",
     "app": "npm run build:electron && npm run electron",
-    "dist": "npm run build:electron && electron-builder --win --config.directories.output=C:\\Napsis-Release"
+    "fetch-postgres-installer": "node scripts/fetch-postgres-installer.cjs",
+    "dist": "npm run build:electron && npm run fetch-postgres-installer && electron-builder --win --config.directories.output=D:\\Napsis-Release"
   },
   "build": {
     "appId": "bg.napsis.napoyavane",
@@ -27,8 +28,8 @@
     ],
     "extraResources": [
       {
-        "from": ".env",
-        "to": ".env"
+        "from": "vendor/postgresql-installer.exe",
+        "to": "postgresql-installer.exe"
       }
     ],
     "directories": {
