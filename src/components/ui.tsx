@@ -29,18 +29,18 @@ export function Modal({
 
   const w = extraWide ? 'max-w-6xl' : wide ? 'max-w-3xl' : 'max-w-lg'
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white rounded-2xl shadow-2xl flex flex-col max-h-[92vh] w-full ${w}`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className={`bg-white rounded-xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[92vh] w-full ${w}`}>
+        <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-100 shrink-0">
+          <h2 className="text-sm sm:text-base font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none"
           >
             ×
           </button>
         </div>
-        <div className="overflow-y-auto flex-1 px-6 py-5">{children}</div>
+        <div className="overflow-y-auto flex-1 px-3 sm:px-6 py-3 sm:py-5">{children}</div>
       </div>
     </div>
   )
@@ -183,6 +183,30 @@ export function ClockIcon({ className = 'w-4 h-4' }: { className?: string }) {
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
       <circle cx="12" cy="12" r="8.25" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5V12l3 2" />
+    </svg>
+  )
+}
+
+export function FileTextIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  )
+}
+
+export function ToolsIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+    </svg>
+  )
+}
+
+export function WaterDropIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.533A9.707 9.707 0 006 3a9.735 9.735 0 00-3.25.555.75.75 0 00-.5.707v14.25a.75.75 0 001 .707A8.237 8.237 0 016 18.75c1.995 0 3.823.707 5.25 1.886V4.533zM12.75 20.636A8.214 8.214 0 0118 18.75c.966 0 1.89.166 2.75.47a.75.75 0 001-.708V4.262a.75.75 0 00-.5-.707A9.735 9.735 0 0018 3a9.707 9.707 0 00-5.25 1.533v16.103z" />
     </svg>
   )
 }
@@ -473,12 +497,12 @@ export function ConfirmDialog({
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div className="flex items-start justify-between mb-6">
+    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+        <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{title}</h1>
+        {subtitle && <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex items-center gap-2 w-full sm:w-auto">{actions}</div>}
     </div>
   )
 }
@@ -525,10 +549,10 @@ export function StatCard({ label, value, sub, color = 'teal' }: { label: string;
     emerald: 'from-emerald-500 to-emerald-600',
   }
   return (
-    <div className={`bg-gradient-to-br ${colors[color]} rounded-xl p-5 text-white shadow-md`}>
-      <p className="text-xs font-medium opacity-80 mb-2">{label}</p>
-      <p className="text-2xl font-semibold">{value}</p>
-      {sub && <p className="text-xs opacity-70 mt-1">{sub}</p>}
+    <div className={`bg-gradient-to-br ${colors[color]} rounded-lg sm:rounded-xl p-3 sm:p-5 text-white shadow-md`}>
+      <p className="text-[10px] sm:text-xs font-medium opacity-80 mb-1 sm:mb-2">{label}</p>
+      <p className="text-lg sm:text-2xl font-semibold">{value}</p>
+      {sub && <p className="text-[10px] sm:text-xs opacity-70 mt-0.5 sm:mt-1">{sub}</p>}
     </div>
   )
 }
@@ -545,7 +569,7 @@ export function ImportButton({ label = <><ImportIcon /> Импорт</>, onFile 
       <input
         ref={ref}
         type="file"
-        accept=".xlsx,.xls,.csv"
+        accept=".xlsx,.csv"
         className="hidden"
         onChange={e => {
           const f = e.target.files?.[0]

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import PizZip from 'pizzip'
 import { useStore } from '../store'
 import type { Contract, Act, IrrigRequest, Contractor } from '../types'
-import { Btn, FormRow, Input, NumberInput, Select, Autocomplete, num, DownloadIcon, PrinterIcon } from './ui'
+import { Btn, FormRow, Input, NumberInput, Select, Autocomplete, num, DownloadIcon, PrinterIcon, SaveIcon, FileTextIcon, ToolsIcon, WaterDropIcon } from './ui'
 import { fillDocxTemplate, downloadBlob, openInDefaultApp, docxFillErrorMessage, type DocxTagData } from '../lib/docx-fill'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
