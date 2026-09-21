@@ -13,7 +13,7 @@ const EMPTY: Omit<Contractor, 'id'> = {
 type SortField = 'name' | 'bulstat' | 'address' | 'contact' | 'phone' | 'iban'
 
 export default function Contractors() {
-  const { contractors, setContractors } = useStore()
+  const { contractors, setContractors, contracts, setContracts, acts, setActs, requests, setRequests, payments, setPayments } = useStore()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Contractor | null>(null)
   const [adding, setAdding] = useState(false)
@@ -72,13 +72,22 @@ export default function Contractors() {
 
   function confirmDelete() {
     if (deleteId) {
+      // Remove contractor
       setContractors(contractors.filter(c => c.id !== deleteId))
+      // Remove all related records
+      setContracts(contracts.filter(c => c.contractorId !== deleteId))
+      setActs(acts.filter(a => a.contractorId !== deleteId))
+      setRequests(requests.filter(r => r.contractorId !== deleteId))
+      setPayments(payments.filter(p => p.contractorId !== deleteId))
       setDeleteId(null)
     }
   }
 
   function confirmDeleteAll() {
+    // Save current contractors to localStorage before deleting (for reconnection later)
+    localStorage.setItem('deletedContractors', JSON.stringify(contractors))
     setContractors([])
+    // Don't clear related records - they will be reconnected when new contractors are imported
     setDeleteAllConfirm(false)
   }
 
@@ -86,6 +95,7 @@ export default function Contractors() {
     const rows = await parseSpreadsheetFile(file)
     const errors: string[] = []
     const added: Contractor[] = []
+
     rows.forEach((row, i) => {
       const rowNum = i + 2
       const name = String(rowGet(row, 'Наименование') ?? '').trim()
@@ -107,8 +117,88 @@ export default function Contractors() {
         hasProxy: false, proxyName: '', proxyEgn: '', notaryDeedNumber: '', notaryName: '', notaryJurisdiction: '',
       })
     })
-    if (added.length) setContractors([...contractors, ...added])
+
+    if (added.length) {
+      const newContractors = [...contractors, ...added]
+      setContractors(newContractors)
+
+      // Reconnect orphaned records by matching BULSTAT or name
+      reconnectOrphanedRecords(newContractors, added)
+    }
     setImportResult({ added: added.length, errors })
+  }
+
+  function reconnectOrphanedRecords(allContractors: Contractor[], newlyAdded: Contractor[]) {
+    // Load deleted contractors from localStorage
+    const deletedRaw = localStorage.getItem('deletedContractors')
+    if (!deletedRaw) return // No deleted contractors to reconnect
+
+    const deletedContractors: Contractor[] = JSON.parse(deletedRaw)
+
+    // Build mapping: old contractor ID -> BULSTAT/name
+    const oldIdToBulstat = new Map<string, string>()
+    const oldIdToName = new Map<string, string>()
+    deletedContractors.forEach(c => {
+      if (c.bulstat) oldIdToBulstat.set(c.id, c.bulstat)
+      oldIdToName.set(c.id, c.name.toLowerCase().trim())
+    })
+
+    // Build mapping: BULSTAT/name -> new contractor ID
+    const bulstatToNewId = new Map<string, string>()
+    const nameToNewId = new Map<string, string>()
+    newlyAdded.forEach(c => {
+      if (c.bulstat) bulstatToNewId.set(c.bulstat, c.id)
+      nameToNewId.set(c.name.toLowerCase().trim(), c.id)
+    })
+
+    // Helper function to find new ID for an old contractor ID
+    const findNewId = (oldId: string): string | null => {
+      // Check if contractor still exists (not orphaned)
+      if (allContractors.find(c => c.id === oldId)) return null
+
+      // Try to match by BULSTAT first
+      const bulstat = oldIdToBulstat.get(oldId)
+      if (bulstat) {
+        const newId = bulstatToNewId.get(bulstat)
+        if (newId) return newId
+      }
+
+      // Fall back to matching by name
+      const name = oldIdToName.get(oldId)
+      if (name) {
+        const newId = nameToNewId.get(name)
+        if (newId) return newId
+      }
+
+      return null // No match found
+    }
+
+    // Reconnect contracts
+    setContracts(contracts.map(contract => {
+      const newId = findNewId(contract.contractorId)
+      return newId ? { ...contract, contractorId: newId } : contract
+    }))
+
+    // Reconnect acts
+    setActs(acts.map(act => {
+      const newId = findNewId(act.contractorId)
+      return newId ? { ...act, contractorId: newId } : act
+    }))
+
+    // Reconnect requests
+    setRequests(requests.map(request => {
+      const newId = findNewId(request.contractorId)
+      return newId ? { ...request, contractorId: newId } : request
+    }))
+
+    // Reconnect payments
+    setPayments(payments.map(payment => {
+      const newId = findNewId(payment.contractorId)
+      return newId ? { ...payment, contractorId: newId } : payment
+    }))
+
+    // Clear saved deleted contractors after reconnection
+    localStorage.removeItem('deletedContractors')
   }
 
   const isOpen = adding || editing !== null

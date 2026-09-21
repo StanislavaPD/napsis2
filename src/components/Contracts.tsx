@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import type { Contract } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, SaveIcon } from './ui'
 import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToDateStr, cellToNum, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
+import { countContracts } from '../lib/acts'
 
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
 
@@ -63,9 +64,10 @@ function calcForm(f: ContractForm): ContractForm {
   return { ...f, totalDka, waterCubic, value, month }
 }
 
-export default function Contracts() {
+export default function Contracts({ initialContractorId, onClearFilter }: { initialContractorId?: string; onClearFilter?: () => void } = {}) {
   const { contracts, setContracts, contractors, htus, irrigationMethods, crops, findOrCreateContractor } = useStore()
-  const [search, setSearch] = useState('')
+  const initialContractor = initialContractorId ? contractors.find(c => c.id === initialContractorId) : undefined
+  const [search, setSearch] = useState(initialContractor?.name ?? '')
   const [editing, setEditing] = useState<Contract | null>(null)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState<ContractForm>(EMPTY)
@@ -112,7 +114,7 @@ export default function Contracts() {
   const htuNames = [...new Set(htus.map(h => h.htuName))]
   const htuCounts = htuNames.map(name => ({
     name,
-    count: contracts.filter(c => htus.find(h => h.id === c.htuId)?.htuName === name).length,
+    count: countContracts(contracts.filter(c => htus.find(h => h.id === c.htuId)?.htuName === name)),
   }))
 
   const filtered = contracts.filter(c => {
@@ -246,16 +248,17 @@ export default function Contracts() {
         irrigationMethodId: method?.id ?? '',
         cropId: crop?.id ?? '',
         area: cellToNum(rowGet(row, 'Площ дка', 'Площ')),
-        irrigationCount: cellToNum(rowGet(row, 'Бр. поливки')),
+        irrigationCount: cellToNum(rowGet(row, 'Бр. поливки', 'Брой поливки', 'Поливки')),
         totalDka: 0,
         cubicPerDka: cellToNum(rowGet(row, 'куб.м./дка')),
         waterCubic: 0,
-        unitPrice: cellToNum(rowGet(row, 'Ед. цена')),
-        value: 0,
+        unitPrice: cellToNum(rowGet(row, 'Ед. цена', 'Ед. цена (€)', 'Единична цена', 'Цена')),
+        value: cellToNum(rowGet(row, 'Стойност', 'Стойност (€)', 'Сума')),
         irrigationNumber: '',
         month: String(rowGet(row, 'Месец') ?? '').trim(),
       }
-      added.push({ ...calcForm(base), id: `${Date.now()}-${i}` })
+      const calculated = calcForm(base)
+      added.push({ ...calculated, value: base.value || calculated.value, id: `${Date.now()}-${i}` })
     })
     if (added.length) setContracts([...contracts, ...added])
     setImportResult({ added: added.length, errors })
@@ -269,7 +272,7 @@ export default function Contracts() {
       const method = irrigationMethods.find(x => x.id === c.irrigationMethodId)
       const crop = crops.find(x => x.id === c.cropId)
       return {
-        'Дата': c.date, '№ Договор': c.number, 'Контрагент': cont?.name ?? '', 'БУЛСТАТ': cont?.bulstat ?? '',
+        'Дата': formatContractDate(c.date), '№ Договор': c.number, 'Контрагент': cont?.name ?? '', 'БУЛСТАТ': cont?.bulstat ?? '',
         'ХТУ': h?.htuName ?? '', 'Съоражение': h?.equipment ?? '', 'Землище': c.village,
         'Начин на поливане': method?.name ?? '', 'Култура': crop?.name ?? '',
         'Площ дка': c.area, 'Бр. поливки': c.irrigationCount, 'Поливодекари': c.totalDka,
@@ -293,10 +296,15 @@ export default function Contracts() {
     <div>
       <PageHeader
         title="Договори"
-        subtitle={`${contracts.length} записа`}
+        subtitle={`${countContracts(contracts)} договора (${contracts.length} записа)`}
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по договор, контрагент..." />
+            {initialContractorId && onClearFilter && (
+              <Btn variant="secondary" onClick={() => { setSearch(''); onClearFilter(); }}>
+                Изчисти филтър
+              </Btn>
+            )}
             {selected.size > 0 && (
               <Btn variant="secondary" onClick={() => setBulkModal(true)}>
                 <EditIcon /> Масово редактиране ({selected.size})
@@ -368,8 +376,8 @@ export default function Contracts() {
                         <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded" />
                       </td>
                       <td className="px-1.5 py-2 text-gray-600">{formatContractDate(c.date)}</td>
-                      <td className="px-1.5 py-2 font-medium text-gray-900">{c.number.split('/')[0]}</td>
-                      <td className="px-1.5 py-2 text-gray-700">{cont?.name ?? '—'}</td>
+                      <td className="px-0.5 py-2 font-medium text-gray-900">{c.number.split('/')[0]}</td>
+                      <td className="px-0.5 py-2 text-gray-700">{cont?.name ?? '—'}</td>
                       <td className="px-1.5 py-2 text-xs text-gray-500">{cont?.bulstat ?? '—'}</td>
                       <td className="px-1.5 py-2 text-gray-600">{h?.htuName ?? '—'}</td>
                       <td className="px-1.5 py-2 text-gray-600">{h?.equipment ?? '—'}</td>
@@ -381,14 +389,14 @@ export default function Contracts() {
                         })()}
                       </td>
                       <td className="px-1.5 py-2 text-gray-600">{crop?.name ?? '—'}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.area, 2)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.irrigationCount, 2)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.totalDka, 2)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.cubicPerDka, 0)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.waterCubic, 0)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs">{num(c.unitPrice, 4)}</td>
-                      <td className="px-1.5 py-2 text-right text-xs font-semibold text-teal-700">{num(c.value, 2)}</td>
-                      <td className="px-1.5 py-2 text-gray-600">{MONTHS.indexOf(c.month) + 1 || ''}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.area, 2)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.irrigationCount, 2)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.totalDka, 2)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.cubicPerDka, 0)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.waterCubic, 0)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs">{num(c.unitPrice, 4)}</td>
+                      <td className="px-1.5 py-2 text-left text-xs font-semibold text-teal-700">{num(c.value, 2)}</td>
+                      <td className="px-1.5 py-2 text-center text-gray-600">{MONTHS.indexOf(c.month) + 1 || ''}</td>
                       <td className="px-1.5 py-2">
                         <div className="flex gap-1">
                           <Btn size="sm" variant="ghost" onClick={() => openEdit(c)}><EditIcon /></Btn>

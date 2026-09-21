@@ -18,7 +18,13 @@ const EMPTY_BULK_ENABLED: Record<BulkField, boolean> = { unitPrice: false, area:
 const EMPTY_BULK_VALUES: Record<BulkField, string> = { unitPrice: '', area: '', cubicPerDka: '', htuId: '', irrigationMethodId: '', cropId: '' }
 
 type SortField = 'date' | 'number' | 'contractorName' | 'htuName' | 'equipment' | 'village' | 'methodName' | 'cropName' | 'irrigationNumber' | 'area'
-const DOC_TYPES = ['Акт', 'Фактура', 'Протокол', 'Разписка', 'Друго']
+
+/** Formats an "yyyy-mm-dd" date string as "dd.mm.yy" (e.g. "2026-10-23" -> "23.10.26"). */
+function formatActDate(date: string): string {
+  const [y, m, d] = date.split('-')
+  if (!y || !m || !d) return date
+  return `${d}.${m}.${y.slice(2)}`
+}
 
 type ActForm = Omit<Act, 'id'>
 
@@ -47,9 +53,10 @@ function calcAct(f: ActForm): ActForm {
   return { ...f, value, month }
 }
 
-export default function Acts() {
+export default function Acts({ initialContractorId, onClearFilter }: { initialContractorId?: string; onClearFilter?: () => void } = {}) {
   const { acts, setActs, contractors, htus, irrigationMethods, crops, contracts, findOrCreateContractor } = useStore()
-  const [search, setSearch] = useState('')
+  const initialContractor = initialContractorId ? contractors.find(c => c.id === initialContractorId) : undefined
+  const [search, setSearch] = useState(initialContractor?.name ?? '')
   const [editing, setEditing] = useState<Act | null>(null)
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState<ActForm>(EMPTY)
@@ -297,11 +304,12 @@ export default function Acts() {
         area: cellToNum(rowGet(row, 'Площ', 'Площ дка')),
         cubicPerDka: cellToNum(rowGet(row, 'куб.м./дка')),
         waterCubic: cellToNum(rowGet(row, 'Вода куб.м.')),
-        unitPrice: cellToNum(rowGet(row, 'Ед. цена')),
-        value: 0,
+        unitPrice: cellToNum(rowGet(row, 'Ед. цена', 'Ед. цена (€)', 'Единична цена', 'Цена')),
+        value: cellToNum(rowGet(row, 'Стойност', 'Стойност (€)', 'Сума')),
         month: String(rowGet(row, 'Месец') ?? '').trim(),
       }
-      added.push({ ...calcAct(base), id: `${Date.now()}-${i}` })
+      const calculated = calcAct(base)
+      added.push({ ...calculated, value: base.value || calculated.value, id: `${Date.now()}-${i}` })
     })
     if (added.length) setActs([...acts, ...added])
     setImportResult({ added: added.length, errors })
@@ -315,7 +323,7 @@ export default function Acts() {
       const method = irrigationMethods.find(x => x.id === a.irrigationMethodId)
       const crop = crops.find(x => x.id === a.cropId)
       return {
-        'Дата': a.date, 'Номер': a.number, 'Контрагент': cont?.name ?? '',
+        'Дата': formatActDate(a.date), 'Номер': a.number, 'Контрагент': cont?.name ?? '',
         'ХТУ': h?.htuName ?? '', 'Съоражение': h?.equipment ?? '', 'Землище': a.village,
         'Начин на поливане': method?.name ?? '', 'Култура': crop?.name ?? '', '№ поливка': a.irrigationNumber,
         'Площ': a.area, 'куб.м./дка': a.cubicPerDka, 'Вода куб.м.': a.waterCubic,
@@ -341,6 +349,11 @@ export default function Acts() {
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по номер, контрагент..." />
+            {initialContractorId && onClearFilter && (
+              <Btn variant="secondary" onClick={() => { setSearch(''); onClearFilter(); }}>
+                Изчисти филтър
+              </Btn>
+            )}
             {selected.size > 0 && (
               <Btn variant="secondary" onClick={() => setBulkModal(true)}>
                 <EditIcon /> Масово редактиране ({selected.size})
@@ -411,7 +424,7 @@ export default function Acts() {
                       <td className="px-2 py-2 text-center">
                         <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggleSelect(a.id)} className="rounded" />
                       </td>
-                      <td className="px-2 py-2 text-gray-600">{a.date}</td>
+                      <td className="px-2 py-2 text-gray-600">{formatActDate(a.date)}</td>
                       <td className="px-2 py-2 font-medium text-gray-900">{a.number}</td>
                       <td className="px-2 py-2 text-gray-700">{cont?.name ?? '—'}</td>
                       <td className="px-2 py-2 text-gray-600 text-center">{h?.htuName ?? '—'}</td>
@@ -420,12 +433,12 @@ export default function Acts() {
                       <td className="px-2 py-2 text-gray-600">{method?.name ?? '—'}</td>
                       <td className="px-2 py-2 text-gray-600">{crop?.name ?? '—'}</td>
                       <td className="px-2 py-2 text-gray-600 text-center">{a.irrigationNumber}</td>
-                      <td className="px-2 py-2 text-right text-xs">{num(a.area, 2)}</td>
-                      <td className="px-2 py-2 text-center text-xs">{num(a.cubicPerDka, 0)}</td>
-                      <td className="px-2 py-2 text-center text-xs">{num(a.waterCubic, 0)}</td>
-                      <td className="px-2 py-2 text-right text-xs">{num(a.unitPrice, 4)}</td>
-                      <td className="px-2 py-2 text-center text-xs font-semibold text-teal-700">{num(a.value, 2)}</td>
-                      <td className="px-2 py-2 text-gray-600">{a.month}</td>
+                      <td className="px-2 py-2 text-left text-xs">{num(a.area, 2)}</td>
+                      <td className="px-2 py-2 text-left text-xs">{num(a.cubicPerDka, 0)}</td>
+                      <td className="px-2 py-2 text-left text-xs">{num(a.waterCubic, 0)}</td>
+                      <td className="px-2 py-2 text-left text-xs">{num(a.unitPrice, 4)}</td>
+                      <td className="px-2 py-2 text-left text-xs font-semibold text-teal-700">{num(a.value, 2)}</td>
+                      <td className="px-2 py-2 text-center text-gray-600">{a.month}</td>
                       <td className="px-2 py-2">
                         <div className="flex gap-1">
                           <Btn size="sm" variant="ghost" onClick={() => useAsTemplate(a)}>📋</Btn>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { IrrigRequest } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, Badge, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, num } from './ui'
 import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToNum, cellToDateStr, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
@@ -31,6 +32,8 @@ function computeStatus(r: IrrigRequest, isCompleted: boolean, today: string): Re
 }
 
 export default function Requests() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const { requests, setRequests, contractors, crops, acts, contracts, htus, findOrCreateContractor } = useStore()
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
@@ -277,26 +280,27 @@ export default function Requests() {
         })}
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <button
-          onClick={() => setStatusFilter(v => v === 'approaching' ? null : 'approaching')}
-          className="text-left"
-        >
-          <Card className={`p-4 border-l-4 border-l-amber-400 transition-shadow ${statusFilter === 'approaching' ? 'ring-2 ring-amber-400' : ''}`}>
-            <p className="text-xs text-gray-500">Наближаващи (до {APPROACHING_WINDOW_DAYS} дни)</p>
-            <p className="mt-1 text-2xl font-semibold text-amber-600">{approachingCount}</p>
-          </Card>
-        </button>
-        <button
-          onClick={() => setStatusFilter(v => v === 'overdue' ? null : 'overdue')}
-          className="text-left"
-        >
-          <Card className={`p-4 border-l-4 border-l-red-400 transition-shadow ${statusFilter === 'overdue' ? 'ring-2 ring-red-400' : ''}`}>
-            <p className="text-xs text-gray-500">Просрочени</p>
-            <p className="mt-1 text-2xl font-semibold text-red-500">{overdueCount}</p>
-          </Card>
-        </button>
-        <button
+      {isAdmin && (
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <button
+            onClick={() => setStatusFilter(v => v === 'approaching' ? null : 'approaching')}
+            className="text-left"
+          >
+            <Card className={`p-4 border-l-4 border-l-amber-400 transition-shadow ${statusFilter === 'approaching' ? 'ring-2 ring-amber-400' : ''}`}>
+              <p className="text-xs text-gray-500">Наближаващи (до {APPROACHING_WINDOW_DAYS} дни)</p>
+              <p className="mt-1 text-2xl font-semibold text-amber-600">{approachingCount}</p>
+            </Card>
+          </button>
+          <button
+            onClick={() => setStatusFilter(v => v === 'overdue' ? null : 'overdue')}
+            className="text-left"
+          >
+            <Card className={`p-4 border-l-4 border-l-red-400 transition-shadow ${statusFilter === 'overdue' ? 'ring-2 ring-red-400' : ''}`}>
+              <p className="text-xs text-gray-500">Просрочени</p>
+              <p className="mt-1 text-2xl font-semibold text-red-500">{overdueCount}</p>
+            </Card>
+          </button>
+          <button
           onClick={() => setStatusFilter(v => v === 'completed' ? null : 'completed')}
           className="text-left"
         >
@@ -315,6 +319,7 @@ export default function Requests() {
           </Card>
         </button>
       </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">

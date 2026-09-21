@@ -4,6 +4,7 @@ import { useAuth } from '../auth'
 import type { Module } from '../types'
 import { PageHeader, StatCard, Card, num } from './ui'
 import { namesMatch } from '../lib/spreadsheet'
+import { countContracts, countActs } from '../lib/acts'
 
 function fmtNumber(n: number) {
   return n.toLocaleString('bg-BG')
@@ -19,7 +20,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
   const { username } = useAuth()
 
   const stats = useMemo(() => {
-    const water = contracts.reduce((sum, c) => sum + (c.waterCubic || 0), 0)
+    const contractedWater = contracts.reduce((sum, c) => sum + (c.waterCubic || 0), 0)
+    const deliveredWater = acts.reduce((sum, a) => sum + (a.waterCubic || 0), 0)
     const monthNames = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
     const currentMonth = monthNames[new Date().getMonth()]
     const monthCost = contracts
@@ -27,14 +29,11 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
       .reduce((sum, c) => sum + (c.value || 0), 0)
     const unpaid = payments.filter(p => !p.paid)
 
-    // Same № договор + дата, split across crops, is one contract with several crops — not several
-    // contracts — so the count matches what an operator would call "1 договор".
-    const distinctContracts = new Set(contracts.map(c => `${c.number.trim().toLowerCase()}|${c.date}`)).size
-
     return {
-      activeContracts: distinctContracts,
-      water,
-      pendingActs: acts.length,
+      activeContracts: countContracts(contracts),
+      contractedWater,
+      deliveredWater,
+      pendingActs: countActs(acts),
       monthCost,
       unpaidCount: unpaid.length,
       unpaidValue: unpaid.reduce((sum, p) => sum + (p.amount || 0), 0),
@@ -82,7 +81,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
 
   const contractsByHtu = useMemo(() =>
     htus
-      .map(h => ({ name: h.htuName, count: contracts.filter(c => c.htuId === h.id).length }))
+      .map(h => ({ name: h.htuName, count: countContracts(contracts.filter(c => c.htuId === h.id)) }))
       .filter(x => x.count > 0)
       .sort((a, b) => b.count - a.count),
     [htus, contracts]
@@ -110,40 +109,40 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
         </Card>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <StatCard label="Активни договори" value={fmtNumber(stats.activeContracts)} color="teal" />
-        <StatCard label="Подадена вода" value={`${fmtNumber(stats.water)} м³`} color="blue" />
+        <StatCard label="Договорирана вода" value={`${fmtNumber(stats.contractedWater)} м³`} color="blue" />
+        <StatCard label="Подадена вода" value={`${fmtNumber(stats.deliveredWater)} м³`} color="emerald" />
         <StatCard label="Актове бр." value={fmtNumber(stats.pendingActs)} color="amber" />
-        <StatCard label="Договорирана стойност за месеца" value={`${fmtNumber(Math.round(stats.monthCost))} €`} color="emerald" />
         <StatCard label="Неплатени фактури" value={fmtNumber(stats.unpaidCount)} sub={`${num(stats.unpaidValue, 2)} € дължими`} color="amber" />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-4">
-          <Card className="p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
+          <Card className="p-3 sm:p-4">
+            <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
               <h2 className="text-base font-semibold text-gray-900">Активни договори</h2>
               <button
                 onClick={() => onNavigate('contracts')}
-                className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100"
+                className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100 whitespace-nowrap"
               >
                 Виж всички
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="border-b border-gray-100">
                     {['Договор', 'Контрагент', 'Култура', 'Стойност'].map(h => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      <th key={h} className="text-left px-2 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {latestContracts.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-gray-400">Все още няма договори.</td>
+                      <td colSpan={4} className="px-2 sm:px-4 py-6 sm:py-8 text-center text-sm sm:text-base text-gray-400">Все още няма договори.</td>
                     </tr>
                   ) : (
                     latestContracts.map((item, idx) => {
@@ -151,10 +150,10 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
                       const crop = crops.find(c => c.id === item.cropId)
                       return (
                         <tr key={item.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
-                          <td className="px-4 py-3 font-medium text-gray-900">{item.number}</td>
-                          <td className="px-4 py-3 text-gray-700">{contractor?.name ?? '—'}</td>
-                          <td className="px-4 py-3 text-gray-700">{crop?.name ?? '—'}</td>
-                          <td className="px-4 py-3 text-right font-semibold text-teal-700">{fmtNumber(Math.round(item.value))} €</td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-gray-900 text-xs sm:text-sm">{item.number}</td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{contractor?.name ?? '—'}</td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{crop?.name ?? '—'}</td>
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-teal-700 text-xs sm:text-sm">{fmtNumber(Math.round(item.value))} €</td>
                         </tr>
                       )
                     })
@@ -165,13 +164,13 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
           </Card>
 
           {contractsByHtu.length > 0 && (
-            <Card className="p-4">
+            <Card className="p-3 sm:p-4">
               <h2 className="text-base font-semibold text-gray-900 mb-3">Договори по ХТУ</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2 sm:gap-3">
                 {contractsByHtu.map(h => (
-                  <div key={h.name} className="rounded-xl bg-gray-50 px-4 py-3">
+                  <div key={h.name} className="rounded-xl bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
                     <p className="text-xs text-gray-500 truncate">{h.name}</p>
-                    <p className="mt-1 text-xl font-semibold text-gray-800">{h.count}</p>
+                    <p className="mt-1 text-lg sm:text-xl font-semibold text-gray-800">{h.count}</p>
                   </div>
                 ))}
               </div>
@@ -179,22 +178,22 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
           )}
         </div>
 
-        <aside className="rounded-2xl bg-teal-900 p-4 text-white">
-          <h3 className="text-base font-semibold">Генератори на документи</h3>
-          <p className="mt-2 text-sm text-teal-100/80">
+        <aside className="rounded-2xl bg-teal-900 p-3 sm:p-4 text-white">
+          <h3 className="text-base sm:text-lg font-semibold">Генератори на документи</h3>
+          <p className="mt-2 text-xs sm:text-sm text-teal-100/80">
             Изберете контрагент и система. Данните се попълват автоматично от регистрите.
           </p>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 sm:mt-5 space-y-2 sm:space-y-3">
             <button
               onClick={() => onNavigate('gen-contract')}
-              className="w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-50"
+              className="w-full rounded-xl bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-teal-900 transition hover:bg-teal-50"
             >
               Генерирай договор
             </button>
             <button
               onClick={() => onNavigate('gen-act')}
-              className="w-full rounded-xl border border-teal-600 bg-teal-800 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+              className="w-full rounded-xl border border-teal-600 bg-teal-800 px-3 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-teal-700"
             >
               Генерирай акт / заявка
             </button>

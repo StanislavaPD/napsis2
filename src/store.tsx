@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import type { Contractor, HTU, IrrigationMethod, Crop, Contract, Act, IrrigRequest, Payment } from './types'
+import type { Contractor, HTU, IrrigationMethod, Crop, Contract, Act, IrrigRequest, Payment, UdvnRepair } from './types'
 import { buildArchive, BACKUP_FOLDER_KEY, LAST_AUTO_BACKUP_KEY } from './lib/backup'
 import { blobToBase64 } from './lib/docx-fill'
 
@@ -12,6 +12,7 @@ interface StoreState {
   acts: Act[]
   requests: IrrigRequest[]
   payments: Payment[]
+  udvnRepairs: UdvnRepair[]
   setContractors: (v: Contractor[]) => void
   setHtus: (v: HTU[]) => void
   setIrrigationMethods: (v: IrrigationMethod[]) => void
@@ -20,6 +21,7 @@ interface StoreState {
   setActs: (v: Act[]) => void
   setRequests: (v: IrrigRequest[]) => void
   setPayments: (v: Payment[]) => void
+  setUdvnRepairs: (v: UdvnRepair[]) => void
   findOrCreateContractor: (name: string) => string
 }
 
@@ -161,10 +163,11 @@ function loadLegacyFromLocalStorage() {
     acts: load('agrovoda_acts', [] as Act[]),
     requests: migrateRequests(load('agrovoda_requests', [])),
     payments: migratePayments(load('agrovoda_payments', [])),
+    udvnRepairs: load('agrovoda_udvn_repairs', [] as UdvnRepair[]),
   }
 }
 
-export function StoreProvider({ children, token }: { children: ReactNode; token?: string | null }) {
+export function StoreProvider({ children, token, isAdmin = false }: { children: ReactNode; token?: string | null; isAdmin?: boolean }) {
   const useBackend = typeof window !== 'undefined' && !!window.api && !!token
 
   const [contractors, setContractors] = useState<Contractor[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().contractors)
@@ -175,6 +178,7 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
   const [acts, setActs] = useState<Act[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().acts)
   const [requests, setRequests] = useState<IrrigRequest[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().requests)
   const [payments, setPayments] = useState<Payment[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().payments)
+  const [udvnRepairs, setUdvnRepairs] = useState<UdvnRepair[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().udvnRepairs)
   const [loaded, setLoaded] = useState(!useBackend)
 
   // One-time fetch from Postgres via the Electron backend. If the server has no data yet for this
@@ -247,7 +251,7 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
   // Silent daily backup: writes the same fixed filename each time (no save dialog), so it's purely
   // a local safety net — only runs once per calendar day, tracked via a localStorage date stamp.
   useEffect(() => {
-    if (!loaded || !useBackend) return
+    if (!loaded || !useBackend || !isAdmin) return
     const today = new Date().toISOString().slice(0, 10)
     if (localStorage.getItem(LAST_AUTO_BACKUP_KEY) === today) return
     const archive = buildArchive({ contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments })
@@ -258,7 +262,7 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
         if (!('error' in res)) localStorage.setItem(LAST_AUTO_BACKUP_KEY, today)
       })
     })
-  }, [loaded, useBackend, contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments])
+  }, [loaded, useBackend, isAdmin, contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments])
 
   if (!loaded) return null
 
@@ -272,6 +276,7 @@ export function StoreProvider({ children, token }: { children: ReactNode; token?
       acts, setActs,
       requests, setRequests,
       payments, setPayments,
+      udvnRepairs, setUdvnRepairs,
       findOrCreateContractor,
     }}>
       {children}

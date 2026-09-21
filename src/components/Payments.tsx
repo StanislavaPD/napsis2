@@ -6,11 +6,11 @@ import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, ce
 
 const EMPTY: Omit<Payment, 'id'> = { invoiceNumber: '', invoiceDate: '', contractorId: '', items: [], amount: 0, paid: false }
 
-/** Formats an "yyyy-mm-dd" date string as "dd.mm.yyyy" (full 4-digit year, e.g. "2026-07-29" -> "29.07.2026"). */
+/** Formats an "yyyy-mm-dd" date string as "dd.mm.yy" (e.g. "2026-07-29" -> "29.07.26"). */
 function formatPaymentDate(date: string): string {
   const [y, m, d] = date.split('-')
   if (!y || !m || !d) return date
-  return `${d}.${m}.${y}`
+  return `${d}.${m}.${y.slice(2)}`
 }
 
 type SortField = 'invoiceNumber' | 'invoiceDate' | 'contractorName' | 'crops' | 'area' | 'amount' | 'status'
@@ -179,7 +179,7 @@ export default function Payments() {
         invoiceDate: cellToDateStr(rowGet(row, 'Дата на фактура', 'Дата')),
         contractorId: contractor.id,
         items,
-        amount: cellToNum(rowGet(row, 'Сума €', 'Сума')),
+        amount: cellToNum(rowGet(row, 'Сума €', 'Сума (€)', 'Сума', 'Стойност')),
         paid: paidRaw === 'да' || paidRaw === 'платена' || paidRaw === 'true' || paidRaw === '1',
       })
     })
@@ -194,7 +194,7 @@ export default function Payments() {
       const cropNames = p.items.map(i => crops.find(c => c.id === i.cropId)?.name).filter(Boolean).join(', ')
       const totalArea = p.items.reduce((sum, i) => sum + (i.area || 0), 0)
       return {
-        '№ Фактура': p.invoiceNumber, 'Дата на фактура': p.invoiceDate, 'Контрагент': cont?.name ?? '', 'Култури': cropNames, 'Дка': totalArea,
+        '№ Фактура': p.invoiceNumber, 'Дата на фактура': p.invoiceDate ? formatPaymentDate(p.invoiceDate) : '', 'Контрагент': cont?.name ?? '', 'Култури': cropNames, 'Дка': totalArea,
         'Сума €': p.amount, 'Статус': p.paid ? 'Платена' : 'Неплатена',
       }
     })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Btn, Input, FormRow, Card } from '../components/ui'
+import type { UserRole } from '../auth'
 
 type Step = 'checking' | 'need-password' | 'provisioning' | 'admin' | 'error'
 
@@ -7,7 +8,7 @@ export default function SetupWizard({
   onComplete,
   onSkipToLogin,
 }: {
-  onComplete: (token: string, username: string) => void
+  onComplete: (token: string, username: string, role: UserRole) => void
   onSkipToLogin: () => void
 }) {
   const [step, setStep] = useState<Step>('checking')
@@ -72,7 +73,7 @@ export default function SetupWizard({
       setAdminError(res.error)
       return
     }
-    onComplete(res.token, res.username)
+    onComplete(res.token, res.username, res.role)
   }
 
   return (
@@ -111,6 +112,13 @@ export default function SetupWizard({
               />
             </FormRow>
             <Btn onClick={() => runProvisioning(superuserPassword)} disabled={!superuserPassword}>Продължи</Btn>
+            <button
+              type="button"
+              onClick={() => onSkipToLogin()}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Не знам паролата - отиди към вход
+            </button>
           </div>
         )}
 

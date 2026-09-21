@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx'
 import ExcelJS from 'exceljs'
 import { downloadBlob } from './docx-fill'
 
@@ -9,30 +8,88 @@ export interface ImportResult {
   errors: string[]
 }
 
-/** Reads the first sheet of an .xlsx/.xls/.csv file into an array of row objects keyed by header. */
+function parseCsvLine(line: string, delimiter: string): string[] {
+  const cells: string[] = []
+  let cell = ''
+  let quoted = false
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      if (quoted && line[i + 1] === '"') { cell += '"'; i++ }
+      else quoted = !quoted
+    } else if (char === delimiter && !quoted) {
+      cells.push(cell)
+      cell = ''
+    } else cell += char
+  }
+  cells.push(cell)
+  return cells
+}
+
+function parseCsv(text: string): SheetRow[] {
+  const lines: string[] = []
+  let line = ''
+  let quoted = false
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') { line += '""'; i++ }
+      else { quoted = !quoted; line += char }
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[i + 1] === '\n') i++
+      if (line) lines.push(line)
+      line = ''
+    } else line += char
+  }
+  if (line) lines.push(line)
+  if (!lines.length) return []
+  const delimiter = (lines[0].match(/;/g) ?? []).length > (lines[0].match(/,/g) ?? []).length ? ';' : ','
+  const headers = parseCsvLine(lines[0], delimiter).map(h => h.replace(/^\uFEFF/, '').trim())
+  return lines.slice(1).map(line => {
+    const values = parseCsvLine(line, delimiter)
+    return Object.fromEntries(headers.map((header, i) => [header, values[i] ?? '']))
+  })
+}
+
+function excelCellValue(value: ExcelJS.CellValue): unknown {
+  if (value && typeof value === 'object') {
+    if ('result' in value) return value.result
+    if ('text' in value) return value.text
+    if ('richText' in value) return value.richText.map(part => part.text).join('')
+  }
+  return value
+}
+
+/** Reads the first sheet of an .xlsx or .csv file into an array of row objects keyed by header. */
 export async function parseSpreadsheetFile(file: File): Promise<SheetRow[]> {
-  const buf = await file.arrayBuffer()
-  const wb = XLSX.read(buf, { type: 'array', cellDates: true })
-  const sheet = wb.Sheets[wb.SheetNames[0]]
+  if (file.name.toLowerCase().endsWith('.csv')) return parseCsv(await file.text())
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(await file.arrayBuffer())
+  const sheet = wb.worksheets[0]
   if (!sheet) return []
-  return XLSX.utils.sheet_to_json<SheetRow>(sheet, { defval: '' })
+  const headers = (sheet.getRow(1).values as ExcelJS.CellValue[]).slice(1).map(value => String(excelCellValue(value) ?? '').trim())
+  const rows: SheetRow[] = []
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    const values = row.values as ExcelJS.CellValue[]
+    rows.push(Object.fromEntries(headers.map((header, i) => [header, excelCellValue(values[i + 1]) ?? ''])))
+  })
+  return rows
 }
 
 /** Triggers a download of an .xlsx template with the given headers, optionally pre-filled with a sample row. */
 export function downloadSpreadsheetTemplate(headers: string[], filename: string, sampleRow?: SheetRow) {
-  const rows = [sampleRow ?? Object.fromEntries(headers.map(h => [h, ''] as const))]
-  const ws = XLSX.utils.json_to_sheet(rows, { header: headers })
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Шаблон')
-  XLSX.writeFile(wb, filename)
+  void exportRowsToSpreadsheet(headers, [sampleRow ?? Object.fromEntries(headers.map(h => [h, ''] as const))], 'Шаблон', filename)
 }
 
 /** Exports an array of row objects to an .xlsx file, preserving the given header order. */
-export function exportRowsToSpreadsheet(headers: string[], rows: SheetRow[], sheetName: string, filename: string) {
-  const ws = XLSX.utils.json_to_sheet(rows, { header: headers })
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, sheetName)
-  XLSX.writeFile(wb, filename)
+export async function exportRowsToSpreadsheet(headers: string[], rows: SheetRow[], sheetName: string, filename: string) {
+  const wb = new ExcelJS.Workbook()
+  const ws = wb.addWorksheet(sheetName)
+  ws.addRow(headers)
+  rows.forEach(row => ws.addRow(headers.map(header => row[header] ?? '')))
+  const buf = await wb.xlsx.writeBuffer()
+  await downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), filename)
 }
 
 export interface StyledExportOptions {
@@ -156,13 +213,17 @@ export function exportFilename(base: string, filters: (string | null | undefined
 
 /** Looks up a value in a row by one or more possible header names, case/whitespace-insensitive. */
 export function rowGet(row: SheetRow, ...names: string[]): unknown {
-  const normalized = Object.entries(row).map(([k, v]) => [k.trim().toLowerCase(), v] as const)
+  const normalized = Object.entries(row).map(([k, v]) => [normalizeHeader(k), v] as const)
   for (const name of names) {
-    const target = name.trim().toLowerCase()
+    const target = normalizeHeader(name)
     const found = normalized.find(([k]) => k === target)
     if (found) return found[1]
   }
   return undefined
+}
+
+function normalizeHeader(value: string): string {
+  return value.replace(/^\uFEFF/, '').replace(/\u00A0/g, ' ').trim().toLowerCase().replace(/[€$£]/g, '').replace(/[()]/g, '').replace(/\s+/g, ' ').trim()
 }
 
 export function cellToStr(v: unknown): string {
@@ -187,7 +248,20 @@ export function cellToDateStr(v: unknown): string {
 
 export function cellToNum(v: unknown): number {
   if (v == null || v === '') return 0
-  const n = typeof v === 'number' ? v : parseFloat(String(v).trim().replace(',', '.'))
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0
+  let text = String(v).replace(/\u00A0/g, ' ').trim().replace(/[€$£]/g, '').replace(/\s+/g, '')
+  if (!text) return 0
+  const comma = text.lastIndexOf(',')
+  const dot = text.lastIndexOf('.')
+  if (comma >= 0 && dot >= 0) {
+    const decimal = comma > dot ? ',' : '.'
+    const thousands = decimal === ',' ? '.' : ','
+    text = text.replace(new RegExp(`\\${thousands}`, 'g'), '').replace(decimal, '.')
+  } else if (comma >= 0) {
+    text = text.replace(',', '.')
+  }
+  text = text.replace(/[^\d.+-]/g, '')
+  const n = Number(text)
   return isNaN(n) ? 0 : n
 }
 

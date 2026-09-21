@@ -18,20 +18,29 @@ import Dashboard from './components/Dashboard'
 import Settings from './components/Settings'
 
 function AppContent() {
-  const { logout } = useAuth()
-  const [active, setActive] = useState<Module>('dashboard')
+  const { logout, role } = useAuth()
+  const isAdmin = role === 'admin'
+  const [active, setActive] = useState<Module>(isAdmin ? 'dashboard' : 'contractors')
+  const [contractorFilter, setContractorFilter] = useState<string | undefined>(undefined)
+  const visibleActive = !isAdmin && (active === 'dashboard' || active === 'reports') ? 'contractors' : active
+
+  function handleReportsNavigate(module: 'contracts' | 'acts', contractorId?: string) {
+    setContractorFilter(contractorId)
+    setActive(module)
+  }
 
   function renderModule() {
-    switch (active) {
-      case 'dashboard': return <Dashboard onNavigate={setActive} />
+    switch (visibleActive) {
+      case 'dashboard': return isAdmin ? <Dashboard onNavigate={setActive} /> : <Contractors />
       case 'contractors': return <Contractors />
       case 'htu': return <HTUModule />
       case 'methods': return <Methods />
-      case 'contracts': return <Contracts />
-      case 'acts': return <Acts />
+      case 'contracts': return <Contracts initialContractorId={contractorFilter} onClearFilter={() => setContractorFilter(undefined)} />
+      case 'acts': return <Acts initialContractorId={contractorFilter} onClearFilter={() => setContractorFilter(undefined)} />
       case 'requests': return <Requests />
       case 'payments': return <Payments />
-      case 'reports': return <Reports />
+      case 'reports': return isAdmin ? <Reports onNavigate={handleReportsNavigate} /> : <Contractors />
+      case 'generators': return isAdmin ? <Generators /> : <Contractors />
       case 'gen-contract': return <Generators defaultTab="contract" />
       case 'gen-act': return <Generators defaultTab="act" />
       case 'gen-request': return <Generators defaultTab="request" />
@@ -41,9 +50,9 @@ function AppContent() {
 
   return (
     <div className="flex h-screen flex-col md:flex-row bg-[#dae7f4] font-sans overflow-hidden">
-      <Sidebar active={active} onNavigate={setActive} onLogout={logout} />
+      <Sidebar active={visibleActive} onNavigate={setActive} onLogout={logout} />
       <main className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-8 max-w-full">
+        <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-full">
           {renderModule()}
         </div>
       </main>
@@ -52,7 +61,7 @@ function AppContent() {
 }
 
 function Gate() {
-  const { ready, hasBackend, username, token, setSession } = useAuth()
+  const { ready, hasBackend, username, role, token, setSession } = useAuth()
   const [setupChecked, setSetupChecked] = useState(!hasBackend)
   const [needsSetup, setNeedsSetup] = useState(false)
 
@@ -68,7 +77,7 @@ function Gate() {
   if (hasBackend && needsSetup) {
     return (
       <SetupWizard
-        onComplete={(t, u) => { setSession(t, u); setNeedsSetup(false) }}
+        onComplete={(t, u, r) => { setSession(t, u, r); setNeedsSetup(false) }}
         onSkipToLogin={() => setNeedsSetup(false)}
       />
     )
@@ -77,7 +86,7 @@ function Gate() {
   if (hasBackend && !username) return <Login />
 
   return (
-    <StoreProvider token={hasBackend ? token : undefined}>
+      <StoreProvider token={hasBackend ? token : undefined} isAdmin={role === 'admin'}>
       <AppContent />
     </StoreProvider>
   )

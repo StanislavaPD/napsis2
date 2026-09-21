@@ -1,11 +1,15 @@
 import { useRef, useState } from 'react'
 import { useStore } from '../store'
-import { PageHeader, Card, Btn, ConfirmDialog, DownloadIcon, ImportIcon, ExportIcon, ArchiveBoxIcon, ChartBarIcon, ClockIcon } from './ui'
+import { useAuth } from '../auth'
+import { PageHeader, Card, Btn, ConfirmDialog, DownloadIcon, ImportIcon, ExportIcon, ArchiveBoxIcon, ChartBarIcon, ClockIcon, FormRow, Input } from './ui'
 import { downloadBlob, blobToBase64 } from '../lib/docx-fill'
 import { exportStyledRowsToSpreadsheet } from '../lib/spreadsheet'
 import { buildArchive, isValidArchive, type ArchiveFile, BACKUP_FOLDER_KEY, LAST_AUTO_BACKUP_KEY } from '../lib/backup'
+import { countContracts, countActs } from '../lib/acts'
 
 export default function Settings() {
+  const { token, role } = useAuth()
+  const isAdmin = role === 'admin'
   const {
     contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments,
     setContractors, setHtus, setIrrigationMethods, setCrops, setContracts, setActs, setRequests, setPayments,
@@ -18,6 +22,10 @@ export default function Settings() {
   const [backupFolder, setBackupFolder] = useState(() => localStorage.getItem(BACKUP_FOLDER_KEY))
   const [backupNowResult, setBackupNowResult] = useState<string | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
+  const [newUsername, setNewUsername] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [accountResult, setAccountResult] = useState<string | null>(null)
+  const [accountBusy, setAccountBusy] = useState(false)
 
   function currentArchive(): ArchiveFile {
     return buildArchive({ contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments })
@@ -89,6 +97,21 @@ export default function Settings() {
     }
   }
 
+  async function createAccount() {
+    if (!window.api || !token || !newUsername.trim() || !newPassword) return
+    setAccountBusy(true)
+    setAccountResult(null)
+    const result = await window.api.createUser(token, newUsername, newPassword)
+    setAccountBusy(false)
+    if ('error' in result) {
+      setAccountResult(`Грешка: ${result.error}`)
+      return
+    }
+    setNewUsername('')
+    setNewPassword('')
+    setAccountResult(`Акаунтът "${result.username}" е създаден успешно.`)
+  }
+
   async function exportContractorSummary() {
     const headers = [
       'Контрагент', 'Договори бр.', 'Договорирана площ дка', 'Договорирана стойност €',
@@ -113,12 +136,12 @@ export default function Settings() {
 
       return {
         'Контрагент': cont.name,
-        'Договори бр.': cContracts.length,
+        'Договори бр.': countContracts(cContracts),
         'Договорирана площ дка': contractedArea,
         'Договорирана стойност €': contractedValue,
         'Заявки бр.': cRequests.length,
         'Заявена площ дка': requestedArea,
-        'Актове бр.': cActs.length,
+        'Актове бр.': countActs(cActs),
         'Актувана площ дка': actedArea,
         'Актувана стойност €': actedValue,
         'Фактури бр.': cPayments.length,
@@ -142,75 +165,106 @@ export default function Settings() {
     <div>
       <PageHeader title="Настройки" subtitle="Архив и възстановяване на данните" />
 
-      <Card className="max-w-2xl mb-6 overflow-hidden">
-        <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-teal-500 to-teal-600">
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ArchiveBoxIcon className="w-4.5 h-4.5" /></div>
-          <p className="text-sm font-semibold text-white">Архив на данните</p>
-        </div>
-        <div className="p-6">
-          <p className="text-sm text-gray-500 mb-5">
-            Изтегля един файл с всички данни в приложението ({totalRecords} записа общо) — контрагенти, ХТУ, начини на
-            напояване, култури, договори, актове, заявки и плащания. Използвай го за резервно копие или за пренасяне на
-            данните на друг компютър.
-          </p>
+      {isAdmin && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Лява колона - Архиви */}
+          <div className="space-y-6">
+            <Card className="overflow-hidden">
+              <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-teal-500 to-teal-600">
+                <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ArchiveBoxIcon className="w-4.5 h-4.5" /></div>
+                <p className="text-sm font-semibold text-white">Архив на данните</p>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-500 mb-5">
+                  Изтегля един файл с всички данни в приложението ({totalRecords} записа общо) — контрагенти, ХТУ, начини на
+                  напояване, култури, договори, актове, заявки и плащания. Използвай го за резервно копие или за пренасяне на
+                  данните на друг компютър.
+                </p>
 
-          <div className="flex flex-wrap gap-3">
-            <Btn onClick={downloadArchive}><DownloadIcon /> Изтегли пълен архив</Btn>
-            <Btn variant="secondary" onClick={pickFile}><ImportIcon /> Възстанови от архив</Btn>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={e => {
-                const f = e.target.files?.[0]
-                if (f) handleFile(f)
-                e.target.value = ''
-              }}
-            />
+                <div className="flex flex-wrap gap-3">
+                  <Btn onClick={downloadArchive}><DownloadIcon /> Изтегли пълен архив</Btn>
+                  <Btn variant="secondary" onClick={pickFile}><ImportIcon /> Възстанови от архив</Btn>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".json"
+                    className="hidden"
+                    onChange={e => {
+                      const f = e.target.files?.[0]
+                      if (f) handleFile(f)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+
+                {restoreError && <p className="text-sm text-red-500 mt-4">{restoreError}</p>}
+                {restoredAt && <p className="text-sm text-teal-600 mt-4">✓ Данните бяха възстановени успешно ({restoredAt}).</p>}
+              </div>
+            </Card>
+
+            {window.api && (
+              <Card className="overflow-hidden">
+                <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-blue-500 to-blue-600">
+                  <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ClockIcon className="w-4.5 h-4.5" /></div>
+                  <p className="text-sm font-semibold text-white">Ежедневен автоматичен архив</p>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-gray-500 mb-4">
+                    Веднъж дневно, при отваряне на приложението, се записва същият файл (презаписва предишния) на избраното по-долу
+                    място — тих запис без диалог, само като допълнителна застраховка.
+                  </p>
+
+                  <div className="flex items-center gap-2 mb-4 text-sm">
+                    <span className="text-gray-500">Място:</span>
+                    <span className="font-medium text-gray-800">{backupFolder || 'По подразбиране (папка "Документи")'}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Btn variant="secondary" onClick={pickBackupFolder}>Избери папка</Btn>
+                    {backupFolder && <Btn variant="ghost" onClick={clearBackupFolder}>Върни по подразбиране</Btn>}
+                    <Btn variant="secondary" onClick={backupNow} disabled={backupBusy}>{backupBusy ? 'Записване…' : 'Направи архив сега'}</Btn>
+                  </div>
+
+                  {backupNowResult && <p className="text-sm text-gray-600 mt-4 break-all">{backupNowResult}</p>}
+                </div>
+              </Card>
+            )}
           </div>
 
-          {restoreError && <p className="text-sm text-red-500 mt-4">{restoreError}</p>}
-          {restoredAt && <p className="text-sm text-teal-600 mt-4">✓ Данните бяха възстановени успешно ({restoredAt}).</p>}
-        </div>
-      </Card>
+          {/* Дясна колона - Обобщение и Акаунти */}
+          <div className="space-y-6">
+            <Card className="overflow-hidden">
+              <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-amber-400 to-amber-500">
+                <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ChartBarIcon className="w-4.5 h-4.5" /></div>
+                <p className="text-sm font-semibold text-white">Обобщение по контрагенти</p>
+              </div>
+              <div className="p-6">
+                <Btn onClick={exportContractorSummary}><ExportIcon /> Изтегли обобщение по контрагенти</Btn>
+              </div>
+            </Card>
 
-      <Card className="max-w-2xl mb-6 overflow-hidden">
-        <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-amber-400 to-amber-500">
-          <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ChartBarIcon className="w-4.5 h-4.5" /></div>
-          <p className="text-sm font-semibold text-white">Обобщение по контрагенти</p>
-        </div>
-        <div className="p-6">
-          <Btn onClick={exportContractorSummary}><ExportIcon /> Изтегли обобщение по контрагенти</Btn>
-        </div>
-      </Card>
-
-      {window.api && (
-        <Card className="max-w-2xl overflow-hidden">
-          <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-blue-500 to-blue-600">
-            <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ClockIcon className="w-4.5 h-4.5" /></div>
-            <p className="text-sm font-semibold text-white">Ежедневен автоматичен архив</p>
+            <Card className="overflow-hidden">
+              <div className="px-6 py-4 bg-gradient-to-br from-sky-500 to-sky-600">
+                <p className="text-sm font-semibold text-white">Добавяне на акаунт</p>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-500 mb-5">Създай достъп за друг потребител. Новият акаунт няма да има работно табло и справки.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormRow label="Потребителско име" required>
+                    <Input value={newUsername} onChange={e => setNewUsername(e.target.value)} autoComplete="off" />
+                  </FormRow>
+                  <FormRow label="Парола" required>
+                    <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} autoComplete="new-password" />
+                  </FormRow>
+                </div>
+                <Btn className="mt-5" onClick={createAccount} disabled={accountBusy || !newUsername.trim() || !newPassword}>
+                  {accountBusy ? 'Създаване…' : 'Създай акаунт'}
+                </Btn>
+                {accountResult && <p className="text-sm text-gray-600 mt-4">{accountResult}</p>}
+              </div>
+            </Card>
           </div>
-          <div className="p-6">
-            <p className="text-sm text-gray-500 mb-4">
-              Веднъж дневно, при отваряне на приложението, се записва същият файл (презаписва предишния) на избраното по-долу
-              място — тих запис без диалог, само като допълнителна застраховка.
-            </p>
-
-            <div className="flex items-center gap-2 mb-4 text-sm">
-              <span className="text-gray-500">Място:</span>
-              <span className="font-medium text-gray-800">{backupFolder || 'По подразбиране (папка "Документи")'}</span>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Btn variant="secondary" onClick={pickBackupFolder}>Избери папка</Btn>
-              {backupFolder && <Btn variant="ghost" onClick={clearBackupFolder}>Върни по подразбиране</Btn>}
-              <Btn variant="secondary" onClick={backupNow} disabled={backupBusy}>{backupBusy ? 'Записване…' : 'Направи архив сега'}</Btn>
-            </div>
-
-            {backupNowResult && <p className="text-sm text-gray-600 mt-4 break-all">{backupNowResult}</p>}
-          </div>
-        </Card>
+        </div>
       )}
 
       {pendingRestore && (

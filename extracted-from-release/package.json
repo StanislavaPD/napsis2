@@ -1,0 +1,30 @@
+{
+  "name": "napoyavane-htr-yambol",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Система за управление на договори, актове, заявки и плащания за напояване — ХТР Ямбол.",
+  "author": "инж.Станислава Димитрова",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "dependencies": {
+    "@types/jspdf": "^2.0.0",
+    "adm-zip": "^0.6.1",
+    "bcryptjs": "^3.0.3",
+    "docx": "^9.7.1",
+    "docxtemplater": "^3.69.2",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "mammoth": "^1.12.3",
+    "pg": "^8.22.0",
+    "pizzip": "^3.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^3.10.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

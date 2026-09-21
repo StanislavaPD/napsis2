@@ -78,6 +78,7 @@ export interface Act {
 
 export interface IrrigRequest {
   id: string
+  requestNumber: string
   contractorId: string
   irrigationNumber: string
   startDate: string
@@ -95,6 +96,20 @@ export interface Payment {
   paid: boolean
 }
 
+export interface UdvnRepair {
+  id: string
+  month: string
+  date: string
+  facilityName: string
+  pipelineName: string
+  hectometer: string
+  repairDescription: string
+  materials: string
+  workers: string
+  equipmentHours: string
+  status: 'planned' | 'completed'
+}
+
 export type Module =
   | 'dashboard'
   | 'contractors'
@@ -105,6 +120,7 @@ export type Module =
   | 'requests'
   | 'payments'
   | 'reports'
+  | 'generators'
   | 'gen-contract'
   | 'gen-act'
   | 'gen-request'

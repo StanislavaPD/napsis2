@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { Module } from '../types'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { SVGProps } from 'react'
+import { countContracts, countActs } from '../lib/acts'
 
 function NavIcon({ children, ...props }: SVGProps<SVGSVGElement> & { children: React.ReactNode }) {
   return (
@@ -95,6 +97,15 @@ function SettingsIcon() {
   )
 }
 
+function GeneratorIcon() {
+  return (
+    <NavIcon>
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3" />
+    </NavIcon>
+  )
+}
+
 function ChevronIcon({ flipped }: { flipped: boolean }) {
   return (
     <svg
@@ -121,16 +132,19 @@ const NAV = [
   { id: 'acts' as Module, label: 'Актове', icon: <DocumentIcon accent="lines" /> },
   { id: 'payments' as Module, label: 'Плащания', icon: <InvoiceIcon /> },
   { id: 'reports' as Module, label: 'Справки', icon: <ChartLineIcon /> },
+  { id: 'generators' as Module, label: 'Генериране\nна документи', icon: <GeneratorIcon />, adminOnly: true },
   { id: 'settings' as Module, label: 'Настройки', icon: <SettingsIcon /> },
 ]
 
 export default function Sidebar({ active, onNavigate, onLogout }: { active: Module; onNavigate: (m: Module) => void; onLogout?: () => void }) {
   const { contracts, acts, requests, payments } = useStore()
+  const { role } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
+  const visibleNav = role === 'admin' ? NAV : NAV.filter(item => item.id !== 'dashboard' && item.id !== 'reports' && !(item as any).adminOnly)
 
   const counts: Partial<Record<Module, number>> = {
-    contracts: contracts.length,
-    acts: acts.length,
+    contracts: countContracts(contracts),
+    acts: countActs(acts),
     requests: requests.length,
     payments: payments.filter(p => !p.paid).length,
   }
@@ -150,24 +164,24 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
       </button>
 
       {/* Logo */}
-      <div className={`px-5 py-5 md:py-8 ${collapsed ? 'md:px-0 md:flex md:justify-center' : ''}`}>
-        <div className={`flex items-center gap-3 ${collapsed ? 'md:gap-0' : ''}`}>
-          <div className="w-16 h-16 shrink-0 rounded-lg border border-sky-300/50 overflow-hidden flex items-center justify-center bg-white/5">
-            <img src="./i.ico" alt="" className="w-24 h-24 object-contain" />
+      <div className={`px-3 py-3 sm:px-5 sm:py-5 md:py-8 ${collapsed ? 'md:px-0 md:flex md:justify-center' : ''}`}>
+        <div className={`flex items-center gap-2 sm:gap-3 ${collapsed ? 'md:gap-0' : ''}`}>
+          <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-lg border border-sky-300/50 overflow-hidden flex items-center justify-center bg-white/5">
+            <img src="./i.ico" alt="" className="w-16 h-16 sm:w-24 sm:h-24 object-contain" />
           </div>
           {!collapsed && (
             <div>
-              <p className="text-white font-semibold text-xl leading-tight tracking-tight">Напояване</p>
-              <p className="text-white font-semibold text-xl leading-tight tracking-tight">ХТР Ямбол</p>
+              <p className="text-white font-semibold text-base sm:text-xl leading-tight tracking-tight">Напояване</p>
+              <p className="text-white font-semibold text-base sm:text-xl leading-tight tracking-tight">ХТР Ямбол</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-4 pt-2 pb-5">
-        <div className="space-y-2">
-          {NAV.map(item => {
+      <nav className="flex-1 overflow-y-auto px-2 sm:px-4 pt-1 sm:pt-2 pb-3 sm:pb-5">
+        <div className="space-y-1 sm:space-y-2">
+          {visibleNav.map(item => {
             const isActive = active === item.id
             const count = counts[item.id]
 
@@ -175,8 +189,8 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-left text-sm font-semibold transition-all ${
+                title={collapsed ? item.label.replace('\n', ' ') : undefined}
+                className={`w-full flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-left text-xs sm:text-sm font-semibold transition-all ${
                   collapsed ? 'md:justify-center md:px-0' : ''
                 } ${
                   isActive
@@ -184,10 +198,10 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
                     : 'text-sky-100/95 hover:bg-[#1d4d75]'
                 }`}
               >
-                <span className={`w-6 shrink-0 flex items-center justify-center ${isActive ? 'text-teal-300 nav-icon-active' : 'opacity-90'}`}>{item.icon}</span>
-                {!collapsed && <span className={`flex-1 truncate ${isActive ? 'text-teal-300' : ''}`}>{item.label}</span>}
+                <span className={`w-5 sm:w-6 shrink-0 flex items-center justify-center self-start mt-0.5 ${isActive ? 'text-teal-300 nav-icon-active' : 'opacity-90'}`}>{item.icon}</span>
+                {!collapsed && <span className={`flex-1 whitespace-pre-line leading-tight ${isActive ? 'text-teal-300' : ''}`}>{item.label}</span>}
                 {!collapsed && count !== undefined && count > 0 && (
-                  <span className="rounded-full bg-sky-200/20 px-2 py-0.5 text-xs text-sky-100">{count}</span>
+                  <span className="rounded-full bg-sky-200/20 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs text-sky-100 self-start mt-0.5">{count}</span>
                 )}
               </button>
             )
@@ -196,15 +210,15 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
       </nav>
 
       {onLogout && (
-        <div className={`px-4 pb-2 ${collapsed ? 'md:flex md:justify-center md:px-0' : ''}`}>
+        <div className={`px-2 sm:px-4 pb-1 sm:pb-2 ${collapsed ? 'md:flex md:justify-center md:px-0' : ''}`}>
           <button
             onClick={onLogout}
             title="Изход"
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-sky-100/80 hover:bg-[#1d4d75] hover:text-sky-100 transition-colors ${
+            className={`flex items-center gap-2 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-sky-100/80 hover:bg-[#1d4d75] hover:text-sky-100 transition-colors ${
               collapsed ? 'md:justify-center md:px-0 md:w-11' : 'w-full'
             }`}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[19px] h-[19px] shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="w-[17px] h-[17px] sm:w-[19px] sm:h-[19px] shrink-0">
               <path d="M15 4.5H8.5A1.5 1.5 0 007 6v12a1.5 1.5 0 001.5 1.5H15" />
               <path d="M11 12h9.5m0 0l-3-3m3 3l-3 3" />
             </svg>
@@ -214,7 +228,7 @@ export default function Sidebar({ active, onNavigate, onLogout }: { active: Modu
       )}
 
       {!collapsed && (
-        <div className="px-5 py-4 text-center text-xs text-sky-200/40 leading-relaxed">
+        <div className="hidden sm:block px-5 py-4 text-center text-xs text-sky-200/40 leading-relaxed">
           инж. Станислава Димитрова<br />@ 2026 · v1.0
         </div>
       )}

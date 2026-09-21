@@ -30,7 +30,7 @@ const ANALYSIS_COLORS = {
   emerald: 'from-emerald-500 to-emerald-600',
 } as const
 
-function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS }) {
+function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = false }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS; showTotals?: boolean; sumCounts?: boolean }) {
 
   return (
     <div className="overflow-x-auto">
@@ -43,11 +43,12 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
             {([
               ['Наименование', 'Наименование'],
               [<>Договори<br/>бр.</>, 'Договори бр.'],
+              [<>Договорирана<br/>площ дка</>, 'Договорирана площ дка'],
               [<>Вода<br/>договори<br/>м³</>, 'Вода договори м³'],
               [<>Стойност<br/>договори €</>, 'Стойност договори €'],
               [<>Актове<br/>бр.</>, 'Актове бр.'],
-              [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
               [<>Актувана<br/>площ дка</>, 'Актувана площ дка'],
+              [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
               [<>Стойност<br/>актове €</>, 'Стойност актове €'],
             ] as [React.ReactNode, string][]).map(([label, key], idx) => (
 
@@ -84,6 +85,10 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
               </td>
 
               <td className="px-3 py-2 text-center">
+                {num(x.contractArea, 2)}
+              </td>
+
+              <td className="px-3 py-2 text-center">
                 {num(x.contractWater, 0)}
               </td>
 
@@ -96,11 +101,11 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
               </td>
 
               <td className="px-3 py-2 text-center">
-                {num(x.actWater, 0)}
+                {num(x.actArea, 2)}
               </td>
 
               <td className="px-3 py-2 text-center">
-                {num(x.actArea, 2)}
+                {num(x.actWater, 0)}
               </td>
 
               <td className="px-3 py-2 text-center">
@@ -114,6 +119,34 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
 
         </tbody>
 
+        {showTotals && (
+          <tfoot>
+            <tr className="bg-gray-100 font-semibold border-t-2 border-gray-300">
+              <td className="px-3 py-2 text-left">ОБЩО:</td>
+              <td className="px-3 py-2 text-center">{sumCounts ? data.reduce((sum, x) => sum + (x.contractCount || 0), 0) : <span className="text-gray-400">—</span>}</td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.contractArea || 0), 0), 2)}
+              </td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.contractWater || 0), 0), 0)}
+              </td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.contractValue || 0), 0), 2)}
+              </td>
+              <td className="px-3 py-2 text-center">{sumCounts ? data.reduce((sum, x) => sum + (x.actCount || 0), 0) : <span className="text-gray-400">—</span>}</td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.actArea || 0), 0), 2)}
+              </td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.actWater || 0), 0), 0)}
+              </td>
+              <td className="px-3 py-2 text-center">
+                {num(data.reduce((sum, x) => sum + (x.actValue || 0), 0), 2)}
+              </td>
+            </tr>
+          </tfoot>
+        )}
+
       </table>
 
     </div>
@@ -122,7 +155,7 @@ function AnalysisTable({ data, color = 'teal' }: { data: any[]; color?: keyof ty
 
 
 
-export default function Reports() {
+export default function Reports({ onNavigate }: { onNavigate?: (module: 'contracts' | 'acts', contractorId?: string) => void }) {
 
 
 const {
@@ -260,6 +293,13 @@ filteredActs.reduce(
 0
 )
 
+const totalActAreaFirstIrrigation =
+filteredActs
+.filter(a => a.irrigationNumber === '1' || a.irrigationNumber === 'Първа')
+.reduce(
+(s,a)=>s+a.area,
+0
+)
 
 
 // ==========================
@@ -294,6 +334,12 @@ contractCount: countContracts(c),
 contractWater:
 c.reduce(
 (s,x)=>s+x.waterCubic,
+0
+),
+
+contractArea:
+c.reduce(
+(s,x)=>s+x.area,
 0
 ),
 
@@ -374,6 +420,11 @@ c.reduce(
 0
 ),
 
+contractArea:
+c.reduce(
+(s,x)=>s+x.area,
+0
+),
 
 contractValue:
 c.reduce(
@@ -448,6 +499,7 @@ sortCrop: cropName,
 sortMonth: MONTHS.indexOf(month),
 contractCount: countContracts(c),
 contractWater: c.reduce((s,x)=>s+x.waterCubic,0),
+contractArea: c.reduce((s,x)=>s+x.area,0),
 contractValue: c.reduce((s,x)=>s+x.value,0),
 actCount: a.length,
 actWater: a.reduce((s,x)=>s+x.waterCubic,0),
@@ -459,18 +511,7 @@ actValue: a.reduce((s,x)=>s+x.value,0),
 
 rows.sort((x,y)=> x.sortCrop.localeCompare(y.sortCrop,'bg') || x.sortMonth - y.sortMonth)
 
-const total = {
-name: 'Общо за всички месеци',
-contractCount: rows.reduce((s,x)=>s+x.contractCount,0),
-contractWater: rows.reduce((s,x)=>s+x.contractWater,0),
-contractValue: rows.reduce((s,x)=>s+x.contractValue,0),
-actCount: rows.reduce((s,x)=>s+x.actCount,0),
-actWater: rows.reduce((s,x)=>s+x.actWater,0),
-actArea: rows.reduce((s,x)=>s+x.actArea,0),
-actValue: rows.reduce((s,x)=>s+x.actValue,0),
-}
-
-return [...rows, total]
+return rows
 
 },[
 crops,
@@ -506,6 +547,7 @@ sortKey: `${htuName} / ${cropName}`,
 sortMonth: MONTHS.indexOf(month),
 contractCount: countContracts(c),
 contractWater: c.reduce((s,x)=>s+x.waterCubic,0),
+contractArea: c.reduce((s,x)=>s+x.area,0),
 contractValue: c.reduce((s,x)=>s+x.value,0),
 actCount: a.length,
 actWater: a.reduce((s,x)=>s+x.waterCubic,0),
@@ -517,18 +559,7 @@ actValue: a.reduce((s,x)=>s+x.value,0),
 
 rows.sort((x,y)=> x.sortKey.localeCompare(y.sortKey,'bg') || x.sortMonth - y.sortMonth)
 
-const total = {
-name: 'Общо за всички месеци',
-contractCount: rows.reduce((s,x)=>s+x.contractCount,0),
-contractWater: rows.reduce((s,x)=>s+x.contractWater,0),
-contractValue: rows.reduce((s,x)=>s+x.contractValue,0),
-actCount: rows.reduce((s,x)=>s+x.actCount,0),
-actWater: rows.reduce((s,x)=>s+x.actWater,0),
-actArea: rows.reduce((s,x)=>s+x.actArea,0),
-actValue: rows.reduce((s,x)=>s+x.actValue,0),
-}
-
-return [...rows, total]
+return rows
 
 },[
 htus,
@@ -579,6 +610,11 @@ c.reduce(
 0
 ),
 
+contractArea:
+c.reduce(
+(s,x)=>s+x.area,
+0
+),
 
 contractValue:
 c.reduce(
@@ -634,14 +670,14 @@ filteredActs
 // EXPORT EXCEL
 // ==========================
 
-const ANALYSIS_HEADERS = ['Наименование', 'Договори бр.', 'Вода договори м³', 'Стойност договори €', 'Актове бр.', 'Актувана вода м³', 'Актувана площ дка', 'Стойност актове €']
+const ANALYSIS_HEADERS = ['Наименование', 'Договори бр.', 'Договорирана площ дка', 'Вода договори м³', 'Стойност договори €', 'Актове бр.', 'Актувана площ дка', 'Актувана вода м³', 'Стойност актове €']
 const ANALYSIS_NUMERIC_COLS = ANALYSIS_HEADERS.slice(1)
 
-function analysisRows(data: { name: string; contractCount: number; contractWater: number; contractValue: number; actCount: number; actWater: number; actArea: number; actValue: number }[]) {
+function analysisRows(data: { name: string; contractCount: number; contractWater: number; contractArea: number; contractValue: number; actCount: number; actWater: number; actArea: number; actValue: number }[]) {
   return data.map(x => ({
-    'Наименование': x.name, 'Договори бр.': x.contractCount, 'Вода договори м³': x.contractWater,
-    'Стойност договори €': x.contractValue, 'Актове бр.': x.actCount, 'Актувана вода м³': x.actWater,
-    'Актувана площ дка': x.actArea, 'Стойност актове €': x.actValue,
+    'Наименование': x.name, 'Договори бр.': x.contractCount, 'Договорирана площ дка': x.contractArea,
+    'Вода договори м³': x.contractWater, 'Стойност договори €': x.contractValue, 'Актове бр.': x.actCount, 'Актувана площ дка': x.actArea,
+    'Актувана вода м³': x.actWater, 'Стойност актове €': x.actValue,
   }))
 }
 
@@ -863,7 +899,15 @@ value={filterContractor}
 onChange={e=>setFilterContractor(e.target.value)}
 placeholder="Търсене по контрагент..."
 className="w-52"
+list="contractor-datalist"
 />
+<datalist id="contractor-datalist">
+{contractors
+.filter(c => c.name.toLowerCase().includes(filterContractor.toLowerCase()))
+.map(c => (
+<option key={c.id} value={c.name} />
+))}
+</datalist>
 
 </div>
 
@@ -1046,6 +1090,7 @@ activeTab===t.id
 <AnalysisTable
 data={analysisByMonth}
 color="teal"
+sumCounts={true}
 />
 
 
@@ -1083,6 +1128,8 @@ color="blue"
 <AnalysisTable
 data={analysisByCropMonth}
 color="amber"
+showTotals={true}
+sumCounts={false}
 />
 
 
@@ -1101,6 +1148,8 @@ color="amber"
 <AnalysisTable
 data={analysisByHtuCropMonth}
 color="emerald"
+showTotals={true}
+sumCounts={false}
 />
 
 
@@ -1120,6 +1169,7 @@ color="emerald"
 <AnalysisTable
 data={analysisByHTU}
 color="teal"
+sumCounts={true}
 />
 
 
@@ -1141,32 +1191,69 @@ color="teal"
 
 <h3 className="font-semibold mb-4">
 Обобщение
+{filterContractor && (() => {
+  const contractor = contractors.find(c => c.name.toLowerCase().includes(contractorQuery))
+  return contractor ? <span className="text-sm font-normal text-gray-600 ml-2">— {contractor.name}</span> : null
+})()}
 </h3>
 
 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-  <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
-    <p className="text-xs text-teal-50">Договорирана вода</p>
-    <p className="mt-1 text-xl font-semibold">{num(totalWaterContracts, 0)} м³</p>
-  </div>
-  <div className="rounded-xl p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-    <p className="text-xs text-blue-50">Актувана вода</p>
-    <p className="mt-1 text-xl font-semibold">{num(totalWaterActs, 0)} м³</p>
-  </div>
-  <div className="rounded-xl p-4 bg-gradient-to-br from-amber-400 to-amber-500 text-white">
-    <p className="text-xs text-amber-50">Договори</p>
+  <button
+    onClick={() => {
+      if (!filterContractor) {
+        alert('Моля, въведете име на контрагент в полето за търсене за да филтрирате')
+        return
+      }
+      const contractor = contractors.find(c => c.name.toLowerCase().includes(contractorQuery))
+      if (!contractor) {
+        alert('Не е намерен контрагент с това име')
+        return
+      }
+      onNavigate?.('contracts', contractor?.id)
+    }}
+    className="rounded-xl p-4 bg-gradient-to-br from-amber-400 to-amber-500 text-white text-left transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+  >
+    <p className="text-xs text-amber-50">Договори{filterContractor && ' →'}</p>
     <p className="mt-1 text-xl font-semibold">{countContracts(filteredContracts)}</p>
-  </div>
-  <div className="rounded-xl p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-    <p className="text-xs text-emerald-50">Актове</p>
-    <p className="mt-1 text-xl font-semibold">{countActs(filteredActs)}</p>
-  </div>
+    {filterContractor && <p className="text-xs text-amber-100 mt-1">Кликни за филтриране</p>}
+  </button>
   <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
     <p className="text-xs text-teal-50">Площ договори</p>
     <p className="mt-1 text-xl font-semibold">{num(totalArea, 2)} дка</p>
   </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+    <p className="text-xs text-teal-50">Договорирана вода</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalWaterContracts, 0)} м³</p>
+  </div>
+  <button
+    onClick={() => {
+      if (!filterContractor) {
+        alert('Моля, въведете име на контрагент в полето за търсене за да филтрирате')
+        return
+      }
+      const contractor = contractors.find(c => c.name.toLowerCase().includes(contractorQuery))
+      if (!contractor) {
+        alert('Не е намерен контрагент с това име')
+        return
+      }
+      onNavigate?.('acts', contractor?.id)
+    }}
+    className="rounded-xl p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-left transition-all hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+  >
+    <p className="text-xs text-emerald-50">Актове{filterContractor && ' →'}</p>
+    <p className="mt-1 text-xl font-semibold">{countActs(filteredActs)}</p>
+    {filterContractor && <p className="text-xs text-emerald-100 mt-1">Кликни за филтриране</p>}
+  </button>
   <div className="rounded-xl p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
     <p className="text-xs text-blue-50">Площ актове</p>
-    <p className="mt-1 text-xl font-semibold">{num(totalActArea, 2)} дка</p>
+    <p className="mt-1 text-base font-semibold">Поливодекари</p>
+    <p className="text-xl font-semibold">{num(totalActArea, 2)} дка</p>
+    <p className="mt-1 text-base font-semibold">физ. дка</p>
+    <p className="text-xl font-semibold">{num(totalActAreaFirstIrrigation, 2)} дка</p>
+  </div>
+  <div className="rounded-xl p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+    <p className="text-xs text-blue-50">Актувана вода</p>
+    <p className="mt-1 text-xl font-semibold">{num(totalWaterActs, 0)} м³</p>
   </div>
 </div>
 

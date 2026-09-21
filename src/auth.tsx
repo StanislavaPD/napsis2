@@ -2,14 +2,17 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 
 const TOKEN_KEY = 'agrovoda_token'
 
+export type UserRole = 'admin' | 'operator'
+
 interface AuthState {
   ready: boolean
   hasBackend: boolean
   username: string | null
+  role: UserRole | null
   token: string | null
   login: (username: string, password: string) => Promise<string | null>
   logout: () => void
-  setSession: (token: string, username: string) => void
+  setSession: (token: string, username: string, role: UserRole) => void
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -17,15 +20,16 @@ const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const hasBackend = typeof window !== 'undefined' && !!window.api
   const [ready, setReady] = useState(!hasBackend)
-  const [username, setUsername] = useState<string | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(hasBackend ? null : 'Стаси')
+  const [role, setRole] = useState<UserRole | null>(hasBackend ? null : 'admin')
+  const [token, setToken] = useState<string | null>(hasBackend ? null : 'dev-token')
 
   useEffect(() => {
     if (!hasBackend) return
     const stored = localStorage.getItem(TOKEN_KEY)
     if (!stored) { setReady(true); return }
     window.api!.verify(stored).then(res => {
-      if (res) { setToken(stored); setUsername(res.username) }
+      if (res) { setToken(stored); setUsername(res.username); setRole(res.role) }
       else localStorage.removeItem(TOKEN_KEY)
       setReady(true)
     })
@@ -38,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(TOKEN_KEY, res.token)
     setToken(res.token)
     setUsername(res.username)
+    setRole(res.role)
     return null
   }
 
@@ -45,16 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
     setUsername(null)
+    setRole(null)
   }
 
-  function setSession(t: string, u: string) {
+  function setSession(t: string, u: string, r: UserRole) {
     localStorage.setItem(TOKEN_KEY, t)
     setToken(t)
     setUsername(u)
+    setRole(r)
   }
 
   return (
-    <AuthContext.Provider value={{ ready, hasBackend, username, token, login, logout, setSession }}>
+    <AuthContext.Provider value={{ ready, hasBackend, username, role, token, login, logout, setSession }}>
       {children}
     </AuthContext.Provider>
   )
