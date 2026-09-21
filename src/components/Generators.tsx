@@ -2146,8 +2146,11 @@ function UdvnUpcomingGenerator({
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
+        const workers = repair.workers || '____________'
 
-        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType}\n`
+        repairsList += `    Необходими материали: ${materials}\n`
+        repairsList += `    Необходими техника и човешки ресурс: ${workers}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
@@ -2543,8 +2546,11 @@ function UdvnCompletedGenerator({
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
+        const workers = repair.workers || '____________'
 
-        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType}\n`
+        repairsList += `    Необходими материали: ${materials}\n`
+        repairsList += `    Необходими техника и човешки ресурс: ${workers}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
@@ -2861,8 +2867,11 @@ function ProtocolGenerator({
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
+        const workers = repair.workers || '____________'
 
-        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType}\n`
+        repairsList += `    Необходими материали: ${materials}\n`
+        repairsList += `    Необходими техника и човешки ресурс: ${workers}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
