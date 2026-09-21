@@ -2031,7 +2031,7 @@ function UdvnUpcomingGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/Доклад предстоящи ремонти.docx'
+      const templatePath = './templates/УДВН шаблони/Доклад предстоящи ремонтни.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -2664,7 +2664,7 @@ function OdzLetterGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/Писмо до ОДЗ.docx'
+      const templatePath = './templates/УДВН шаблони/писмо ОДЗ УДВН предстоящи.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -2852,7 +2852,7 @@ function ProtocolGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/Протокол.docx'
+      const templatePath = './templates/УДВН шаблони/Протокол УДВН.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
