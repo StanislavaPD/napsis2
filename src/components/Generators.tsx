@@ -1897,6 +1897,7 @@ interface UdvnRepairItem {
   locations: UdvnLocation[]
   hectometer?: string
   locationUnit?: 'hkm' | 'km'
+  facilityType?: string  // Тръбопровод или Канал - за всеки ремонт
   repairType: string
   description: string
   hydrantCount?: number
@@ -1911,13 +1912,13 @@ interface UdvnRepairItem {
 
 interface UdvnFacility {
   name: string
-  facilityType?: string  // Тръбопровод или Канал
   repairs: UdvnRepairItem[]
 }
 
 const EMPTY_REPAIR: UdvnRepairItem = {
   pipeline: '',
   locations: [{ unit: 'hkm', value: '' }],
+  facilityType: 'Тръбопровод',
   repairType: '',
   description: '',
   materials: '',
@@ -1928,7 +1929,6 @@ const EMPTY_REPAIR: UdvnRepairItem = {
 
 const EMPTY_FACILITY: UdvnFacility = {
   name: '',
-  facilityType: 'Тръбопровод',
   repairs: [{ ...EMPTY_REPAIR }]
 }
 
@@ -2137,11 +2137,11 @@ function UdvnUpcomingGenerator({
       repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
-      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
+        const facilityType = repair.facilityType || 'Тръбопровод'
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
@@ -2229,27 +2229,14 @@ ${repairsList}
                     <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Вид съоръжение*</label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm"
-                      value={facility.facilityType || 'Тръбопровод'}
-                      onChange={e => updateFacility(fIdx, 'facilityType', e.target.value)}
-                    >
-                      <option value="Тръбопровод">Тръбопровод</option>
-                      <option value="Канал">Канал</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Напоително поле*</label>
-                    <Input
-                      value={facility.name}
-                      onChange={e => updateFacility(fIdx, 'name', e.target.value)}
-                      placeholder='НП "Зимница"'
-                      className="px-3 py-2"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Напоително поле*</label>
+                  <Input
+                    value={facility.name}
+                    onChange={e => updateFacility(fIdx, 'name', e.target.value)}
+                    placeholder='НП "Зимница"'
+                    className="px-3 py-2"
+                  />
                 </div>
               </div>
 
@@ -2271,6 +2258,19 @@ ${repairsList}
                     </div>
 
                     <div className="space-y-3">
+                      {/* Facility Type */}
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид съоръжение*</label>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm"
+                          value={repair.facilityType || 'Тръбопровод'}
+                          onChange={e => updateRepair(fIdx, rIdx, 'facilityType', e.target.value)}
+                        >
+                          <option value="Тръбопровод">Тръбопровод</option>
+                          <option value="Канал">Канал</option>
+                        </select>
+                      </div>
+
                       {/* Pipeline */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
@@ -2534,11 +2534,11 @@ function UdvnCompletedGenerator({
       repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
-      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
+        const facilityType = repair.facilityType || 'Тръбопровод'
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
@@ -2852,11 +2852,11 @@ function ProtocolGenerator({
       repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
-      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
+        const facilityType = repair.facilityType || 'Тръбопровод'
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
         const repairType = repair.repairType || '______'
