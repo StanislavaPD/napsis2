@@ -2242,7 +2242,7 @@ ${repairsList}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на съоръжението*</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Напоително поле*</label>
                     <Input
                       value={facility.name}
                       onChange={e => updateFacility(fIdx, 'name', e.target.value)}
