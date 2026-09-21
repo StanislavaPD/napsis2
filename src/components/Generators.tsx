@@ -8,12 +8,12 @@ import { fillDocxTemplate, downloadBlob, openInDefaultApp, docxFillErrorMessage,
 const MONTHS = ['Януари', 'Февруари', 'Март', 'Април', 'Май', 'Юни', 'Юли', 'Август', 'Септември', 'Октомври', 'Ноември', 'Декември']
 const DOC_TYPES = ['Акт', 'Фактура', 'Протокол', 'Разписка', 'Друго']
 
-/** Formats an "yyyy-mm-dd" date string as "dd.mm.yy". */
+/** Formats an "yyyy-mm-dd" date string as "dd.mm.yyyy". */
 function formatShortDate(date?: string): string {
-  if (!date) return '__.__.__'
+  if (!date) return '__.__.____'
   const [y, m, d] = date.split('-')
   if (!y || !m || !d) return date
-  return `${d}.${m}.${y.slice(2)}`
+  return `${d}.${m}.${y}`
 }
 
 /** Formats an "yyyy-mm-dd" date string as "dd.mm." (day and month only, no year). */
@@ -1911,6 +1911,7 @@ interface UdvnRepairItem {
 
 interface UdvnFacility {
   name: string
+  facilityType?: string  // Тръбопровод или Канал
   repairs: UdvnRepairItem[]
 }
 
@@ -1927,6 +1928,7 @@ const EMPTY_REPAIR: UdvnRepairItem = {
 
 const EMPTY_FACILITY: UdvnFacility = {
   name: '',
+  facilityType: 'Тръбопровод',
   repairs: [{ ...EMPTY_REPAIR }]
 }
 
@@ -2127,14 +2129,18 @@ function UdvnUpcomingGenerator({
 
     let repairsList = ''
     facilities.forEach((facility, fIdx) => {
-      if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
+      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+      if (!hasContent) return
 
-      // Съоръжение заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Съоръжение заглавие с вид
+      const facilityType = facility.facilityType || 'Тръбопровод'
+      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение
       facility.repairs.forEach(repair => {
-        if (!repair.pipeline && !repair.repairType) return
+        // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
+        if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
@@ -2223,14 +2229,27 @@ ${repairsList}
                     <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на съоръжението*</label>
-                  <Input
-                    value={facility.name}
-                    onChange={e => updateFacility(fIdx, 'name', e.target.value)}
-                    placeholder='НП "Зимница"'
-                    className="px-3 py-2"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Вид съоръжение*</label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm"
+                      value={facility.facilityType || 'Тръбопровод'}
+                      onChange={e => updateFacility(fIdx, 'facilityType', e.target.value)}
+                    >
+                      <option value="Тръбопровод">Тръбопровод</option>
+                      <option value="Канал">Канал</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на съоръжението*</label>
+                    <Input
+                      value={facility.name}
+                      onChange={e => updateFacility(fIdx, 'name', e.target.value)}
+                      placeholder='НП "Зимница"'
+                      className="px-3 py-2"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2507,14 +2526,18 @@ function UdvnCompletedGenerator({
 
     let repairsList = ''
     facilities.forEach((facility, fIdx) => {
-      if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
+      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+      if (!hasContent) return
 
-      // Съоръжение заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Съоръжение заглавие с вид
+      const facilityType = facility.facilityType || 'Тръбопровод'
+      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение
       facility.repairs.forEach(repair => {
-        if (!repair.pipeline && !repair.repairType) return
+        // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
+        if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
@@ -2821,14 +2844,18 @@ function ProtocolGenerator({
 
     let repairsList = ''
     facilities.forEach((facility, fIdx) => {
-      if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
+      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+      if (!hasContent) return
 
-      // Съоръжение заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Съоръжение заглавие с вид
+      const facilityType = facility.facilityType || 'Тръбопровод'
+      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение
       facility.repairs.forEach(repair => {
-        if (!repair.pipeline && !repair.repairType) return
+        // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
+        if (!repair.pipeline && !repair.repairType && !repair.materials) return
 
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
