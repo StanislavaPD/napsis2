@@ -2075,24 +2075,33 @@ function UdvnUpcomingGenerator({
       let xml = docXml.asText()
 
       xml = replacePlaceholder(xml, '{МЕСЕЦ}', month)
+      xml = replacePlaceholder(xml, '{ГОДИНА}', '2026')
       xml = replacePlaceholder(xml, '{ДАТА}', formatShortDate(reportDate))
 
-      let tableRows = ''
-      facilities.forEach(facility => {
+      // Generate repairs list formatted text
+      let repairsList = ''
+      facilities.forEach((facility, fIdx) => {
+        if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
+
+        // Facility title with number
+        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+
+        // Repairs for this facility
         facility.repairs.forEach(repair => {
-          const location = formatLocations(repair.locations)
-          tableRows += `<w:tr><w:tc><w:p><w:r><w:t>${facility.name}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${repair.pipeline}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${location}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${repair.repairType}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${repair.materials}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${repair.workers}</w:t></w:r></w:p></w:tc>
-<w:tc><w:p><w:r><w:t>${repair.excavator}</w:t></w:r></w:p></w:tc></w:tr>`
+          if (!repair.pipeline && !repair.repairType) return
+
+          const locations = formatLocations(repair.locations)
+          const pipeline = repair.pipeline || '______'
+          const repairType = repair.repairType || '______'
+          const materials = repair.materials || '____________'
+
+          repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
         })
+
+        repairsList += '\n' // Empty line between facilities
       })
 
-      const tableMarker = '<w:tr><w:tc><w:p><w:r><w:t>{TABLE_ROWS}</w:t></w:r></w:p></w:tc></w:tr>'
-      xml = xml.replace(tableMarker, tableRows)
+      xml = replacePlaceholder(xml, '{РЕМОНТИ}', repairsList.trim())
 
       zip.file('word/document.xml', xml)
       const blob = zip.generate({ type: 'blob' })
@@ -2105,7 +2114,7 @@ function UdvnUpcomingGenerator({
     }
   }
 
-  // Preview content generator
+  // Preview content generator - returns JSX with underlined text
   function generatePreviewContent() {
     const monthName = month || '____________'
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
@@ -2132,7 +2141,9 @@ function UdvnUpcomingGenerator({
       repairsList += '\n' // Празен ред между съоръженията
     })
 
-    return `ДО
+    return (
+      <div style={{ whiteSpace: 'pre-wrap' }}>
+        {`ДО
 
 Г-ЖА МИТОШКА ИШМЕРИЕВА
 УПРАВИТЕЛ НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
@@ -2145,8 +2156,10 @@ function UdvnUpcomingGenerator({
                           инж. Станислава Димитрова  – инж. УДВН
 
 На основание Заповед №РД-05-80/29.04.2026г на Управителя на "Напоителни системи" ЕАД, клон Средна Тунджа, във връзка с изпълнение  на дейности  по  Договор №РД-50-206/04.12.2025г. за услуга от общ икономически интерес доставка на вода за напояване/ УДВН/ и указания в писмо с вх.№РД-02-238/06.03.2026г. от "Напоителни системи" ЕАД             гр. София
-Относно :  Планирани ремонтни дейности   по УДВН за месец ${monthName} 2026 г.
-Планираните ремонтни дейности по съоръженията за месец ${monthName} са както следва:
+                    Относно :  `}
+        <u>Планирани ремонтни дейности   по УДВН за месец {monthName} 2026 г.</u>
+        {`
+         Планираните ремонтни дейности по съоръженията за месец ${monthName} са както следва:
 
 ${repairsList}
 
@@ -2157,7 +2170,9 @@ ${repairsList}
 клон „Средна Тунджа"
 
 гр. Ямбол
-  ${dateStr} г.`
+  ${dateStr} г.`}
+      </div>
+    )
   }
 
 // Visual styling fixes for UdvnUpcomingGenerator - replace the return statement
@@ -2169,57 +2184,57 @@ ${repairsList}
         {/* Header fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Месец*</label>
+            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm" value={month} onChange={e => setMonth(e.target.value)}>
               <option value="">Избери...</option>
               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
-            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата на доклада*</label>
+            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-3 py-2 shadow-sm" />
           </div>
         </div>
 
         {/* Facilities section */}
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Съоръжения</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Съоръжения</h3>
             <button
               onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm"
             >
               + Добави съоръжение
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Съоръжение</h4>
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-4 mb-4 border border-gray-100">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">{fIdx + 1}. Съоръжение</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на съоръжението*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на съоръжението*</label>
                   <Input
                     value={facility.name}
                     onChange={e => updateFacility(fIdx, 'name', e.target.value)}
                     placeholder='НП "Зимница"'
-                    className="px-4 py-2.5"
+                    className="px-3 py-2"
                   />
                 </div>
               </div>
 
               {/* Repairs subsection */}
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Ремонти</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Ремонти</h5>
                 {facility.repairs.map((repair, rIdx) => (
-                  <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                  <div key={rIdx} className="bg-gray-50 rounded-lg p-3 mb-3 border-l-4 border-teal-400">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
                       {facility.repairs.length > 1 && (
                         <button
                           onClick={() => removeRepair(fIdx, rIdx)}
@@ -2230,7 +2245,7 @@ ${repairsList}
                       )}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Pipeline */}
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
@@ -2373,7 +2388,7 @@ ${repairsList}
                 ))}
                 <button
                   onClick={() => addRepair(fIdx)}
-                  className="text-teal-600 text-sm font-medium hover:text-teal-700"
+                  className="text-teal-600 text-xs font-medium hover:text-teal-700"
                 >
                   + Добави ремонт
                 </button>
@@ -2385,9 +2400,9 @@ ${repairsList}
         {/* Download button */}
         <button
           onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+          className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
         >
-          <DownloadIcon className="w-5 h-5" />
+          <DownloadIcon className="w-4 h-4" />
           Изтегли доклад
         </button>
       </div>
@@ -2396,7 +2411,7 @@ ${repairsList}
       <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
         <div className="prose prose-sm max-w-none">
           <div
-            className="whitespace-pre-wrap text-gray-900"
+            className="text-gray-900"
             style={{
               fontFamily: '"Times New Roman", Times, serif',
               fontSize: '12pt',
@@ -2611,52 +2626,52 @@ ${repairsList}
       <div className="overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Месец*</label>
+            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm" value={month} onChange={e => setMonth(e.target.value)}>
               <option value="">Избери...</option>
               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
-            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата на доклада*</label>
+            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-3 py-2 shadow-sm" />
           </div>
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Напоителни системи</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Напоителни системи</h3>
             <button
               onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm"
             >
               + Добави система
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-4 mb-4 border border-gray-100">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-3 py-2" />
                 </div>
               </div>
 
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Извършени ремонти</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Извършени ремонти</h5>
                 {facility.repairs.map((repair, rIdx) => {
                   const migratedRepair = migrateLegacyLocation(repair)
                   return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-3 mb-3 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
                         {facility.repairs.length > 1 && (
                           <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
@@ -2740,7 +2755,7 @@ ${repairsList}
                     </div>
                   )
                 })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700">+ Добави ремонт</button>
               </div>
             </div>
           ))}
@@ -2748,9 +2763,9 @@ ${repairsList}
 
         <button
           onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+          className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
         >
-          <DownloadIcon className="w-5 h-5" />
+          <DownloadIcon className="w-4 h-4" />
           Изтегли доклад
         </button>
       </div>
@@ -2779,11 +2794,15 @@ ${repairsList}
 function OdzLetterGenerator({
   letterDate,
   setLetterDate,
+  outgoingNumber,
+  setOutgoingNumber,
   facilities,
   setFacilities
 }: {
   letterDate: string
   setLetterDate: (d: string) => void
+  outgoingNumber: string
+  setOutgoingNumber: (n: string) => void
   facilities: UdvnFacility[]
   setFacilities: (f: UdvnFacility[]) => void
 }) {
@@ -2929,45 +2948,51 @@ ${listContent}
     <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
       {/* LEFT PANEL - FORM */}
       <div className="overflow-y-auto space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Дата на писмото*</label>
-          <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Изх. номер*</label>
+            <Input value={outgoingNumber} onChange={e => setOutgoingNumber(e.target.value)} placeholder="РД-123" className="px-3 py-2 shadow-sm" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата на писмото*</label>
+            <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} className="px-3 py-2 shadow-sm" />
+          </div>
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Предстоящи ремонти</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Предстоящи ремонти</h3>
             <button
               onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm"
             >
               + Добави система
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-4 mb-4 border border-gray-100">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-3 py-2" />
                 </div>
               </div>
 
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Предстоящи ремонти</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Предстоящи ремонти</h5>
                 {facility.repairs.map((repair, rIdx) => {
                   const migratedRepair = migrateLegacyLocation(repair)
                   return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-3 mb-3 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
                         {facility.repairs.length > 1 && (
                           <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
@@ -2995,16 +3020,11 @@ ${listContent}
                           ))}
                           <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
                         </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание на ремонта</label>
-                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="подмяна на повредени участъци" className="px-3 py-2" />
-                        </div>
                       </div>
                     </div>
                   )
                 })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700">+ Добави ремонт</button>
               </div>
             </div>
           ))}
@@ -3012,9 +3032,9 @@ ${listContent}
 
         <button
           onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+          className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
         >
-          <DownloadIcon className="w-5 h-5" />
+          <DownloadIcon className="w-4 h-4" />
           Изтегли писмо
         </button>
       </div>
@@ -3202,49 +3222,49 @@ ${tableContent}
       <div className="overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Номер на протокола*</label>
-            <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" className="px-4 py-2.5 shadow-sm" />
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Номер на протокола*</label>
+            <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" className="px-3 py-2 shadow-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата*</label>
-            <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата*</label>
+            <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} className="px-3 py-2 shadow-sm" />
           </div>
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Констатации</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Констатации</h3>
             <button
               onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-teal-500 text-white rounded-lg text-xs font-medium hover:bg-teal-600 transition-colors shadow-sm"
             >
               + Добави система
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-4 mb-4 border border-gray-100">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕</button>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-3 py-2" />
                 </div>
               </div>
 
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Констатации</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Констатации</h5>
                 {facility.repairs.map((repair, rIdx) => {
                   const migratedRepair = migrateLegacyLocation(repair)
                   return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Констатация #{rIdx + 1}</span>
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-3 mb-3 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-700">— Констатация #{rIdx + 1}</span>
                         {facility.repairs.length > 1 && (
                           <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
@@ -3281,7 +3301,7 @@ ${tableContent}
                     </div>
                   )
                 })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави констатация</button>
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700">+ Добави констатация</button>
               </div>
             </div>
           ))}
@@ -3289,9 +3309,9 @@ ${tableContent}
 
         <button
           onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+          className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
         >
-          <DownloadIcon className="w-5 h-5" />
+          <DownloadIcon className="w-4 h-4" />
           Изтегли протокол
         </button>
       </div>
@@ -3636,6 +3656,7 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
   const [udvnReportDate, setUdvnReportDate] = useState('')
   const [udvnFacilities, setUdvnFacilities] = useState<UdvnFacility[]>([{ ...EMPTY_FACILITY }])
   const [udvnLetterDate, setUdvnLetterDate] = useState('')
+  const [udvnOutgoingNumber, setUdvnOutgoingNumber] = useState('')
   const [udvnProtocolNumber, setUdvnProtocolNumber] = useState('')
   const [udvnProtocolDate, setUdvnProtocolDate] = useState('')
 
@@ -3663,8 +3684,8 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
 
   const udvnTabs = [
     { id: 'upcoming', label: 'Предстоящи ремонти' },
-    { id: 'completed', label: 'Извършени ремонти' },
     { id: 'odz-letter', label: 'Писмо до ОДЗ' },
+    { id: 'completed', label: 'Извършени ремонти' },
     { id: 'protocol', label: 'Протокол' },
   ] as const
 
@@ -3763,6 +3784,8 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
               <OdzLetterGenerator
                 letterDate={udvnLetterDate}
                 setLetterDate={setUdvnLetterDate}
+                outgoingNumber={udvnOutgoingNumber}
+                setOutgoingNumber={setUdvnOutgoingNumber}
                 facilities={udvnFacilities}
                 setFacilities={setUdvnFacilities}
               />
