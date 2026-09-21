@@ -2076,31 +2076,38 @@ function UdvnUpcomingGenerator({
     const monthName = month || '____________'
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
-    let facilitiesText = ''
-    facilities.forEach((facility, fIdx) => {
-      if (!facility.name) return
-      facilitiesText += `\\n${fIdx + 1}. ${facility.name}\\n`
-      facility.repairs.forEach((repair, rIdx) => {
-        if (!repair.pipeline) return
+    let repairsList = ''
+    facilities.forEach(facility => {
+      facility.repairs.forEach(repair => {
         const locations = formatLocations(repair.locations)
-        facilitiesText += `  — Ремонт #${rIdx + 1}\\n`
-        facilitiesText += `  Тръбопровод ${locations || '_____.хкм _____'}\\n`
-        facilitiesText += `  Необходими материали: ${repair.materials || '_____________________'}\\n`
-        facilitiesText += `  Необходими техника и човешки ресурс: ${repair.workers || '_______'}\\n\\n`
+        repairsList += `- ${facility.name || '____________'} – ${repair.pipeline || '______'} ${locations || '_______'} – ${repair.repairType || '______'} ${repair.materials || '____________'}\n`
       })
     })
 
-    return `ДОКЛАД
-за предстоящите ремонтни дейности по УДВН
-м. ${monthName} 2026 г.
-от ${dateStr} г. г.
+    return `ДО
+Г-ЖА МИТОШКА ИШМЕРИЕВА
+УПРАВИТЕЛ НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
+КЛОН „СРЕДНА ТУНДЖА"
+ГР. СЛИВЕН
 
-През м. ${monthName} 2026 г. ще бъдат извършени следните ремонтни дейности:
-${facilitiesText}
+ДОКЛАД
+от
+инж. Станислава Димитрова  – инж. УДВН
 
-                                    гр. Ямбол, ${dateStr} г. г.
-                                    инж. УДВН
-                                    /Ст. Димитрова/`
+На основание Заповед №РД-05-80/29.04.2026г на Управителя на "Напоителни системи" ЕАД, клон Средна Тунджа, във връзка с изпълнение на дейности по Договор №РД-50-206/04.12.2025г. за услуга от общ икономически интерес доставка на вода за напояване/ УДВН/ и указания в писмо с вх.№РД-02-238/06.03.2026г. от "Напоителни системи" ЕАД гр. София
+
+Относно: Планирани ремонтни дейности по УДВН за месец ${monthName}
+
+Планираните ремонтни дейности по съоръженията за месец ${monthName} са както следва:
+
+${repairsList}
+
+С уважение,
+
+инж. Станислава Димитрова ………………………
+инж. УДВН при „Напоителни системи" ЕАД – клон „Средна Тунджа"
+
+гр. Ямбол                                                                          ${dateStr} г.`
   }
 
 // Visual styling fixes for UdvnUpcomingGenerator - replace the return statement
@@ -2472,31 +2479,41 @@ function UdvnCompletedGenerator({
     const monthName = month || '____________'
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
-    let tableContent = ''
-    let rowNum = 1
+    let repairsList = ''
     facilities.forEach(facility => {
       facility.repairs.forEach(repair => {
         const migratedRepair = migrateLegacyLocation(repair)
-        const location = formatLocations(migratedRepair.locations) || '___________'
-        tableContent += `${rowNum}. ${facility.name || '____________'} | ${repair.pipeline || '______'} | ${location} | ${repair.repairType || '______'} ${repair.description || '____________'} | ${repair.materials || '____________'} | ${repair.workers || '____________'}\n`
-        rowNum++
+        const locations = formatLocations(migratedRepair.locations)
+        repairsList += `- ${facility.name || '____________'} – ${repair.pipeline || '______'} ${locations || '_______'} – ${repair.description || '____________'} – Материали: ${repair.materials || '____________'} – ${repair.workers || '____________'}\n`
       })
     })
 
-    return `ДОКЛАД
-за извършените ремонтни дейности по УДВН
-м. ${monthName} 2026 г.
-от ${dateStr} г. г.
+    return `ДО
+Г-ЖА МИТОШКА ИШМЕРИЕВА
+УПРАВИТЕЛ НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
+КЛОН „СРЕДНА ТУНДЖА"
+ГР. СЛИВЕН
 
-През м. ${monthName} 2026 г. бяха извършени следните ремонтни дейности:
+ДОКЛАД
+от
+инж. Станислава Димитрова  – инж. УДВН
 
-№ | Съоръжение | Тръбопровод | Местоположение | Вид ремонт | Материали | Извършена работа
-─────────────────────────────────────────────────────────────────────────────────────────
-${tableContent}
+На основание Заповед №РД-05-80/29.04.2026г на Управителя на "Напоителни системи" ЕАД, клон Средна Тунджа, във връзка с изпълнение на дейности по Договор №РД-50-206/04.12.2025г. за услуга от общ икономически интерес доставка на вода за напояване/ УДВН/ и указания в писмо с вх.№РД-02-238/06.03.2026г. от "Напоителни системи" ЕАД гр. София
 
-                                    гр. Ямбол, ${dateStr} г. г.
-                                    инж. УДВН
-                                    /Ст. Димитрова/`
+ОТНОСНО: Отчет за извършени ремонтни дейности по УДВН за ${monthName}
+
+УВАЖАЕМА ГОСПОЖО ИШМЕРИЕВА,
+
+Извършените ремонтно - възстановителни дейности по съоръженията, съгласувани с Областна Дирекция Земеделие – гр. Ямбол за месец ${monthName} са както следва:
+
+${repairsList}
+
+С уважение,
+
+инж. Станислава Димитрова ………………………
+инж. УДВН при „Напоителни системи" ЕАД – клон „Средна Тунджа"
+
+гр. Ямбол                                                                        ${dateStr} г.`
   }
 
   return (
