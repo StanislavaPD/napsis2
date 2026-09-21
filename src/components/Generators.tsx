@@ -1999,10 +1999,44 @@ function UdvnUpcomingGenerator({
 
   function updateRepair(facilityIndex: number, repairIndex: number, field: keyof UdvnRepairItem, value: any) {
     const updated = [...facilities]
-    updated[facilityIndex].repairs[repairIndex] = {
-      ...updated[facilityIndex].repairs[repairIndex],
-      [field]: value
+    const repair = updated[facilityIndex].repairs[repairIndex]
+
+    // Update the field
+    repair[field] = value
+
+    // Auto-fill materials and workers when repair type changes to "Ремонт на хидрант"
+    if (field === 'repairType' && value === 'Ремонт на хидрант') {
+      repair.materials = '1 бр. планка с гумени уплътнения и 4 бр. болт с гайка М14/80'
+      repair.workers = 'работници 3 човека – 3 часа, багер 2 часа'
+      repair.excavatorTime = '2 часа'
+      repair.pipeType = ''
+      repair.pipeSize = ''
+      repair.pipeCount = undefined
     }
+
+    // Auto-fill materials and workers when repair type changes to "Ремонт на тръба"
+    if (field === 'repairType' && value === 'Ремонт на тръба') {
+      repair.pipeType = repair.pipeType || ''
+      repair.pipeSize = repair.pipeSize || ''
+      repair.pipeCount = repair.pipeCount || 1
+      // Materials will be calculated when pipeType, pipeSize, or pipeCount change
+    }
+
+    // Calculate materials for pipe repair when pipeType, pipeSize, or pipeCount change
+    if (repair.repairType === 'Ремонт на тръба' && (field === 'pipeType' || field === 'pipeSize' || field === 'pipeCount')) {
+      const pipeType = repair.pipeType || ''
+      const pipeSize = repair.pipeSize || ''
+      const pipeCount = repair.pipeCount || 0
+
+      if (pipeType && pipeSize && pipeCount > 0) {
+        const skobi = pipeCount * 2
+        repair.materials = `${pipeType} тръба Ф${pipeSize}, ${pipeCount} бр., ${skobi} бр. аварийни скоби`
+        repair.workers = 'работници 3 човека – 3 часа, багер 2 часа'
+        repair.excavatorTime = '2 часа'
+      }
+    }
+
+    updated[facilityIndex].repairs[repairIndex] = repair
     setFacilities(updated)
   }
 
@@ -2245,6 +2279,45 @@ ${repairsList}
                           <option value="Друго">Друго</option>
                         </select>
                       </div>
+
+                      {/* Pipe details - show only when "Ремонт на тръба" is selected */}
+                      {repair.repairType === 'Ремонт на тръба' && (
+                        <div className="grid grid-cols-3 gap-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид тръба</label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500 text-sm"
+                              value={repair.pipeType || ''}
+                              onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}
+                            >
+                              <option value="">Избери...</option>
+                              <option value="ПВЦ">ПВЦ</option>
+                              <option value="АЦ">АЦ</option>
+                              <option value="Стомана">Стомана</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Размер (Ф)</label>
+                            <Input
+                              className="px-3 py-2"
+                              value={repair.pipeSize || ''}
+                              onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)}
+                              placeholder="200/10"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой тръби</label>
+                            <Input
+                              type="number"
+                              min="1"
+                              className="px-3 py-2"
+                              value={repair.pipeCount || ''}
+                              onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)}
+                              placeholder="1"
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {/* Materials */}
                       <div>
