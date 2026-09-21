@@ -2111,11 +2111,25 @@ function UdvnUpcomingGenerator({
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
     let repairsList = ''
-    facilities.forEach(facility => {
+    facilities.forEach((facility, fIdx) => {
+      if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
+
+      // Съоръжение заглавие
+      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+
+      // Ремонти за това съоръжение
       facility.repairs.forEach(repair => {
+        if (!repair.pipeline && !repair.repairType) return
+
         const locations = formatLocations(repair.locations)
-        repairsList += `- ${facility.name || '____________'} – ${repair.pipeline || '______'} ${locations || '_______'} – ${repair.repairType || '______'} ${repair.materials || '____________'}\n`
+        const pipeline = repair.pipeline || '______'
+        const repairType = repair.repairType || '______'
+        const materials = repair.materials || '____________'
+
+        repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
       })
+
+      repairsList += '\n' // Празен ред между съоръженията
     })
 
     return `ДО
