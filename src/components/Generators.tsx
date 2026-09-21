@@ -2133,11 +2133,11 @@ function UdvnUpcomingGenerator({
       const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
       if (!hasContent) return
 
-      // Съоръжение заглавие с вид
-      const facilityType = facility.facilityType || 'Тръбопровод'
-      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
+      // Напоително поле като заглавие
+      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-      // Ремонти за това съоръжение
+      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
+      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
@@ -2147,7 +2147,7 @@ function UdvnUpcomingGenerator({
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
 
-        repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
@@ -2530,11 +2530,11 @@ function UdvnCompletedGenerator({
       const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
       if (!hasContent) return
 
-      // Съоръжение заглавие с вид
-      const facilityType = facility.facilityType || 'Тръбопровод'
-      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
+      // Напоително поле като заглавие
+      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-      // Ремонти за това съоръжение
+      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
+      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
@@ -2544,7 +2544,7 @@ function UdvnCompletedGenerator({
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
 
-        repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
@@ -2848,11 +2848,11 @@ function ProtocolGenerator({
       const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
       if (!hasContent) return
 
-      // Съоръжение заглавие с вид
-      const facilityType = facility.facilityType || 'Тръбопровод'
-      repairsList += `${fIdx + 1}. ${facilityType} ${facility.name || '____________'}\n`
+      // Напоително поле като заглавие
+      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-      // Ремонти за това съоръжение
+      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
+      const facilityType = facility.facilityType || 'Тръбопровод'
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
@@ -2862,7 +2862,7 @@ function ProtocolGenerator({
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
 
-        repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
