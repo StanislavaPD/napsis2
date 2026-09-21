@@ -2467,116 +2467,203 @@ function UdvnCompletedGenerator({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <FormRow label="Месец" required>
-          <select className="w-full px-3 py-2 border rounded" value={month} onChange={e => setMonth(e.target.value)}>
-            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </FormRow>
-        <FormRow label="Дата на доклада" required>
-          <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} />
-        </FormRow>
-      </div>
+  // Preview content generator
+  function generatePreviewContent() {
+    const monthName = month || '____________'
+    const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
-      {facilities.map((facility, fIdx) => (
-        <div key={fIdx} className="border rounded-lg p-4">
-          <div className="flex justify-between items-center mb-3">
-            <FormRow label="Напоителна система">
-              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
-            </FormRow>
-            {facilities.length > 1 && (
-              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
-            )}
+    let tableContent = ''
+    let rowNum = 1
+    facilities.forEach(facility => {
+      facility.repairs.forEach(repair => {
+        const migratedRepair = migrateLegacyLocation(repair)
+        const location = formatLocations(migratedRepair.locations) || '___________'
+        tableContent += `${rowNum}. ${facility.name || '____________'} | ${repair.pipeline || '______'} | ${location} | ${repair.repairType || '______'} ${repair.description || '____________'} | ${repair.materials || '____________'} | ${repair.workers || '____________'}\n`
+        rowNum++
+      })
+    })
+
+    return `ДОКЛАД
+за извършените ремонтни дейности по УДВН
+м. ${monthName} 2026 г.
+от ${dateStr} г. г.
+
+През м. ${monthName} 2026 г. бяха извършени следните ремонтни дейности:
+
+№ | Съоръжение | Тръбопровод | Местоположение | Вид ремонт | Материали | Извършена работа
+─────────────────────────────────────────────────────────────────────────────────────────
+${tableContent}
+
+                                    гр. Ямбол, ${dateStr} г. г.
+                                    инж. УДВН
+                                    /Ст. Димитрова/`
+  }
+
+  return (
+    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
+      {/* LEFT PANEL - FORM */}
+      <div className="overflow-y-auto space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
+              <option value="">Избери...</option>
+              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
+            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-700">Напоителни системи</h3>
+            <button
+              onClick={addFacility}
+              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+            >
+              + Добави система
+            </button>
           </div>
 
-          {facility.repairs.map((repair, rIdx) => {
-            const migratedRepair = migrateLegacyLocation(repair)
-            return (
-              <div key={rIdx} className="border-l-4 border-teal-200 pl-4 mb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Тръбопровод">
-                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
-                  </FormRow>
+          {facilities.map((facility, fIdx) => (
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+                  {facilities.length > 1 && (
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                </div>
+              </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
-                    {migratedRepair.locations.map((loc, lIdx) => (
-                      <div key={lIdx} className="flex gap-2 mb-2">
-                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                          <option value="hkm">хкм</option>
-                          <option value="km">при км</option>
-                        </select>
-                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                        {migratedRepair.locations.length > 1 && (
-                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
+              <div>
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">Извършени ремонти</h5>
+                {facility.repairs.map((repair, rIdx) => {
+                  const migratedRepair = migrateLegacyLocation(repair)
+                  return (
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                        {facility.repairs.length > 1 && (
+                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
                       </div>
-                    ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
-                  </div>
 
-                  <FormRow label="Вид ремонт">
-                    <select className="w-full px-3 py-2 border rounded" value={repair.repairType} onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}>
-                      <option value="">Избери...</option>
-                      <option value="hydrant">Хидрант</option>
-                      <option value="pipe">Тръба</option>
-                      <option value="other">Друго</option>
-                    </select>
-                  </FormRow>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
+                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
+                        </div>
 
-                  {repair.repairType === 'hydrant' && (
-                    <FormRow label="Брой хидранти">
-                      <Input type="number" value={repair.hydrantCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'hydrantCount', parseInt(e.target.value) || 0)} />
-                    </FormRow>
-                  )}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
+                          {migratedRepair.locations.map((loc, lIdx) => (
+                            <div key={lIdx} className="flex gap-2 mb-2">
+                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                                <option value="hkm">хкм</option>
+                                <option value="km">при км</option>
+                              </select>
+                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                              {migratedRepair.locations.length > 1 && (
+                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
+                        </div>
 
-                  {repair.repairType === 'pipe' && (
-                    <>
-                      <FormRow label="Вид тръба">
-                        <select className="w-full px-3 py-2 border rounded" value={repair.pipeType || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}>
-                          <option value="">Избери...</option>
-                          <option value="Стоманобетонова">Стоманобетонова</option>
-                          <option value="Азбестоциментова">Азбестоциментова</option>
-                          <option value="ПВЦ">ПВЦ</option>
-                        </select>
-                      </FormRow>
-                      <FormRow label="Размер (Ф)">
-                        <Input value={repair.pipeSize || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)} placeholder="500" />
-                      </FormRow>
-                      <FormRow label="Брой тръби">
-                        <Input type="number" value={repair.pipeCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)} />
-                      </FormRow>
-                    </>
-                  )}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид ремонт</label>
+                          <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500" value={repair.repairType} onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}>
+                            <option value="">Избери...</option>
+                            <option value="hydrant">Хидрант</option>
+                            <option value="pipe">Тръба</option>
+                            <option value="other">Друго</option>
+                          </select>
+                        </div>
 
-                  <FormRow label="Описание">
-                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} />
-                  </FormRow>
-                  <FormRow label="Използвани материали">
-                    <Input value={repair.materials} onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)} />
-                  </FormRow>
-                  <FormRow label="Извършена работа">
-                    <Input value={repair.workers} onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)} />
-                  </FormRow>
-                </div>
-                {facility.repairs.length > 1 && (
-                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни ремонт</button>
-                )}
+                        {repair.repairType === 'hydrant' && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой хидранти</label>
+                            <Input type="number" value={repair.hydrantCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'hydrantCount', parseInt(e.target.value) || 0)} className="px-3 py-2" />
+                          </div>
+                        )}
+
+                        {repair.repairType === 'pipe' && (
+                          <>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид тръба</label>
+                              <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500" value={repair.pipeType || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}>
+                                <option value="">Избери...</option>
+                                <option value="Стоманобетонова">Стоманобетонова</option>
+                                <option value="Азбестоциментова">Азбестоциментова</option>
+                                <option value="ПВЦ">ПВЦ</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Размер (Ф)</label>
+                              <Input value={repair.pipeSize || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)} placeholder="500" className="px-3 py-2" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой тръби</label>
+                              <Input type="number" value={repair.pipeCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)} className="px-3 py-2" />
+                            </div>
+                          </>
+                        )}
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание</label>
+                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="ремонт на повреда" className="px-3 py-2" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Използвани материали</label>
+                          <Input value={repair.materials} onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)} placeholder="автоматично попълва" className="px-3 py-2" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Извършена работа</label>
+                          <Input value={repair.workers} onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)} placeholder="работници 4 човека - 2 часа" className="px-3 py-2" />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
               </div>
-            )
-          })}
-          <button onClick={() => addRepair(fIdx)} className="text-teal-600">+ Добави ремонт</button>
+            </div>
+          ))}
         </div>
-      ))}
 
-      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
+        <button
+          onClick={handleDownload}
+          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+        >
+          <DownloadIcon className="w-5 h-5" />
+          Изтегли доклад
+        </button>
+      </div>
 
-      <Btn onClick={handleDownload}>
-        <DownloadIcon className="w-4 h-4" />
-        Изтегли DOCX
-      </Btn>
+      {/* RIGHT PANEL - LIVE PREVIEW */}
+      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
+        <div className="prose prose-sm max-w-none">
+          <div
+            className="whitespace-pre-wrap text-gray-900"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: '12pt',
+              lineHeight: '1.6'
+            }}
+          >
+            {generatePreviewContent()}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -2698,69 +2785,149 @@ function OdzLetterGenerator({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <FormRow label="Дата на писмото" required>
-        <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} />
-      </FormRow>
+  // Preview content generator
+  function generatePreviewContent() {
+    const dateStr = letterDate ? formatShortDate(letterDate) : '__.__.____'
 
-      {facilities.map((facility, fIdx) => (
-        <div key={fIdx} className="border rounded-lg p-4">
-          <div className="flex justify-between items-center mb-3">
-            <FormRow label="Напоителна система">
-              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
-            </FormRow>
-            {facilities.length > 1 && (
-              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
-            )}
+    let listContent = ''
+    facilities.forEach(facility => {
+      facility.repairs.forEach(repair => {
+        const migratedRepair = migrateLegacyLocation(repair)
+        const location = formatLocations(migratedRepair.locations) || '___________'
+        listContent += `  • ${facility.name || '____________'} – ${repair.pipeline || '______'} ${location} – ${repair.description || '____________'}\n`
+      })
+    })
+
+    return `                                                        До
+                                                        Областна дирекция "Земеделие"
+                                                        гр. Ямбол
+
+УВЕДОМЛЕНИЕ
+за предстоящи ремонтни дейности по УДВН
+
+Уважаема госпожо/господин Директор,
+
+Уведомяваме Ви, че предстоят следните ремонтни дейности по напоителната система:
+
+${listContent}
+
+Моля да бъдат предприети необходимите действия.
+
+
+                                                        гр. Ямбол, ${dateStr} г. г.
+                                                        инж. УДВН
+                                                        /Ст. Димитрова/`
+  }
+
+  return (
+    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
+      {/* LEFT PANEL - FORM */}
+      <div className="overflow-y-auto space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Дата на писмото*</label>
+          <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-700">Предстоящи ремонти</h3>
+            <button
+              onClick={addFacility}
+              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+            >
+              + Добави система
+            </button>
           </div>
 
-          {facility.repairs.map((repair, rIdx) => {
-            const migratedRepair = migrateLegacyLocation(repair)
-            return (
-              <div key={rIdx} className="border-l-4 border-yellow-200 pl-4 mb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Тръбопровод">
-                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
-                  </FormRow>
+          {facilities.map((facility, fIdx) => (
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+                  {facilities.length > 1 && (
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                </div>
+              </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
-                    {migratedRepair.locations.map((loc, lIdx) => (
-                      <div key={lIdx} className="flex gap-2 mb-2">
-                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                          <option value="hkm">хкм</option>
-                          <option value="km">при км</option>
-                        </select>
-                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                        {migratedRepair.locations.length > 1 && (
-                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
+              <div>
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">Предстоящи ремонти</h5>
+                {facility.repairs.map((repair, rIdx) => {
+                  const migratedRepair = migrateLegacyLocation(repair)
+                  return (
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                        {facility.repairs.length > 1 && (
+                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
                       </div>
-                    ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
-                  </div>
 
-                  <FormRow label="Описание на ремонта">
-                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="подмяна на повредени участъци" />
-                  </FormRow>
-                </div>
-                {facility.repairs.length > 1 && (
-                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни ремонт</button>
-                )}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
+                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
+                          {migratedRepair.locations.map((loc, lIdx) => (
+                            <div key={lIdx} className="flex gap-2 mb-2">
+                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                                <option value="hkm">хкм</option>
+                                <option value="km">при км</option>
+                              </select>
+                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                              {migratedRepair.locations.length > 1 && (
+                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание на ремонта</label>
+                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="подмяна на повредени участъци" className="px-3 py-2" />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
               </div>
-            )
-          })}
-          <button onClick={() => addRepair(fIdx)} className="text-teal-600">+ Добави ремонт</button>
+            </div>
+          ))}
         </div>
-      ))}
 
-      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
+        <button
+          onClick={handleDownload}
+          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+        >
+          <DownloadIcon className="w-5 h-5" />
+          Изтегли писмо
+        </button>
+      </div>
 
-      <Btn onClick={handleDownload}>
-        <DownloadIcon className="w-4 h-4" />
-        Изтегли DOCX
-      </Btn>
+      {/* RIGHT PANEL - LIVE PREVIEW */}
+      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
+        <div className="prose prose-sm max-w-none">
+          <div
+            className="whitespace-pre-wrap text-gray-900"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: '12pt',
+              lineHeight: '1.6'
+            }}
+          >
+            {generatePreviewContent()}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -2890,74 +3057,154 @@ function ProtocolGenerator({
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <FormRow label="Номер на протокола" required>
-          <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" />
-        </FormRow>
-        <FormRow label="Дата" required>
-          <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} />
-        </FormRow>
-      </div>
+  // Preview content generator
+  function generatePreviewContent() {
+    const protocolNum = protocolNumber || '____'
+    const dateStr = protocolDate ? formatShortDate(protocolDate) : '__.__.____'
 
-      {facilities.map((facility, fIdx) => (
-        <div key={fIdx} className="border rounded-lg p-4">
-          <div className="flex justify-between items-center mb-3">
-            <FormRow label="Напоителна система">
-              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
-            </FormRow>
-            {facilities.length > 1 && (
-              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
-            )}
+    let tableContent = ''
+    let rowNum = 1
+    facilities.forEach(facility => {
+      facility.repairs.forEach(repair => {
+        const migratedRepair = migrateLegacyLocation(repair)
+        const location = formatLocations(migratedRepair.locations) || '___________'
+        tableContent += `${rowNum}. ${facility.name || '____________'} | ${repair.pipeline || '______'} | ${location} | ${repair.description || '____________'}\n`
+        rowNum++
+      })
+    })
+
+    return `ПРОТОКОЛ № ${protocolNum}
+от ${dateStr} г.
+
+Днес, ${dateStr} г., инж. УДВН извърши проверка на обектите от напоителната система и констатира следното:
+
+№ | Съоръжение | Тръбопровод | Местоположение | Констатация
+─────────────────────────────────────────────────────────────────────────────
+${tableContent}
+
+Протоколът се съставя в два еднообразни екземпляра.
+
+
+                                                        Изготвил:
+                                                        инж. УДВН
+                                                        /Ст. Димитрова/`
+  }
+
+  return (
+    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
+      {/* LEFT PANEL - FORM */}
+      <div className="overflow-y-auto space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Номер на протокола*</label>
+            <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" className="px-4 py-2.5 shadow-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Дата*</label>
+            <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-700">Констатации</h3>
+            <button
+              onClick={addFacility}
+              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+            >
+              + Добави система
+            </button>
           </div>
 
-          {facility.repairs.map((repair, rIdx) => {
-            const migratedRepair = migrateLegacyLocation(repair)
-            return (
-              <div key={rIdx} className="border-l-4 border-purple-200 pl-4 mb-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormRow label="Тръбопровод">
-                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
-                  </FormRow>
+          {facilities.map((facility, fIdx) => (
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
+                  {facilities.length > 1 && (
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
+                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
+                </div>
+              </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
-                    {migratedRepair.locations.map((loc, lIdx) => (
-                      <div key={lIdx} className="flex gap-2 mb-2">
-                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                          <option value="hkm">хкм</option>
-                          <option value="km">при км</option>
-                        </select>
-                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                        {migratedRepair.locations.length > 1 && (
-                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
+              <div>
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">Констатации</h5>
+                {facility.repairs.map((repair, rIdx) => {
+                  const migratedRepair = migrateLegacyLocation(repair)
+                  return (
+                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-semibold text-gray-700">— Констатация #{rIdx + 1}</span>
+                        {facility.repairs.length > 1 && (
+                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
                         )}
                       </div>
-                    ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
-                  </div>
 
-                  <FormRow label="Описание на констатацията">
-                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="необходим спешен ремонт" />
-                  </FormRow>
-                </div>
-                {facility.repairs.length > 1 && (
-                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни констатация</button>
-                )}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
+                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
+                          {migratedRepair.locations.map((loc, lIdx) => (
+                            <div key={lIdx} className="flex gap-2 mb-2">
+                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                                <option value="hkm">хкм</option>
+                                <option value="km">при км</option>
+                              </select>
+                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                              {migratedRepair.locations.length > 1 && (
+                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
+                              )}
+                            </div>
+                          ))}
+                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание на констатацията</label>
+                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="необходим спешен ремонт" className="px-3 py-2" />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави констатация</button>
               </div>
-            )
-          })}
-          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави констатация</button>
+            </div>
+          ))}
         </div>
-      ))}
 
-      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
+        <button
+          onClick={handleDownload}
+          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+        >
+          <DownloadIcon className="w-5 h-5" />
+          Изтегли протокол
+        </button>
+      </div>
 
-      <Btn onClick={handleDownload}>
-        <DownloadIcon className="w-4 h-4" />
-        Изтегли DOCX
-      </Btn>
+      {/* RIGHT PANEL - LIVE PREVIEW */}
+      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
+        <div className="prose prose-sm max-w-none">
+          <div
+            className="whitespace-pre-wrap text-gray-900"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: '12pt',
+              lineHeight: '1.6'
+            }}
+          >
+            {generatePreviewContent()}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
