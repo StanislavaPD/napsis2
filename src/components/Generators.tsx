@@ -2103,89 +2103,97 @@ ${facilitiesText}
                                     /Ст. Димитрова/`
   }
 
+// Visual styling fixes for UdvnUpcomingGenerator - replace the return statement
+
   return (
-    <div className="grid grid-cols-2 gap-6 h-full">
+    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
       {/* LEFT PANEL - FORM */}
-      <div className="overflow-y-auto pr-4 space-y-6">
+      <div className="overflow-y-auto space-y-6">
         {/* Header fields */}
         <div className="grid grid-cols-2 gap-4">
-          <FormRow label="Месец" required>
-            <select className="w-full px-3 py-2 border rounded" value={month} onChange={e => setMonth(e.target.value)}>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
+            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
               <option value="">Избери...</option>
               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-          </FormRow>
-          <FormRow label="Дата на доклада" required>
-            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} />
-          </FormRow>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
+            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
+          </div>
         </div>
 
         {/* Facilities section */}
         <div>
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-medium text-gray-700">Съоръжения</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-base font-semibold text-gray-700">Съоръжения</h3>
             <button
               onClick={addFacility}
-              className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm hover:bg-teal-600 transition-colors"
+              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
             >
               + Добави съоръжение
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="border rounded-lg p-4 mb-4 bg-white">
-              <div className="mb-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium text-gray-700">{fIdx + 1}. Съоръжение</h4>
+            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Съоръжение</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-600 text-sm">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
                   )}
                 </div>
-                <FormRow label="Име на съоръжението" required>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на съоръжението*</label>
                   <Input
                     value={facility.name}
                     onChange={e => updateFacility(fIdx, 'name', e.target.value)}
                     placeholder='НП "Зимница"'
+                    className="px-4 py-2.5"
                   />
-                </FormRow>
+                </div>
               </div>
 
               {/* Repairs subsection */}
               <div>
-                <h5 className="text-sm font-medium text-gray-600 mb-2">Ремонти</h5>
+                <h5 className="text-sm font-semibold text-gray-700 mb-3">Ремонти</h5>
                 {facility.repairs.map((repair, rIdx) => (
-                  <div key={rIdx} className="border-l-4 border-teal-200 pl-4 mb-4 pb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-600">— Ремонт #{rIdx + 1}</span>
+                  <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
                       {facility.repairs.length > 1 && (
                         <button
                           onClick={() => removeRepair(fIdx, rIdx)}
-                          className="text-red-600 text-xs"
+                          className="text-red-500 hover:text-red-700 text-xs font-medium"
                         >
                           ✕ Премахни ремонт
                         </button>
                       )}
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {/* Pipeline */}
-                      <FormRow label="Тръбопровод">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
                         <Input
                           value={repair.pipeline}
                           onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)}
                           placeholder="6-I-T-5"
+                          className="px-3 py-2"
                         />
-                      </FormRow>
+                      </div>
 
                       {/* Locations (multiple) */}
                       <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">
-                          Местоположения
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                          Хектометър
                         </label>
                         {repair.locations.map((loc, lIdx) => (
                           <div key={lIdx} className="flex gap-2 mb-2">
                             <select
-                              className="w-32 px-3 py-2 border rounded text-sm"
+                              className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500"
                               value={loc.unit}
                               onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}
                             >
@@ -2193,7 +2201,7 @@ ${facilitiesText}
                               <option value="km">при км</option>
                             </select>
                             <Input
-                              className="flex-1"
+                              className="flex-1 px-3 py-2"
                               value={loc.value}
                               onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)}
                               placeholder="3+10"
@@ -2201,7 +2209,7 @@ ${facilitiesText}
                             {repair.locations.length > 1 && (
                               <button
                                 onClick={() => removeLocation(fIdx, rIdx, lIdx)}
-                                className="text-red-600 px-2"
+                                className="text-red-500 hover:text-red-700 px-2"
                               >
                                 ✕
                               </button>
@@ -2210,16 +2218,17 @@ ${facilitiesText}
                         ))}
                         <button
                           onClick={() => addLocation(fIdx, rIdx)}
-                          className="text-teal-600 text-sm hover:text-teal-700"
+                          className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1"
                         >
                           + Добави местоположение
                         </button>
                       </div>
 
                       {/* Repair type */}
-                      <FormRow label="Вид ремонт">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид ремонт</label>
                         <select
-                          className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500"
                           value={repair.repairType}
                           onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}
                         >
@@ -2228,42 +2237,47 @@ ${facilitiesText}
                           <option value="Ремонт на хидрант">Ремонт на хидрант</option>
                           <option value="Друго">Друго</option>
                         </select>
-                      </FormRow>
+                      </div>
 
                       {/* Materials */}
-                      <FormRow label="Необходими материали">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Необходими материали</label>
                         <textarea
-                          className="w-full px-3 py-2 border rounded resize-none"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-teal-500"
                           rows={2}
                           value={repair.materials}
                           onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)}
                           placeholder="Автоматично попълва при избор на вид ремонт"
                         />
-                      </FormRow>
+                      </div>
 
                       {/* Workers */}
-                      <FormRow label="Работници (напр. 4 човека - 2 часа)">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Работници (напр. 4 човека - 2 часа)</label>
                         <Input
                           value={repair.workers}
                           onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)}
                           placeholder="4 човека - 2 часа"
+                          className="px-3 py-2"
                         />
-                      </FormRow>
+                      </div>
 
                       {/* Excavator */}
-                      <FormRow label="Багер (напр. 1 ден)">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Багер (напр. 1 ден)</label>
                         <Input
                           value={repair.excavator}
                           onChange={e => updateRepair(fIdx, rIdx, 'excavator', e.target.value)}
                           placeholder="1 ден"
+                          className="px-3 py-2"
                         />
-                      </FormRow>
+                      </div>
                     </div>
                   </div>
                 ))}
                 <button
                   onClick={() => addRepair(fIdx)}
-                  className="text-teal-600 text-sm hover:text-teal-700"
+                  className="text-teal-600 text-sm font-medium hover:text-teal-700"
                 >
                   + Добави ремонт
                 </button>
@@ -2275,7 +2289,7 @@ ${facilitiesText}
         {/* Download button */}
         <button
           onClick={handleDownload}
-          className="w-full py-3 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
         >
           <DownloadIcon className="w-5 h-5" />
           Изтегли доклад
@@ -2283,11 +2297,18 @@ ${facilitiesText}
       </div>
 
       {/* RIGHT PANEL - LIVE PREVIEW */}
-      <div className="border-l pl-6 overflow-y-auto">
-        <div className="bg-white rounded-lg shadow-sm p-8 font-serif text-sm">
-          <pre className="whitespace-pre-wrap font-serif leading-relaxed">
+      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
+        <div className="prose prose-sm max-w-none">
+          <div
+            className="whitespace-pre-wrap text-gray-900"
+            style={{
+              fontFamily: '"Times New Roman", Times, serif',
+              fontSize: '12pt',
+              lineHeight: '1.6'
+            }}
+          >
             {generatePreviewContent()}
-          </pre>
+          </div>
         </div>
       </div>
     </div>
@@ -2473,7 +2494,7 @@ function UdvnCompletedGenerator({
           {facility.repairs.map((repair, rIdx) => {
             const migratedRepair = migrateLegacyLocation(repair)
             return (
-              <div key={rIdx} className="border-l-4 border-green-200 pl-4 mb-4">
+              <div key={rIdx} className="border-l-4 border-teal-200 pl-4 mb-4">
                 <div className="grid grid-cols-2 gap-3">
                   <FormRow label="Тръбопровод">
                     <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
@@ -2493,7 +2514,7 @@ function UdvnCompletedGenerator({
                         )}
                       </div>
                     ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
                   </div>
 
                   <FormRow label="Вид ремонт">
@@ -2546,11 +2567,11 @@ function UdvnCompletedGenerator({
               </div>
             )
           })}
-          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави ремонт</button>
+          <button onClick={() => addRepair(fIdx)} className="text-teal-600">+ Добави ремонт</button>
         </div>
       ))}
 
-      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
+      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
 
       <Btn onClick={handleDownload}>
         <DownloadIcon className="w-4 h-4" />
@@ -2717,7 +2738,7 @@ function OdzLetterGenerator({
                         )}
                       </div>
                     ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
                   </div>
 
                   <FormRow label="Описание на ремонта">
@@ -2730,11 +2751,11 @@ function OdzLetterGenerator({
               </div>
             )
           })}
-          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави ремонт</button>
+          <button onClick={() => addRepair(fIdx)} className="text-teal-600">+ Добави ремонт</button>
         </div>
       ))}
 
-      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
+      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
 
       <Btn onClick={handleDownload}>
         <DownloadIcon className="w-4 h-4" />
@@ -2914,7 +2935,7 @@ function ProtocolGenerator({
                         )}
                       </div>
                     ))}
-                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-sm">+ Добави местоположение</button>
                   </div>
 
                   <FormRow label="Описание на констатацията">
@@ -2931,7 +2952,7 @@ function ProtocolGenerator({
         </div>
       ))}
 
-      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
+      <button onClick={addFacility} className="text-teal-600">+ Добави напоителна система</button>
 
       <Btn onClick={handleDownload}>
         <DownloadIcon className="w-4 h-4" />
