@@ -1999,44 +1999,10 @@ function UdvnUpcomingGenerator({
 
   function updateRepair(facilityIndex: number, repairIndex: number, field: keyof UdvnRepairItem, value: any) {
     const updated = [...facilities]
-    const repair = updated[facilityIndex].repairs[repairIndex]
-
-    // Update the field
-    repair[field] = value
-
-    // Auto-fill materials and workers when repair type changes to "Ремонт на хидрант"
-    if (field === 'repairType' && value === 'Ремонт на хидрант') {
-      repair.materials = '1 бр. планка с гумени уплътнения и 4 бр. болт с гайка М14/80'
-      repair.workers = 'работници 3 човека – 3 часа, багер 2 часа'
-      repair.excavatorTime = '2 часа'
-      repair.pipeType = ''
-      repair.pipeSize = ''
-      repair.pipeCount = undefined
+    updated[facilityIndex].repairs[repairIndex] = {
+      ...updated[facilityIndex].repairs[repairIndex],
+      [field]: value
     }
-
-    // Auto-fill materials and workers when repair type changes to "Ремонт на тръба"
-    if (field === 'repairType' && value === 'Ремонт на тръба') {
-      repair.pipeType = repair.pipeType || ''
-      repair.pipeSize = repair.pipeSize || ''
-      repair.pipeCount = repair.pipeCount || 1
-      // Materials will be calculated when pipeType, pipeSize, or pipeCount change
-    }
-
-    // Calculate materials for pipe repair when pipeType, pipeSize, or pipeCount change
-    if (repair.repairType === 'Ремонт на тръба' && (field === 'pipeType' || field === 'pipeSize' || field === 'pipeCount')) {
-      const pipeType = repair.pipeType || ''
-      const pipeSize = repair.pipeSize || ''
-      const pipeCount = repair.pipeCount || 0
-
-      if (pipeType && pipeSize && pipeCount > 0) {
-        const skobi = pipeCount * 2
-        repair.materials = `${pipeType} тръба Ф${pipeSize}, ${pipeCount} бр., ${skobi} бр. аварийни скоби`
-        repair.workers = 'работници 3 човека – 3 часа, багер 2 часа'
-        repair.excavatorTime = '2 часа'
-      }
-    }
-
-    updated[facilityIndex].repairs[repairIndex] = repair
     setFacilities(updated)
   }
 
@@ -2065,7 +2031,7 @@ function UdvnUpcomingGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/Доклад предстоящи ремонтни.docx'
+      const templatePath = './templates/УДВН шаблони/Доклад предстоящи ремонти.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -2110,145 +2076,116 @@ function UdvnUpcomingGenerator({
     const monthName = month || '____________'
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
-    let repairsList = ''
+    let facilitiesText = ''
     facilities.forEach((facility, fIdx) => {
-      if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
-
-      // Съоръжение заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
-
-      // Ремонти за това съоръжение
-      facility.repairs.forEach(repair => {
-        if (!repair.pipeline && !repair.repairType) return
-
+      if (!facility.name) return
+      facilitiesText += `\\n${fIdx + 1}. ${facility.name}\\n`
+      facility.repairs.forEach((repair, rIdx) => {
+        if (!repair.pipeline) return
         const locations = formatLocations(repair.locations)
-        const pipeline = repair.pipeline || '______'
-        const repairType = repair.repairType || '______'
-        const materials = repair.materials || '____________'
-
-        repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+        facilitiesText += `  — Ремонт #${rIdx + 1}\\n`
+        facilitiesText += `  Тръбопровод ${locations || '_____.хкм _____'}\\n`
+        facilitiesText += `  Необходими материали: ${repair.materials || '_____________________'}\\n`
+        facilitiesText += `  Необходими техника и човешки ресурс: ${repair.workers || '_______'}\\n\\n`
       })
-
-      repairsList += '\n' // Празен ред между съоръженията
     })
 
-    return `                                                        ДО
-                                                        Г-ЖА МИТОШКА ИШМЕРИЕВА
-                                                        УПРАВИТЕЛ НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
-                                                        КЛОН „СРЕДНА ТУНДЖА"
-                                                        ГР. СЛИВЕН
+    return `ДОКЛАД
+за предстоящите ремонтни дейности по УДВН
+м. ${monthName} 2026 г.
+от ${dateStr} г. г.
 
-                                    ДОКЛАД
-                                      от
-                          инж. Станислава Димитрова  – инж. УДВН
+През м. ${monthName} 2026 г. ще бъдат извършени следните ремонтни дейности:
+${facilitiesText}
 
-На основание Заповед №РД-05-80/29.04.2026г на Управителя на "Напоителни системи" ЕАД, клон Средна Тунджа, във връзка с изпълнение на дейности по Договор №РД-50-206/04.12.2025г. за услуга от общ икономически интерес доставка на вода за напояване/ УДВН/ и указания в писмо с вх.№РД-02-238/06.03.2026г. от "Напоителни системи" ЕАД гр. София
-
-Относно: Планирани ремонтни дейности по УДВН за месец ${monthName} 2026 г.
-
-Планираните ремонтни дейности по съоръженията за месец ${monthName} са както следва:
-
-${repairsList}
-
-С уважение,
-
-инж. Станислава Димитрова ………………………
-инж. УДВН при „Напоителни системи" ЕАД – клон „Средна Тунджа"
-
-гр. Ямбол                                                                          ${dateStr} г.`
+                                    гр. Ямбол, ${dateStr} г. г.
+                                    инж. УДВН
+                                    /Ст. Димитрова/`
   }
 
-// Visual styling fixes for UdvnUpcomingGenerator - replace the return statement
-
   return (
-    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
+    <div className="grid grid-cols-2 gap-6 h-full">
       {/* LEFT PANEL - FORM */}
-      <div className="overflow-y-auto space-y-6">
+      <div className="overflow-y-auto pr-4 space-y-6">
         {/* Header fields */}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
+          <FormRow label="Месец" required>
+            <select className="w-full px-3 py-2 border rounded" value={month} onChange={e => setMonth(e.target.value)}>
               <option value="">Избери...</option>
               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
-            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
-          </div>
+          </FormRow>
+          <FormRow label="Дата на доклада" required>
+            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+          </FormRow>
         </div>
 
         {/* Facilities section */}
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Съоръжения</h3>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-medium text-gray-700">Съоръжения</h3>
             <button
               onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
+              className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm hover:bg-teal-600 transition-colors"
             >
               + Добави съоръжение
             </button>
           </div>
 
           {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Съоръжение</h4>
+            <div key={fIdx} className="border rounded-lg p-4 mb-4 bg-white">
+              <div className="mb-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium text-gray-700">{fIdx + 1}. Съоръжение</h4>
                   {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+                    <button onClick={() => removeFacility(fIdx)} className="text-red-600 text-sm">✕</button>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на съоръжението*</label>
+                <FormRow label="Име на съоръжението" required>
                   <Input
                     value={facility.name}
                     onChange={e => updateFacility(fIdx, 'name', e.target.value)}
                     placeholder='НП "Зимница"'
-                    className="px-4 py-2.5"
                   />
-                </div>
+                </FormRow>
               </div>
 
               {/* Repairs subsection */}
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Ремонти</h5>
+                <h5 className="text-sm font-medium text-gray-600 mb-2">Ремонти</h5>
                 {facility.repairs.map((repair, rIdx) => (
-                  <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
+                  <div key={rIdx} className="border-l-4 border-teal-200 pl-4 mb-4 pb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-600">— Ремонт #{rIdx + 1}</span>
                       {facility.repairs.length > 1 && (
                         <button
                           onClick={() => removeRepair(fIdx, rIdx)}
-                          className="text-red-500 hover:text-red-700 text-xs font-medium"
+                          className="text-red-600 text-xs"
                         >
                           ✕ Премахни ремонт
                         </button>
                       )}
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Pipeline */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
+                      <FormRow label="Тръбопровод">
                         <Input
                           value={repair.pipeline}
                           onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)}
                           placeholder="6-I-T-5"
-                          className="px-3 py-2"
                         />
-                      </div>
+                      </FormRow>
 
                       {/* Locations (multiple) */}
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                          Хектометър
+                        <label className="text-xs font-medium text-gray-600 block mb-1">
+                          Местоположения
                         </label>
                         {repair.locations.map((loc, lIdx) => (
                           <div key={lIdx} className="flex gap-2 mb-2">
                             <select
-                              className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500"
+                              className="w-32 px-3 py-2 border rounded text-sm"
                               value={loc.unit}
                               onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}
                             >
@@ -2256,7 +2193,7 @@ ${repairsList}
                               <option value="km">при км</option>
                             </select>
                             <Input
-                              className="flex-1 px-3 py-2"
+                              className="flex-1"
                               value={loc.value}
                               onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)}
                               placeholder="3+10"
@@ -2264,7 +2201,7 @@ ${repairsList}
                             {repair.locations.length > 1 && (
                               <button
                                 onClick={() => removeLocation(fIdx, rIdx, lIdx)}
-                                className="text-red-500 hover:text-red-700 px-2"
+                                className="text-red-600 px-2"
                               >
                                 ✕
                               </button>
@@ -2273,17 +2210,16 @@ ${repairsList}
                         ))}
                         <button
                           onClick={() => addLocation(fIdx, rIdx)}
-                          className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1"
+                          className="text-teal-600 text-sm hover:text-teal-700"
                         >
                           + Добави местоположение
                         </button>
                       </div>
 
                       {/* Repair type */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид ремонт</label>
+                      <FormRow label="Вид ремонт">
                         <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500"
+                          className="w-full px-3 py-2 border rounded"
                           value={repair.repairType}
                           onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}
                         >
@@ -2292,86 +2228,42 @@ ${repairsList}
                           <option value="Ремонт на хидрант">Ремонт на хидрант</option>
                           <option value="Друго">Друго</option>
                         </select>
-                      </div>
-
-                      {/* Pipe details - show only when "Ремонт на тръба" is selected */}
-                      {repair.repairType === 'Ремонт на тръба' && (
-                        <div className="grid grid-cols-3 gap-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид тръба</label>
-                            <select
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500 text-sm"
-                              value={repair.pipeType || ''}
-                              onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}
-                            >
-                              <option value="">Избери...</option>
-                              <option value="ПВЦ">ПВЦ</option>
-                              <option value="АЦ">АЦ</option>
-                              <option value="Стомана">Стомана</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Размер (Ф)</label>
-                            <Input
-                              className="px-3 py-2"
-                              value={repair.pipeSize || ''}
-                              onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)}
-                              placeholder="200/10"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой тръби</label>
-                            <Input
-                              type="number"
-                              min="1"
-                              className="px-3 py-2"
-                              value={repair.pipeCount || ''}
-                              onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)}
-                              placeholder="1"
-                            />
-                          </div>
-                        </div>
-                      )}
+                      </FormRow>
 
                       {/* Materials */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Необходими материали</label>
+                      <FormRow label="Необходими материали">
                         <textarea
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-teal-500"
+                          className="w-full px-3 py-2 border rounded resize-none"
                           rows={2}
                           value={repair.materials}
                           onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)}
                           placeholder="Автоматично попълва при избор на вид ремонт"
                         />
-                      </div>
+                      </FormRow>
 
                       {/* Workers */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Работници (напр. 4 човека - 2 часа)</label>
+                      <FormRow label="Работници (напр. 4 човека - 2 часа)">
                         <Input
                           value={repair.workers}
                           onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)}
                           placeholder="4 човека - 2 часа"
-                          className="px-3 py-2"
                         />
-                      </div>
+                      </FormRow>
 
                       {/* Excavator */}
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Багер (напр. 1 ден)</label>
+                      <FormRow label="Багер (напр. 1 ден)">
                         <Input
                           value={repair.excavator}
                           onChange={e => updateRepair(fIdx, rIdx, 'excavator', e.target.value)}
                           placeholder="1 ден"
-                          className="px-3 py-2"
                         />
-                      </div>
+                      </FormRow>
                     </div>
                   </div>
                 ))}
                 <button
                   onClick={() => addRepair(fIdx)}
-                  className="text-teal-600 text-sm font-medium hover:text-teal-700"
+                  className="text-teal-600 text-sm hover:text-teal-700"
                 >
                   + Добави ремонт
                 </button>
@@ -2383,7 +2275,7 @@ ${repairsList}
         {/* Download button */}
         <button
           onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
+          className="w-full py-3 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2"
         >
           <DownloadIcon className="w-5 h-5" />
           Изтегли доклад
@@ -2391,18 +2283,11 @@ ${repairsList}
       </div>
 
       {/* RIGHT PANEL - LIVE PREVIEW */}
-      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
-        <div className="prose prose-sm max-w-none">
-          <div
-            className="whitespace-pre-wrap text-gray-900"
-            style={{
-              fontFamily: '"Times New Roman", Times, serif',
-              fontSize: '12pt',
-              lineHeight: '1.6'
-            }}
-          >
+      <div className="border-l pl-6 overflow-y-auto">
+        <div className="bg-white rounded-lg shadow-sm p-8 font-serif text-sm">
+          <pre className="whitespace-pre-wrap font-serif leading-relaxed">
             {generatePreviewContent()}
-          </div>
+          </pre>
         </div>
       </div>
     </div>
@@ -2561,213 +2446,116 @@ function UdvnCompletedGenerator({
     }
   }
 
-  // Preview content generator
-  function generatePreviewContent() {
-    const monthName = month || '____________'
-    const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
-
-    let repairsList = ''
-    facilities.forEach(facility => {
-      facility.repairs.forEach(repair => {
-        const migratedRepair = migrateLegacyLocation(repair)
-        const locations = formatLocations(migratedRepair.locations)
-        repairsList += `- ${facility.name || '____________'} – ${repair.pipeline || '______'} ${locations || '_______'} – ${repair.description || '____________'} – Материали: ${repair.materials || '____________'} – ${repair.workers || '____________'}\n`
-      })
-    })
-
-    return `ДО
-Г-ЖА МИТОШКА ИШМЕРИЕВА
-УПРАВИТЕЛ НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
-КЛОН „СРЕДНА ТУНДЖА"
-ГР. СЛИВЕН
-
-ДОКЛАД
-от
-инж. Станислава Димитрова  – инж. УДВН
-
-На основание Заповед №РД-05-80/29.04.2026г на Управителя на "Напоителни системи" ЕАД, клон Средна Тунджа, във връзка с изпълнение на дейности по Договор №РД-50-206/04.12.2025г. за услуга от общ икономически интерес доставка на вода за напояване/ УДВН/ и указания в писмо с вх.№РД-02-238/06.03.2026г. от "Напоителни системи" ЕАД гр. София
-
-ОТНОСНО: Отчет за извършени ремонтни дейности по УДВН за ${monthName}
-
-УВАЖАЕМА ГОСПОЖО ИШМЕРИЕВА,
-
-Извършените ремонтно - възстановителни дейности по съоръженията, съгласувани с Областна Дирекция Земеделие – гр. Ямбол за месец ${monthName} са както следва:
-
-${repairsList}
-
-С уважение,
-
-инж. Станислава Димитрова ………………………
-инж. УДВН при „Напоителни системи" ЕАД – клон „Средна Тунджа"
-
-гр. Ямбол                                                                        ${dateStr} г.`
-  }
-
   return (
-    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
-      {/* LEFT PANEL - FORM */}
-      <div className="overflow-y-auto space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Месец*</label>
-            <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={month} onChange={e => setMonth(e.target.value)}>
-              <option value="">Избери...</option>
-              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата на доклада*</label>
-            <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <FormRow label="Месец" required>
+          <select className="w-full px-3 py-2 border rounded" value={month} onChange={e => setMonth(e.target.value)}>
+            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </FormRow>
+        <FormRow label="Дата на доклада" required>
+          <Input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)} />
+        </FormRow>
+      </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Напоителни системи</h3>
-            <button
-              onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
-            >
-              + Добави система
-            </button>
+      {facilities.map((facility, fIdx) => (
+        <div key={fIdx} className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <FormRow label="Напоителна система">
+              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
+            </FormRow>
+            {facilities.length > 1 && (
+              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
+            )}
           </div>
 
-          {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
-                  {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
+          {facility.repairs.map((repair, rIdx) => {
+            const migratedRepair = migrateLegacyLocation(repair)
+            return (
+              <div key={rIdx} className="border-l-4 border-green-200 pl-4 mb-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormRow label="Тръбопровод">
+                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
+                  </FormRow>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
+                    {migratedRepair.locations.map((loc, lIdx) => (
+                      <div key={lIdx} className="flex gap-2 mb-2">
+                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                          <option value="hkm">хкм</option>
+                          <option value="km">при км</option>
+                        </select>
+                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                        {migratedRepair.locations.length > 1 && (
+                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
+                        )}
+                      </div>
+                    ))}
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                  </div>
+
+                  <FormRow label="Вид ремонт">
+                    <select className="w-full px-3 py-2 border rounded" value={repair.repairType} onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}>
+                      <option value="">Избери...</option>
+                      <option value="hydrant">Хидрант</option>
+                      <option value="pipe">Тръба</option>
+                      <option value="other">Друго</option>
+                    </select>
+                  </FormRow>
+
+                  {repair.repairType === 'hydrant' && (
+                    <FormRow label="Брой хидранти">
+                      <Input type="number" value={repair.hydrantCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'hydrantCount', parseInt(e.target.value) || 0)} />
+                    </FormRow>
                   )}
+
+                  {repair.repairType === 'pipe' && (
+                    <>
+                      <FormRow label="Вид тръба">
+                        <select className="w-full px-3 py-2 border rounded" value={repair.pipeType || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}>
+                          <option value="">Избери...</option>
+                          <option value="Стоманобетонова">Стоманобетонова</option>
+                          <option value="Азбестоциментова">Азбестоциментова</option>
+                          <option value="ПВЦ">ПВЦ</option>
+                        </select>
+                      </FormRow>
+                      <FormRow label="Размер (Ф)">
+                        <Input value={repair.pipeSize || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)} placeholder="500" />
+                      </FormRow>
+                      <FormRow label="Брой тръби">
+                        <Input type="number" value={repair.pipeCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)} />
+                      </FormRow>
+                    </>
+                  )}
+
+                  <FormRow label="Описание">
+                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} />
+                  </FormRow>
+                  <FormRow label="Използвани материали">
+                    <Input value={repair.materials} onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)} />
+                  </FormRow>
+                  <FormRow label="Извършена работа">
+                    <Input value={repair.workers} onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)} />
+                  </FormRow>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
-                </div>
+                {facility.repairs.length > 1 && (
+                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни ремонт</button>
+                )}
               </div>
-
-              <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Извършени ремонти</h5>
-                {facility.repairs.map((repair, rIdx) => {
-                  const migratedRepair = migrateLegacyLocation(repair)
-                  return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
-                        {facility.repairs.length > 1 && (
-                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
-                        )}
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
-                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
-                          {migratedRepair.locations.map((loc, lIdx) => (
-                            <div key={lIdx} className="flex gap-2 mb-2">
-                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                                <option value="hkm">хкм</option>
-                                <option value="km">при км</option>
-                              </select>
-                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                              {migratedRepair.locations.length > 1 && (
-                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
-                              )}
-                            </div>
-                          ))}
-                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид ремонт</label>
-                          <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500" value={repair.repairType} onChange={e => updateRepair(fIdx, rIdx, 'repairType', e.target.value)}>
-                            <option value="">Избери...</option>
-                            <option value="hydrant">Хидрант</option>
-                            <option value="pipe">Тръба</option>
-                            <option value="other">Друго</option>
-                          </select>
-                        </div>
-
-                        {repair.repairType === 'hydrant' && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой хидранти</label>
-                            <Input type="number" value={repair.hydrantCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'hydrantCount', parseInt(e.target.value) || 0)} className="px-3 py-2" />
-                          </div>
-                        )}
-
-                        {repair.repairType === 'pipe' && (
-                          <>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Вид тръба</label>
-                              <select className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500" value={repair.pipeType || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeType', e.target.value)}>
-                                <option value="">Избери...</option>
-                                <option value="Стоманобетонова">Стоманобетонова</option>
-                                <option value="Азбестоциментова">Азбестоциментова</option>
-                                <option value="ПВЦ">ПВЦ</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Размер (Ф)</label>
-                              <Input value={repair.pipeSize || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeSize', e.target.value)} placeholder="500" className="px-3 py-2" />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1.5">Брой тръби</label>
-                              <Input type="number" value={repair.pipeCount || ''} onChange={e => updateRepair(fIdx, rIdx, 'pipeCount', parseInt(e.target.value) || 0)} className="px-3 py-2" />
-                            </div>
-                          </>
-                        )}
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание</label>
-                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="ремонт на повреда" className="px-3 py-2" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Използвани материали</label>
-                          <Input value={repair.materials} onChange={e => updateRepair(fIdx, rIdx, 'materials', e.target.value)} placeholder="автоматично попълва" className="px-3 py-2" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Извършена работа</label>
-                          <Input value={repair.workers} onChange={e => updateRepair(fIdx, rIdx, 'workers', e.target.value)} placeholder="работници 4 човека - 2 часа" className="px-3 py-2" />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
+          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави ремонт</button>
         </div>
+      ))}
 
-        <button
-          onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
-        >
-          <DownloadIcon className="w-5 h-5" />
-          Изтегли доклад
-        </button>
-      </div>
+      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
 
-      {/* RIGHT PANEL - LIVE PREVIEW */}
-      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
-        <div className="prose prose-sm max-w-none">
-          <div
-            className="whitespace-pre-wrap text-gray-900"
-            style={{
-              fontFamily: '"Times New Roman", Times, serif',
-              fontSize: '12pt',
-              lineHeight: '1.6'
-            }}
-          >
-            {generatePreviewContent()}
-          </div>
-        </div>
-      </div>
+      <Btn onClick={handleDownload}>
+        <DownloadIcon className="w-4 h-4" />
+        Изтегли DOCX
+      </Btn>
     </div>
   )
 }
@@ -2855,7 +2643,7 @@ function OdzLetterGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/писмо ОДЗ УДВН предстоящи.docx'
+      const templatePath = './templates/УДВН шаблони/Писмо до ОДЗ.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -2889,149 +2677,69 @@ function OdzLetterGenerator({
     }
   }
 
-  // Preview content generator
-  function generatePreviewContent() {
-    const dateStr = letterDate ? formatShortDate(letterDate) : '__.__.____'
-
-    let listContent = ''
-    facilities.forEach(facility => {
-      facility.repairs.forEach(repair => {
-        const migratedRepair = migrateLegacyLocation(repair)
-        const location = formatLocations(migratedRepair.locations) || '___________'
-        listContent += `  • ${facility.name || '____________'} – ${repair.pipeline || '______'} ${location} – ${repair.description || '____________'}\n`
-      })
-    })
-
-    return `                                                        До
-                                                        Областна дирекция "Земеделие"
-                                                        гр. Ямбол
-
-УВЕДОМЛЕНИЕ
-за предстоящи ремонтни дейности по УДВН
-
-Уважаема госпожо/господин Директор,
-
-Уведомяваме Ви, че предстоят следните ремонтни дейности по напоителната система:
-
-${listContent}
-
-Моля да бъдат предприети необходимите действия.
-
-
-                                                        гр. Ямбол, ${dateStr} г. г.
-                                                        инж. УДВН
-                                                        /Ст. Димитрова/`
-  }
-
   return (
-    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
-      {/* LEFT PANEL - FORM */}
-      <div className="overflow-y-auto space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Дата на писмото*</label>
-          <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
-        </div>
+    <div className="space-y-6">
+      <FormRow label="Дата на писмото" required>
+        <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} />
+      </FormRow>
 
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Предстоящи ремонти</h3>
-            <button
-              onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
-            >
-              + Добави система
-            </button>
+      {facilities.map((facility, fIdx) => (
+        <div key={fIdx} className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <FormRow label="Напоителна система">
+              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
+            </FormRow>
+            {facilities.length > 1 && (
+              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
+            )}
           </div>
 
-          {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
-                  {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
-                </div>
-              </div>
+          {facility.repairs.map((repair, rIdx) => {
+            const migratedRepair = migrateLegacyLocation(repair)
+            return (
+              <div key={rIdx} className="border-l-4 border-yellow-200 pl-4 mb-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormRow label="Тръбопровод">
+                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
+                  </FormRow>
 
-              <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Предстоящи ремонти</h5>
-                {facility.repairs.map((repair, rIdx) => {
-                  const migratedRepair = migrateLegacyLocation(repair)
-                  return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Ремонт #{rIdx + 1}</span>
-                        {facility.repairs.length > 1 && (
-                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
+                    {migratedRepair.locations.map((loc, lIdx) => (
+                      <div key={lIdx} className="flex gap-2 mb-2">
+                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                          <option value="hkm">хкм</option>
+                          <option value="km">при км</option>
+                        </select>
+                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                        {migratedRepair.locations.length > 1 && (
+                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
                         )}
                       </div>
+                    ))}
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                  </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
-                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
-                          {migratedRepair.locations.map((loc, lIdx) => (
-                            <div key={lIdx} className="flex gap-2 mb-2">
-                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                                <option value="hkm">хкм</option>
-                                <option value="km">при км</option>
-                              </select>
-                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                              {migratedRepair.locations.length > 1 && (
-                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
-                              )}
-                            </div>
-                          ))}
-                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание на ремонта</label>
-                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="подмяна на повредени участъци" className="px-3 py-2" />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави ремонт</button>
+                  <FormRow label="Описание на ремонта">
+                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="подмяна на повредени участъци" />
+                  </FormRow>
+                </div>
+                {facility.repairs.length > 1 && (
+                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни ремонт</button>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
+          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави ремонт</button>
         </div>
+      ))}
 
-        <button
-          onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
-        >
-          <DownloadIcon className="w-5 h-5" />
-          Изтегли писмо
-        </button>
-      </div>
+      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
 
-      {/* RIGHT PANEL - LIVE PREVIEW */}
-      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
-        <div className="prose prose-sm max-w-none">
-          <div
-            className="whitespace-pre-wrap text-gray-900"
-            style={{
-              fontFamily: '"Times New Roman", Times, serif',
-              fontSize: '12pt',
-              lineHeight: '1.6'
-            }}
-          >
-            {generatePreviewContent()}
-          </div>
-        </div>
-      </div>
+      <Btn onClick={handleDownload}>
+        <DownloadIcon className="w-4 h-4" />
+        Изтегли DOCX
+      </Btn>
     </div>
   )
 }
@@ -3123,7 +2831,7 @@ function ProtocolGenerator({
 
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/Протокол УДВН.docx'
+      const templatePath = './templates/УДВН шаблони/Протокол.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -3161,154 +2869,74 @@ function ProtocolGenerator({
     }
   }
 
-  // Preview content generator
-  function generatePreviewContent() {
-    const protocolNum = protocolNumber || '____'
-    const dateStr = protocolDate ? formatShortDate(protocolDate) : '__.__.____'
-
-    let tableContent = ''
-    let rowNum = 1
-    facilities.forEach(facility => {
-      facility.repairs.forEach(repair => {
-        const migratedRepair = migrateLegacyLocation(repair)
-        const location = formatLocations(migratedRepair.locations) || '___________'
-        tableContent += `${rowNum}. ${facility.name || '____________'} | ${repair.pipeline || '______'} | ${location} | ${repair.description || '____________'}\n`
-        rowNum++
-      })
-    })
-
-    return `ПРОТОКОЛ № ${protocolNum}
-от ${dateStr} г.
-
-Днес, ${dateStr} г., инж. УДВН извърши проверка на обектите от напоителната система и констатира следното:
-
-№ | Съоръжение | Тръбопровод | Местоположение | Констатация
-─────────────────────────────────────────────────────────────────────────────
-${tableContent}
-
-Протоколът се съставя в два еднообразни екземпляра.
-
-
-                                                        Изготвил:
-                                                        инж. УДВН
-                                                        /Ст. Димитрова/`
-  }
-
   return (
-    <div className="grid grid-cols-[1fr_1fr] gap-8 h-full bg-gradient-to-br from-slate-50 to-blue-50 p-6 rounded-xl">
-      {/* LEFT PANEL - FORM */}
-      <div className="overflow-y-auto space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Номер на протокола*</label>
-            <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" className="px-4 py-2.5 shadow-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Дата*</label>
-            <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} className="px-4 py-2.5 shadow-sm" />
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <FormRow label="Номер на протокола" required>
+          <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="1" />
+        </FormRow>
+        <FormRow label="Дата" required>
+          <Input type="date" value={protocolDate} onChange={e => setProtocolDate(e.target.value)} />
+        </FormRow>
+      </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-gray-700">Констатации</h3>
-            <button
-              onClick={addFacility}
-              className="px-5 py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors shadow-sm"
-            >
-              + Добави система
-            </button>
+      {facilities.map((facility, fIdx) => (
+        <div key={fIdx} className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-3">
+            <FormRow label="Напоителна система">
+              <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" />
+            </FormRow>
+            {facilities.length > 1 && (
+              <button onClick={() => removeFacility(fIdx)} className="text-red-600">✕</button>
+            )}
           </div>
 
-          {facilities.map((facility, fIdx) => (
-            <div key={fIdx} className="bg-white rounded-xl shadow-md p-6 mb-5 border border-gray-100">
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-base font-semibold text-gray-800">{fIdx + 1}. Напоителна система</h4>
-                  {facilities.length > 1 && (
-                    <button onClick={() => removeFacility(fIdx)} className="text-red-500 hover:text-red-700 text-sm font-medium">✕</button>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Име на системата*</label>
-                  <Input value={facility.name} onChange={e => updateFacility(fIdx, 'name', e.target.value)} placeholder="ХТР-Ямбол" className="px-4 py-2.5" />
-                </div>
-              </div>
+          {facility.repairs.map((repair, rIdx) => {
+            const migratedRepair = migrateLegacyLocation(repair)
+            return (
+              <div key={rIdx} className="border-l-4 border-purple-200 pl-4 mb-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormRow label="Тръбопровод">
+                    <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} />
+                  </FormRow>
 
-              <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Констатации</h5>
-                {facility.repairs.map((repair, rIdx) => {
-                  const migratedRepair = migrateLegacyLocation(repair)
-                  return (
-                    <div key={rIdx} className="bg-gray-50 rounded-lg p-5 mb-4 border-l-4 border-teal-400">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-semibold text-gray-700">— Констатация #{rIdx + 1}</span>
-                        {facility.repairs.length > 1 && (
-                          <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-500 hover:text-red-700 text-xs font-medium">✕ Премахни</button>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Местоположения</label>
+                    {migratedRepair.locations.map((loc, lIdx) => (
+                      <div key={lIdx} className="flex gap-2 mb-2">
+                        <select className="w-40 px-3 py-2 border rounded" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
+                          <option value="hkm">хкм</option>
+                          <option value="km">при км</option>
+                        </select>
+                        <Input className="w-40" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
+                        {migratedRepair.locations.length > 1 && (
+                          <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-600">✕</button>
                         )}
                       </div>
+                    ))}
+                    <button onClick={() => addLocation(fIdx, rIdx)} className="text-blue-600 text-sm">+ Добави местоположение</button>
+                  </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Тръбопровод</label>
-                          <Input value={repair.pipeline} onChange={e => updateRepair(fIdx, rIdx, 'pipeline', e.target.value)} placeholder="6-I-T-5" className="px-3 py-2" />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Местоположения</label>
-                          {migratedRepair.locations.map((loc, lIdx) => (
-                            <div key={lIdx} className="flex gap-2 mb-2">
-                              <select className="w-28 px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-500" value={loc.unit} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'unit', e.target.value)}>
-                                <option value="hkm">хкм</option>
-                                <option value="km">при км</option>
-                              </select>
-                              <Input className="flex-1 px-3 py-2" value={loc.value} onChange={e => updateLocation(fIdx, rIdx, lIdx, 'value', e.target.value)} placeholder="3+10" />
-                              {migratedRepair.locations.length > 1 && (
-                                <button onClick={() => removeLocation(fIdx, rIdx, lIdx)} className="text-red-500 hover:text-red-700 px-2">✕</button>
-                              )}
-                            </div>
-                          ))}
-                          <button onClick={() => addLocation(fIdx, rIdx)} className="text-teal-600 text-xs font-medium hover:text-teal-700 mt-1">+ Добави местоположение</button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Описание на констатацията</label>
-                          <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="необходим спешен ремонт" className="px-3 py-2" />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                <button onClick={() => addRepair(fIdx)} className="text-teal-600 text-sm font-medium hover:text-teal-700">+ Добави констатация</button>
+                  <FormRow label="Описание на констатацията">
+                    <Input value={repair.description} onChange={e => updateRepair(fIdx, rIdx, 'description', e.target.value)} placeholder="необходим спешен ремонт" />
+                  </FormRow>
+                </div>
+                {facility.repairs.length > 1 && (
+                  <button onClick={() => removeRepair(fIdx, rIdx)} className="text-red-600 text-sm mt-2">✕ Премахни констатация</button>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
+          <button onClick={() => addRepair(fIdx)} className="text-blue-600">+ Добави констатация</button>
         </div>
+      ))}
 
-        <button
-          onClick={handleDownload}
-          className="w-full py-3.5 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md"
-        >
-          <DownloadIcon className="w-5 h-5" />
-          Изтегли протокол
-        </button>
-      </div>
+      <button onClick={addFacility} className="text-blue-600">+ Добави напоителна система</button>
 
-      {/* RIGHT PANEL - LIVE PREVIEW */}
-      <div className="bg-white rounded-xl shadow-lg p-8 overflow-y-auto border border-gray-200">
-        <div className="prose prose-sm max-w-none">
-          <div
-            className="whitespace-pre-wrap text-gray-900"
-            style={{
-              fontFamily: '"Times New Roman", Times, serif',
-              fontSize: '12pt',
-              lineHeight: '1.6'
-            }}
-          >
-            {generatePreviewContent()}
-          </div>
-        </div>
-      </div>
+      <Btn onClick={handleDownload}>
+        <DownloadIcon className="w-4 h-4" />
+        Изтегли DOCX
+      </Btn>
     </div>
   )
 }
