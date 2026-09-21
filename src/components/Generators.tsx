@@ -2670,19 +2670,32 @@ function OdzLetterGenerator({
       if (!docXml) throw new Error('Липсва document.xml')
       let xml = docXml.asText()
 
+      xml = replacePlaceholder(xml, '{ИЗХ_НОМЕР}', outgoingNumber)
       xml = replacePlaceholder(xml, '{ДАТА}', formatShortDate(letterDate))
 
-      let listItems = ''
-      facilities.forEach(facility => {
+      let listContent = ''
+      facilities.forEach((facility, fIdx) => {
+        const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.facilityType)
+        if (!hasContent) return
+
+        // Напоително поле като заглавие
+        listContent += `${fIdx + 1}. ${facility.name || '____________'}\n`
+
+        // Ремонти - само вид съоръжение, pipeline и локации (БЕЗ материали)
         facility.repairs.forEach(repair => {
-          const migratedRepair = migrateLegacyLocation(repair)
-          const location = formatLocations(migratedRepair.locations)
-          listItems += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${facility.name} – ${repair.pipeline} ${location} – ${repair.description}</w:t></w:r></w:p>`
+          if (!repair.pipeline && !repair.facilityType) return
+
+          const facilityType = repair.facilityType || 'Тръбопровод'
+          const locations = formatLocations(repair.locations)
+          const pipeline = repair.pipeline || '______'
+
+          listContent += `-    ${facilityType} ${pipeline} ${locations || '_______'}\n`
         })
+
+        listContent += '\n' // Празен ред между съоръженията
       })
 
-      const listMarker = '<w:p><w:r><w:t>{LIST_ITEMS}</w:t></w:r></w:p>'
-      xml = xml.replace(listMarker, listItems)
+      xml = replacePlaceholder(xml, '{РЕМОНТИ}', listContent.trim())
 
       zip.file('word/document.xml', xml)
       const blob = zip.generate({ type: 'blob' })
@@ -2698,17 +2711,35 @@ function OdzLetterGenerator({
   // Preview content generator
   function generatePreviewContent() {
     const dateStr = letterDate ? formatShortDate(letterDate) : '__.__.____'
+    const outNum = outgoingNumber || '______'
 
     let listContent = ''
-    facilities.forEach(facility => {
+    facilities.forEach((facility, fIdx) => {
+      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.facilityType)
+      if (!hasContent) return
+
+      // Напоително поле като заглавие
+      listContent += `${fIdx + 1}. ${facility.name || '____________'}\n`
+
+      // Ремонти - само вид съоръжение, pipeline и локации (БЕЗ материали)
       facility.repairs.forEach(repair => {
-        const migratedRepair = migrateLegacyLocation(repair)
-        const location = formatLocations(migratedRepair.locations) || '___________'
-        listContent += `  • ${facility.name || '____________'} – ${repair.pipeline || '______'} ${location} – ${repair.description || '____________'}\n`
+        if (!repair.pipeline && !repair.facilityType) return
+
+        const facilityType = repair.facilityType || 'Тръбопровод'
+        const locations = formatLocations(repair.locations)
+        const pipeline = repair.pipeline || '______'
+
+        listContent += `-    ${facilityType} ${pipeline} ${locations || '_______'}\n`
       })
+
+      listContent += '\n' // Празен ред между съоръженията
     })
 
-    return `                                                        До
+    return `                                                        Изх. № ${outNum}
+                                                        Дата: ${dateStr} г.
+
+                                                        До
                                                         Областна дирекция "Земеделие"
                                                         гр. Ямбол
 
@@ -2724,7 +2755,7 @@ ${listContent}
 Моля да бъдат предприети необходимите действия.
 
 
-                                                        гр. Ямбол, ${dateStr} г. г.
+                                                        гр. Ямбол, ${dateStr} г.
                                                         инж. УДВН
                                                         /Ст. Димитрова/`
   }
