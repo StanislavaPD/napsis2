@@ -45,7 +45,21 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "installerHeaderIcon": "build-icon.ico",
+      "displayLanguageSelector": false,
+      "language": "1026",
+      "warningsAsErrors": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "menuCategory": true,
+      "shortcutName": "Напояване ХТР Ямбол",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "unicode": true,
+      "license": "LICENSE.txt",
+      "include": "build/installer.nsh"
     }
   },
   "dependencies": {
