@@ -110,7 +110,13 @@ export default function Acts({ initialContractorId, onClearFilter }: { initialCo
     const cont = contractors.find(x => x.id === a.contractorId)
     const crop = crops.find(x => x.id === a.cropId)
     const method = irrigationMethods.find(x => x.id === a.irrigationMethodId)
-    const q = search.toLowerCase()
+    const q = search.toLowerCase().trim()
+
+    // Ако search е празен, показваме всичко
+    if (!q) {
+      return !htuFilter || htus.find(h => h.id === a.htuId)?.htuName === htuFilter
+    }
+
     return (
       (!htuFilter || htus.find(h => h.id === a.htuId)?.htuName === htuFilter) &&
       (
@@ -121,7 +127,7 @@ export default function Acts({ initialContractorId, onClearFilter }: { initialCo
         a.month.toLowerCase().includes(q) ||
         a.irrigationNumber.toLowerCase().includes(q) ||
         (crop?.name.toLowerCase().includes(q) ?? false) ||
-        String(a.area).includes(q) ||
+        String(a.area).toLowerCase().includes(q) ||
         (method?.name.toLowerCase().includes(q) ?? false)
       )
     )
