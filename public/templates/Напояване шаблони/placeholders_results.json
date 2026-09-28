@@ -1,0 +1,97 @@
+{
+  "акт.docx": {
+    "placeholders": [
+      "{Bulstat}",
+      "{Godina}",
+      "{Kontragent}",
+      "{adres }",
+      "{bulstat}",
+      "{datado}",
+      "{datanaakta}",
+      "{dataot}",
+      "{data}",
+      "{dkagravitachno}",
+      "{dkapompeno}",
+      "{dka}",
+      "{dogowor nomer}",
+      "{fizicheskoliceKontragent}",
+      "{grawitachno}",
+      "{kanal,ps,wodoprowod}",
+      "{kultura1}",
+      "{kultura2}",
+      "{kultura3}",
+      "{kultura4}",
+      "{molkontragent}",
+      "{nomernaakt}",
+      "{nomerpolivka}",
+      "{obemdrnujdi}",
+      "{obemgr){obempopmeno}",
+      "{obemgravitachno}",
+      "{obempompeno}",
+      "{obshobem}",
+      "{obshtobemgr}",
+      "{obshtobempompeno}",
+      "{obshtoobem}",
+      "{poliwodkagr}",
+      "{poliwodkapompeno}",
+      "{poliwodka}",
+      "{pompeno}",
+      "{sum}"
+    ],
+    "count": 36
+  },
+  "Заявление Приложение 1.docx": {
+    "placeholders": [
+      "{БР. ПОЛИВКИ}",
+      "{ВОДОПОЛЗВАТЕЛ}",
+      "{ГОДИНА}",
+      "{ГРАВИТАЧНО}",
+      "{ДКА}",
+      "{ЗАЯВЛЕНИЕ НОМЕР}",
+      "{ЗЕМЛИЩЕ}",
+      "{КАНАЛПС}",
+      "{КУЛТУРА}",
+      "{НАП. НОРМА}",
+      "{НАПОИТЕЛНА СИСТЕМА}",
+      "{ОБЩО ДКА}",
+      "{ОБЩО ОБЕМ}",
+      "{ПИ НОМЕР}",
+      "{ПОМПЕНО}",
+      "{СЪОРАЖЕНИЕ}"
+    ],
+    "count": 16
+  },
+  "Протокол замерване Приложение 2.docx": {
+    "placeholders": [
+      "{ ВОДОПОЛЗВАТЕЛ }",
+      "{ДАТА}",
+      "{Договор №}",
+      "{ЗЕМЛИЩЕ}",
+      "{дка}",
+      "{№ на масив }"
+    ],
+    "count": 6
+  },
+  "Рекапитулация Приложение 3.docx": {
+    "placeholders": [
+      "{ ВОДОПОЛЗВАТЕЛ }",
+      "{ДАТА}",
+      "{Договор №}",
+      "{ЗЕМЛИЩЕ}",
+      "{дка}",
+      "{№ на масив }"
+    ],
+    "count": 6
+  },
+  "Декларация за съгласие Приложение 6.docx": {
+    "placeholders": [
+      "{EGN}",
+      "{MOL}",
+      "{data}",
+      "{izdadena na}",
+      "{nomerlichnakarta}",
+      "{ot}"
+    ],
+    "count": 6
+  }
+}

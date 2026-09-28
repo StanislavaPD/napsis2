@@ -11,8 +11,8 @@ export default function Settings() {
   const { token, role } = useAuth()
   const isAdmin = role === 'admin'
   const {
-    contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments,
-    setContractors, setHtus, setIrrigationMethods, setCrops, setContracts, setActs, setRequests, setPayments,
+    contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments, seasonArchives,
+    setContractors, setHtus, setIrrigationMethods, setCrops, setContracts, setActs, setRequests, setPayments, setSeasonArchives,
   } = useStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingRestore, setPendingRestore] = useState<ArchiveFile | null>(null)
@@ -95,6 +95,38 @@ export default function Settings() {
       localStorage.setItem(LAST_AUTO_BACKUP_KEY, new Date().toISOString().slice(0, 10))
       setBackupNowResult(`✓ Записано: ${res.filePath}`)
     }
+  }
+
+  // Архивиране на сезон - запазва текущите данни като сезон и ги изчиства
+  const [archiveYear, setArchiveYear] = useState(() => new Date().getFullYear())
+  const [archiveNotes, setArchiveNotes] = useState('')
+  const [confirmArchive, setConfirmArchive] = useState(false)
+  const [archiveResult, setArchiveResult] = useState<string | null>(null)
+
+  function createSeasonArchive() {
+    const newArchive = {
+      id: `season-${archiveYear}-${Date.now()}`,
+      seasonYear: archiveYear,
+      archivedDate: new Date().toISOString(),
+      contracts,
+      acts,
+      requests,
+      payments,
+      notes: archiveNotes,
+    }
+
+    setSeasonArchives([...seasonArchives, newArchive])
+
+    // Изчистване на текущите данни
+    setContracts([])
+    setActs([])
+    setRequests([])
+    setPayments([])
+
+    setArchiveResult(`✓ Сезон ${archiveYear} е архивиран успешно!`)
+    setConfirmArchive(false)
+    setArchiveNotes('')
+    setArchiveYear(archiveYear + 1)
   }
 
   async function createAccount() {
@@ -229,6 +261,67 @@ export default function Settings() {
                 </div>
               </Card>
             )}
+
+            {/* Архивиране на сезон */}
+            {isAdmin && (
+              <Card className="overflow-hidden">
+                <div className="px-6 py-4 flex items-center gap-3 bg-gradient-to-br from-purple-500 to-purple-600">
+                  <div className="w-8 h-8 shrink-0 rounded-lg bg-white/20 flex items-center justify-center text-white"><ArchiveBoxIcon className="w-4.5 h-4.5" /></div>
+                  <p className="text-sm font-semibold text-white">Архивиране на сезон</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Архивирай текущия сезон и започни нов. Всички договори, актове, заявки и плащания ще бъдат запазени
+                    за сравнение и ще бъдат изчистени от текущите данни.
+                  </p>
+
+                  <div className="space-y-3">
+                    <FormRow label="Година на сезон">
+                      <Input
+                        type="number"
+                        value={archiveYear}
+                        onChange={e => setArchiveYear(Number(e.target.value))}
+                        placeholder="2026"
+                      />
+                    </FormRow>
+                    <FormRow label="Бележки (опционално)">
+                      <Input
+                        value={archiveNotes}
+                        onChange={e => setArchiveNotes(e.target.value)}
+                        placeholder="Допълнителна информация за сезона..."
+                      />
+                    </FormRow>
+                  </div>
+
+                  <Btn variant="primary" onClick={() => setConfirmArchive(true)}>
+                    <ArchiveBoxIcon /> Архивирай сезон {archiveYear}
+                  </Btn>
+
+                  {archiveResult && <p className="text-sm text-green-600 mt-4">{archiveResult}</p>}
+
+                  {seasonArchives.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <p className="text-sm font-medium text-gray-700 mb-3">Архивирани сезони ({seasonArchives.length})</p>
+                      <div className="space-y-2">
+                        {seasonArchives.sort((a, b) => b.seasonYear - a.seasonYear).map(archive => (
+                          <div key={archive.id} className="flex items-center justify-between text-sm p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <span className="font-medium text-gray-900">Сезон {archive.seasonYear}</span>
+                              <span className="text-gray-500 ml-2">
+                                ({archive.contracts.length} договори, {archive.acts.length} акта)
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-400">
+                              {new Date(archive.archivedDate).toLocaleDateString('bg-BG')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
           </div>
 
           {/* Дясна колона - Обобщение и Акаунти */}
@@ -244,7 +337,7 @@ export default function Settings() {
             </Card>
 
             <Card className="overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-br from-sky-500 to-sky-600">
+              <div className="px-6 py-4 bg-blue-500">
                 <p className="text-sm font-semibold text-white">Добавяне на акаунт</p>
               </div>
               <div className="p-6">
@@ -272,6 +365,14 @@ export default function Settings() {
           message={`Възстановяването ще ЗАМЕНИ всички текущи данни в приложението с тези от архива (изтеглен на ${new Date(pendingRestore.exportedAt).toLocaleString('bg-BG')}). Текущите данни, които не запазиш отделно, ще бъдат загубени безвъзвратно. Продължи?`}
           onConfirm={confirmRestore}
           onCancel={() => setPendingRestore(null)}
+        />
+      )}
+
+      {confirmArchive && (
+        <ConfirmDialog
+          message={`Архивирането на сезон ${archiveYear} ще ПРЕМЕСТИ всички договори, актове, заявки и плащания в архив и ще ги ИЗЧИСТИ от текущите данни. Те ще останат достъпни за сравнителен анализ. Контрагентите, ХТУ, методите и културите няма да бъдат изчистени. Продължи?`}
+          onConfirm={createSeasonArchive}
+          onCancel={() => setConfirmArchive(false)}
         />
       )}
     </div>

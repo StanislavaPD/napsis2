@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import type { Contractor, HTU, IrrigationMethod, Crop, Contract, Act, IrrigRequest, Payment, UdvnRepair } from './types'
+import type { Contractor, HTU, IrrigationMethod, Crop, Contract, Act, IrrigRequest, Payment, UdvnRepair, SeasonArchive } from './types'
 import { buildArchive, BACKUP_FOLDER_KEY, LAST_AUTO_BACKUP_KEY } from './lib/backup'
 import { blobToBase64 } from './lib/docx-fill'
 
@@ -13,6 +13,7 @@ interface StoreState {
   requests: IrrigRequest[]
   payments: Payment[]
   udvnRepairs: UdvnRepair[]
+  seasonArchives: SeasonArchive[]
   setContractors: (v: Contractor[]) => void
   setHtus: (v: HTU[]) => void
   setIrrigationMethods: (v: IrrigationMethod[]) => void
@@ -22,6 +23,7 @@ interface StoreState {
   setRequests: (v: IrrigRequest[]) => void
   setPayments: (v: Payment[]) => void
   setUdvnRepairs: (v: UdvnRepair[]) => void
+  setSeasonArchives: (v: SeasonArchive[]) => void
   findOrCreateContractor: (name: string) => string
 }
 
@@ -164,6 +166,7 @@ function loadLegacyFromLocalStorage() {
     requests: migrateRequests(load('agrovoda_requests', [])),
     payments: migratePayments(load('agrovoda_payments', [])),
     udvnRepairs: load('agrovoda_udvn_repairs', [] as UdvnRepair[]),
+    seasonArchives: load('agrovoda_season_archives', [] as SeasonArchive[]),
   }
 }
 
@@ -179,6 +182,7 @@ export function StoreProvider({ children, token, isAdmin = false }: { children: 
   const [requests, setRequests] = useState<IrrigRequest[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().requests)
   const [payments, setPayments] = useState<Payment[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().payments)
   const [udvnRepairs, setUdvnRepairs] = useState<UdvnRepair[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().udvnRepairs)
+  const [seasonArchives, setSeasonArchives] = useState<SeasonArchive[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().seasonArchives)
   const [loaded, setLoaded] = useState(!useBackend)
 
   // One-time fetch from Postgres via the Electron backend. If the server has no data yet for this
@@ -247,6 +251,7 @@ export function StoreProvider({ children, token, isAdmin = false }: { children: 
   useEffect(() => { persist('acts', acts) }, [acts, loaded])
   useEffect(() => { persist('requests', requests) }, [requests, loaded])
   useEffect(() => { persist('payments', payments) }, [payments, loaded])
+  useEffect(() => { persist('seasonArchives', seasonArchives) }, [seasonArchives, loaded])
 
   // Silent daily backup: writes the same fixed filename each time (no save dialog), so it's purely
   // a local safety net — only runs once per calendar day, tracked via a localStorage date stamp.
@@ -277,6 +282,7 @@ export function StoreProvider({ children, token, isAdmin = false }: { children: 
       requests, setRequests,
       payments, setPayments,
       udvnRepairs, setUdvnRepairs,
+      seasonArchives, setSeasonArchives,
       findOrCreateContractor,
     }}>
       {children}

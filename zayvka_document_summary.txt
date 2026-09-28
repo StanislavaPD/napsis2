@@ -1,0 +1,217 @@
+ЗАЯВКА ПРИЛОЖЕНИЕ 4 - COMPLETE DOCUMENT STRUCTURE
+================================================================================
+
+FILE: d:\New folder\napsis\public\templates\Напояване шаблони\Заявка Приложение 4.docx
+
+================================================================================
+PLACEHOLDERS (16 total):
+================================================================================
+
+{ДОПЪЛНИТЕЛЕН}
+{OT}
+{ДО}
+{ДО}
+{ЗАЯВКА №}
+{КУЛТУРА}
+{КУЛТУРА 3}
+{КУЛТУРА2}
+{КВ. МЕСТНОСТ}
+{МД}
+{МД}
+{НОМ ИМОТИ}
+{НОМЕР ДКЧ}
+{НОМЕР ПОЛИВ}
+{ПРЕДСТАВЕН}
+{ЧАС}
+
+================================================================================
+DOCUMENT LAYOUT:
+================================================================================
+
+PARAGRAPH 0 (RIGHT aligned, BOLD):
+  "Приложение № 4 по чл.12 от НВУТР настоящ"
+
+PARAGRAPH 1: [EMPTY LINE]
+
+PARAGRAPH 2 (CENTER): [EMPTY LINE]
+
+PARAGRAPH 3 (CENTER, BOLD):
+  "ЗАЯВКА   за полив №  {НОМЕР ПОЛИВ}"
+
+PARAGRAPH 4 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 5 (JUSTIFY, BOLD):
+  "КЪМ ЗАЯВКА за ползване на вода за напояване №  {ЗАЯВКА №}"
+
+PARAGRAPH 6 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 7 (JUSTIFY):
+  "Заявител: Лице с правен интерес, вид/име: имоти/{ЧАС}"
+
+PARAGRAPH 8 (JUSTIFY):
+  "Представител: { ДОПЪЛНИТЕЛЕН }"
+
+PARAGRAPH 9 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 10 (JUSTIFY):
+  "Заявявам за поливането на следните земи за напояване на парцел в МД номера, разписа за използването, както следва:"
+
+PARAGRAPH 11 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 12 (LEFT, BOLD):
+  "МД {МД} 							се  {КВ. МЕСТНОСТ}"
+  Note: Contains multiple tabs between МД and се
+
+PARAGRAPH 13 (JUSTIFY, BOLD):
+  "населеното/{ПРЕДСТАВЕН}, местност № {НОМЕР ДКЧ}"
+
+PARAGRAPH 14 (JUSTIFY, BOLD):
+  "на период от{OT} до {ДО} 2026 г. следа да се върши поливана вода, както следва:"
+
+PARAGRAPH 15 (JUSTIFY): [EMPTY LINE]
+
+================================================================================
+TABLE (12 rows x 13 columns):
+================================================================================
+
+HEADER ROW 0 (CENTER/JUSTIFY aligned):
+  Col 0: Култура
+  Col 1: Сорт
+  Col 2: Площ хектари
+  Col 3: Парцели
+  Col 4-7: Напояването  от  календария (repeated 4 times)
+  Col 8: Начин на поливан.
+  Col 9: Начин на поливат.
+  Col 10: Начин на подаване на м. вода
+  Col 11: Кота на парцела
+  Col 12: Смітане дата, г кал
+
+HEADER ROW 1 (CENTER/JUSTIFY aligned):
+  Col 0: Култура
+  Col 1: Сорт
+  Col 2: Площ хектари
+  Col 3: Парцели
+  Col 4: Време
+  Col 5: Време
+  Col 6: През
+  Col 7: През
+  Col 8: Изпитание
+  Col 9: Поставя
+  Col 10: Начин на подаване на м. вода
+  Col 11: Кота на парцела
+  Col 12: Смітане дата, г кал
+
+HEADER ROW 2 (CENTER/JUSTIFY aligned):
+  Col 0: Култура
+  Col 1: Вид
+  Col 2: М3
+  Col 3: М
+  Col 4: Дата
+  Col 5: Час
+  Col 6: Дата
+  Col 7: Час
+  Col 8: Изпитание
+  Col 9: Поставя
+  Col 10: Начин на подаване на м. вода
+  Col 11: М
+  Col 12: М
+
+HEADER ROW 3 (CENTER aligned) - Column numbers:
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+
+DATA ROW 4 (JUSTIFY aligned):
+  Col 0: {КУЛТУРА}
+  Col 1: {ЧАС}
+  Col 2: {НОМ ИМОТИ}
+  Col 3: [empty]
+  Col 4: {МД}
+  Col 5: [empty]
+  Col 6: {МД}
+  Col 7-13: [empty]
+
+DATA ROW 5 (JUSTIFY aligned):
+  Col 0: {КУЛТУРА2}
+  Col 1: {ЧАС}
+  Col 2: {НОМ ИМОТИ}
+  Col 3: [empty]
+  Col 4: {МД}
+  Col 5: [empty]
+  Col 6: {МД}
+  Col 7-13: [empty]
+
+DATA ROW 6 (JUSTIFY aligned):
+  Col 0: {КУЛТУРА 3}
+  Col 1: {ЧАС}
+  Col 2: {НОМ ИМОТИ}
+  Col 3: [empty]
+  Col 4: {МД}
+  Col 5: [empty]
+  Col 6: {МД}
+  Col 7-13: [empty]
+
+ROWS 7-11: [empty rows]
+
+================================================================================
+BOTTOM SECTION:
+================================================================================
+
+PARAGRAPH 16 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 17 (JUSTIFY):
+  "От подаване чл. 13 от НВУТР настоящ при управата за подаване на вода за напояване:"
+
+PARAGRAPH 18 (JUSTIFY):
+  "- Декларация заседа използвания вода за използването, която имя сътрудни на заседание."
+
+PARAGRAPH 19 (JUSTIFY):
+  "- Осигурителност, придружа, че е публиката с месеца настоящ при управата за подаване на вода за напояване и на начало потребител."
+
+PARAGRAPH 20 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 21 (JUSTIFY): [EMPTY LINE]
+
+PARAGRAPH 22 (JUSTIFY):
+  " Заявител: подпис....                               Представител: подписа..."
+
+================================================================================
+FORMATTING NOTES:
+================================================================================
+
+1. Most text is BOLD throughout the document
+2. Main header is RIGHT aligned
+3. Title section is CENTER aligned
+4. Body content is JUSTIFY aligned
+5. Multiple empty lines create spacing between sections
+6. Table has complex multi-row headers with CENTER and JUSTIFY alignment
+7. Data rows use JUSTIFY alignment for placeholders
+8. Bottom signature section has spacing with dots for signature lines
+
+================================================================================
+COMPLETE STRUCTURE IN ORDER:
+================================================================================
+
+1. Header (right, bold): "Приложение № 4 по чл.12 от НВУТР настоящ"
+2. Empty line
+3. Empty line (centered)
+4. Title (center, bold): "ЗАЯВКА   за полив №  {НОМЕР ПОЛИВ}"
+5. Empty line
+6. Subtitle (justify, bold): "КЪМ ЗАЯВКА за ползване на вода за напояване №  {ЗАЯВКА №}"
+7. Empty line
+8. Applicant info (justify): "Заявител: Лице с правен интерес, вид/име: имоти/{ЧАС}"
+9. Representative info (justify): "Представител: { ДОПЪЛНИТЕЛЕН }"
+10. Empty line
+11. Intro text (justify): "Заявявам за поливането на следните земи..."
+12. Empty line
+13. МД info (left, bold): "МД {МД} [tabs] се  {КВ. МЕСТНОСТ}"
+14. Location info (justify, bold): "населеното/{ПРЕДСТАВЕН}, местност № {НОМЕР ДКЧ}"
+15. Period info (justify, bold): "на период от{OT} до {ДО} 2026 г..."
+16. Empty line
+17. TABLE with crops/irrigation data (3-4 header rows + 3 data rows + empty rows)
+18. Empty line
+19. Requirements text starting with "От подаване чл. 13..."
+20. Bullet point 1
+21. Bullet point 2
+22. Empty lines
+23. Signature line: "Заявител: подпис.... Представител: подписа..."
+
+================================================================================

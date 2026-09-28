@@ -1,0 +1,558 @@
+{
+  "summary": {
+    "total_unique": 23,
+    "total_instances": 103
+  },
+  "placeholders": [
+    {
+      "placeholder": "{ ВОДОПОЛЗВАТЕЛ }",
+      "count": 2,
+      "locations": [
+        {
+          "paragraph_index": 5,
+          "context": "ВОДОПОЛЗВАТЕЛ: { ВОДОПОЛЗВАТЕЛ }"
+        },
+        {
+          "paragraph_index": 8,
+          "context": "За Водоползвател { ВОДОПОЛЗВАТЕЛ },"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Доставен обем вода гравитачно }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 301,
+          "context": "{ Доставен обем вода гравитачно }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Доставен обем вода помпено }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 302,
+          "context": "{ Доставен обем вода помпено }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Заплатена сума }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 305,
+          "context": "{ Заплатена сума }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Разлика }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 303,
+          "context": "{ Разлика }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Разлика за доплащане/за възстановяване }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 306,
+          "context": "{ Разлика за доплащане/за възстановяване }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ Цена по Заповед }",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 304,
+          "context": "{ Цена по Заповед }"
+        }
+      ]
+    },
+    {
+      "placeholder": "{АКТУВАН ОБЕМ ГР.}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 56,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 87,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 118,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 149,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 180,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 211,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 242,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 273,
+          "context": "{АКТУВАН ОБЕМ ГР.}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{АКТУВАН ОБЕМ ПОМПЕНО}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 57,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 88,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 119,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 150,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 181,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 212,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 243,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 274,
+          "context": "{АКТУВАН ОБЕМ ПОМПЕНО}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{БР. ПОЛИВКИ}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 55,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 86,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 117,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 148,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 179,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 210,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 241,
+          "context": "{БР. ПОЛИВКИ}"
+        },
+        {
+          "paragraph_index": 272,
+          "context": "{БР. ПОЛИВКИ}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{БРОЙ ПОЛИВКИОБЩО}",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 300,
+          "context": "{БРОЙ ПОЛИВКИОБЩО}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ДАТА}",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 3,
+          "context": "         Днес  {ДАТА} г. между страните:"
+        }
+      ]
+    },
+    {
+      "placeholder": "{Договор №}",
+      "count": 2,
+      "locations": [
+        {
+          "paragraph_index": 9,
+          "context": "се състави настоящият протокол за действително доставен обем вода през поливен сезон 2026г. за напояване на засетите площи от ВОДОПОЛЗВАТЕЛЯ съгласно "
+        },
+        {
+          "paragraph_index": 10,
+          "context": "Замерени площи по Договор № {Договор №},"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ЗАЯВЕН ОБЕМ ГР.}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 53,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 84,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 115,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 146,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 177,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 208,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 239,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        },
+        {
+          "paragraph_index": 270,
+          "context": "{ЗАЯВЕН ОБЕМ ГР.}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ЗАЯВЕН ОБЕМ ОБЩО ГР.}",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 298,
+          "context": "{ЗАЯВЕН ОБЕМ ОБЩО ГР.}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО}",
+      "count": 1,
+      "locations": [
+        {
+          "paragraph_index": 299,
+          "context": "{ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 54,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 85,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 116,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 147,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 178,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 209,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 240,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        },
+        {
+          "paragraph_index": 271,
+          "context": "{ЗАЯВЕН ОБЕМ ПОМПЕНО}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ЗЕМЛИЩЕ}",
+      "count": 11,
+      "locations": [
+        {
+          "paragraph_index": 16,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 20,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 24,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 49,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 80,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 111,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 142,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 173,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 204,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 235,
+          "context": "{ЗЕМЛИЩЕ}"
+        },
+        {
+          "paragraph_index": 266,
+          "context": "{ЗЕМЛИЩЕ}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{КУЛТУРА}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 51,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 82,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 113,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 144,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 175,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 206,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 237,
+          "context": " {КУЛТУРА}"
+        },
+        {
+          "paragraph_index": 268,
+          "context": " {КУЛТУРА}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{ПОЛ НОРМА}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 52,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 83,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 114,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 145,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 176,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 207,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 238,
+          "context": "{ПОЛ НОРМА}"
+        },
+        {
+          "paragraph_index": 269,
+          "context": "{ПОЛ НОРМА}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{РАЗЛИКА}",
+      "count": 8,
+      "locations": [
+        {
+          "paragraph_index": 58,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 89,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 120,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 151,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 182,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 213,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 244,
+          "context": "{РАЗЛИКА}"
+        },
+        {
+          "paragraph_index": 275,
+          "context": "{РАЗЛИКА}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{дка}",
+      "count": 11,
+      "locations": [
+        {
+          "paragraph_index": 18,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 22,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 26,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 50,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 81,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 112,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 143,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 174,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 205,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 236,
+          "context": "{дка}"
+        },
+        {
+          "paragraph_index": 267,
+          "context": "{дка}"
+        }
+      ]
+    },
+    {
+      "placeholder": "{№ на масив }",
+      "count": 3,
+      "locations": [
+        {
+          "paragraph_index": 17,
+          "context": "{№ на масив }"
+        },
+        {
+          "paragraph_index": 21,
+          "context": "{№ на масив }"
+        },
+        {
+          "paragraph_index": 25,
+          "context": "{№ на масив }"
+        }
+      ]
+    }
+  ]
+}

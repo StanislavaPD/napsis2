@@ -117,89 +117,64 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
         <StatCard label="Неплатени фактури" value={fmtNumber(stats.unpaidCount)} sub={`${num(stats.unpaidValue, 2)} € дължими`} color="amber" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
-        <div className="flex flex-col gap-4">
-          <Card className="p-3 sm:p-4">
-            <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-              <h2 className="text-base font-semibold text-gray-900">Активни договори</h2>
-              <button
-                onClick={() => onNavigate('contracts')}
-                className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100 whitespace-nowrap"
-              >
-                Виж всички
-              </button>
-            </div>
-
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-              <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    {['Договор', 'Контрагент', 'Култура', 'Стойност'].map(h => (
-                      <th key={h} className="text-left px-2 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {latestContracts.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-2 sm:px-4 py-6 sm:py-8 text-center text-sm sm:text-base text-gray-400">Все още няма договори.</td>
-                    </tr>
-                  ) : (
-                    latestContracts.map((item, idx) => {
-                      const contractor = contractors.find(c => c.id === item.contractorId)
-                      const crop = crops.find(c => c.id === item.cropId)
-                      return (
-                        <tr key={item.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-gray-900 text-xs sm:text-sm">{item.number}</td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{contractor?.name ?? '—'}</td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{crop?.name ?? '—'}</td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-teal-700 text-xs sm:text-sm">{fmtNumber(Math.round(item.value))} €</td>
-                        </tr>
-                      )
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          {contractsByHtu.length > 0 && (
-            <Card className="p-3 sm:p-4">
-              <h2 className="text-base font-semibold text-gray-900 mb-3">Договори по ХТУ</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2 sm:gap-3">
-                {contractsByHtu.map(h => (
-                  <div key={h.name} className="rounded-xl bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
-                    <p className="text-xs text-gray-500 truncate">{h.name}</p>
-                    <p className="mt-1 text-lg sm:text-xl font-semibold text-gray-800">{h.count}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-        </div>
-
-        <aside className="rounded-2xl bg-teal-900 p-3 sm:p-4 text-white">
-          <h3 className="text-base sm:text-lg font-semibold">Генератори на документи</h3>
-          <p className="mt-2 text-xs sm:text-sm text-teal-100/80">
-            Изберете контрагент и система. Данните се попълват автоматично от регистрите.
-          </p>
-
-          <div className="mt-4 sm:mt-5 space-y-2 sm:space-y-3">
+      <div className="flex flex-col gap-4">
+        <Card className="p-3 sm:p-4">
+          <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+            <h2 className="text-base font-semibold text-gray-900">Активни договори</h2>
             <button
-              onClick={() => onNavigate('gen-contract')}
-              className="w-full rounded-xl bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-teal-900 transition hover:bg-teal-50"
+              onClick={() => onNavigate('contracts')}
+              className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 transition hover:bg-teal-100 whitespace-nowrap"
             >
-              Генерирай договор
-            </button>
-            <button
-              onClick={() => onNavigate('gen-act')}
-              className="w-full rounded-xl border border-teal-600 bg-teal-800 px-3 py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-teal-700"
-            >
-              Генерирай акт / заявка
+              Виж всички
             </button>
           </div>
 
-        </aside>
+          <div className="overflow-x-auto -mx-3 sm:mx-0">
+            <table className="w-full text-sm whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {['Договор', 'Контрагент', 'Култура', 'Стойност'].map(h => (
+                    <th key={h} className="text-left px-2 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {latestContracts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-2 sm:px-4 py-6 sm:py-8 text-center text-sm sm:text-base text-gray-400">Все още няма договори.</td>
+                  </tr>
+                ) : (
+                  latestContracts.map((item, idx) => {
+                    const contractor = contractors.find(c => c.id === item.contractorId)
+                    const crop = crops.find(c => c.id === item.cropId)
+                    return (
+                      <tr key={item.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium text-gray-900 text-xs sm:text-sm">{item.number}</td>
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{contractor?.name ?? '—'}</td>
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 text-gray-700 text-xs sm:text-sm">{crop?.name ?? '—'}</td>
+                        <td className="px-2 sm:px-4 py-2 sm:py-3 text-right font-semibold text-teal-700 text-xs sm:text-sm">{fmtNumber(Math.round(item.value))} €</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        {contractsByHtu.length > 0 && (
+          <Card className="p-3 sm:p-4">
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Договори по ХТУ</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2 sm:gap-3">
+              {contractsByHtu.map(h => (
+                <div key={h.name} className="rounded-xl bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
+                  <p className="text-xs text-gray-500 truncate">{h.name}</p>
+                  <p className="mt-1 text-lg sm:text-xl font-semibold text-gray-800">{h.count}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   )

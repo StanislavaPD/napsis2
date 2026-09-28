@@ -404,7 +404,11 @@ export function Combobox({
               type="button"
               onMouseDown={e => e.preventDefault()}
               onClick={() => select(o)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-teal-50 ${o.id === value ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700'}`}
+              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                o.id === value
+                  ? 'bg-gradient-to-r from-teal-50 to-blue-50 text-teal-700 font-medium border-l-2 border-teal-500'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
             >
               {o.label}
             </button>
@@ -417,9 +421,9 @@ export function Combobox({
               type="button"
               onMouseDown={e => e.preventDefault()}
               onClick={commit}
-              className="w-full text-left px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 border-t border-gray-100"
+              className="w-full text-left px-3 py-2 text-sm text-teal-600 font-medium hover:bg-teal-50 border-t border-gray-200 transition-colors"
             >
-              + Добави "{query.trim()}" като нов
+              ✨ Добави "{query.trim()}" като нов
             </button>
           )}
         </div>

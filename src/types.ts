@@ -110,6 +110,17 @@ export interface UdvnRepair {
   status: 'planned' | 'completed'
 }
 
+export interface SeasonArchive {
+  id: string
+  seasonYear: number
+  archivedDate: string
+  contracts: Contract[]
+  acts: Act[]
+  requests: IrrigRequest[]
+  payments: Payment[]
+  notes: string
+}
+
 export type Module =
   | 'dashboard'
   | 'contractors'

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import PizZip from 'pizzip'
 import { useStore } from '../store'
 import type { Contract, Act, IrrigRequest, Contractor } from '../types'
@@ -1480,7 +1480,6 @@ function ActGenerator() {
     area: 0, cubicPerDka: 0, waterCubic: 0, unitPrice: 0.0128, value: 0, month: '',
   })
   const [saved, setSaved] = useState(false)
-  const [templateFile, setTemplateFile] = useState<File | null>(null)
   const [filling, setFilling] = useState(false)
   const [fillError, setFillError] = useState('')
 
@@ -1518,10 +1517,15 @@ function ActGenerator() {
   }
 
   async function handleFillTemplate() {
-    if (!templateFile) return
     setFilling(true)
     setFillError('')
     try {
+      const templatePath = 'templates/Напояване шаблони/акт.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Не може да се зареди шаблонът')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'акт.docx')
+
       const blob = await fillDocxTemplate(templateFile, buildTagData())
       downloadBlob(blob, `${form.docType || 'Акт'}_${form.number || 'проект'}.docx`)
     } catch (err) {
@@ -1564,16 +1568,6 @@ function ActGenerator() {
             <p className="text-xs text-gray-400">Стойността се изчислява автоматично</p>
           </div>
         </div>
-
-        <TemplateUpload
-          accent={{ border: 'hover:border-blue-300', text: 'text-blue-700' }}
-          templateFile={templateFile}
-          onFileChange={f => { setTemplateFile(f); setFillError('') }}
-          onFill={handleFillTemplate}
-          filling={filling}
-          fillError={fillError}
-          tags={ACT_TAGS}
-        />
 
         <div className="grid grid-cols-2 gap-3">
           <FormRow label="Вид документ">
@@ -1644,67 +1638,181 @@ function ActGenerator() {
         <Btn onClick={saveToRegistry} disabled={!form.number || !form.contractorId} variant={saved ? 'success' : 'primary'} className="w-full">
           {saved ? '✓ Запазен в регистъра' : '💾 Запази в Регистър Актове'}
         </Btn>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleFillTemplate}
+          disabled={filling || !form.number || !form.contractorId}
+          variant="primary"
+          className="w-full"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
       </div>
 
       {/* Preview */}
       <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto">
-        <div className="bg-white m-4 rounded-lg shadow-sm border border-gray-100 p-6 font-serif">
-          <div className="text-center mb-5">
-            <p className="text-xs text-gray-400 mb-1">{(form.docType ?? 'АКТ').toUpperCase()} ЗА НАПОЯВАНЕ</p>
-            <h2 className="text-lg font-bold text-gray-900">№ {form.number || '___________'}</h2>
-            <p className="text-xs text-gray-500 mt-1">Дата: {form.date || '___'} | Месец: {form.month || '—'}</p>
-          </div>
-
-          <div className="text-sm text-gray-700 space-y-3">
-            <div className="bg-gray-50 rounded-lg p-4 space-y-1.5 text-xs">
-              <div className="grid grid-cols-2 gap-x-4">
-                <p><span className="text-gray-500">Контрагент:</span> <strong>{cont?.name || '—'}</strong></p>
-                <p><span className="text-gray-500">БУЛСТАТ:</span> <strong>{cont?.bulstat || '—'}</strong></p>
-                <p><span className="text-gray-500">ХТУ:</span> <strong>{htu?.htuName || '—'}</strong></p>
-                <p><span className="text-gray-500">Съоражение:</span> <strong>{htu?.equipment || '—'}</strong></p>
-                <p><span className="text-gray-500">Землище:</span> <strong>{form.village || '—'}</strong></p>
-                <p><span className="text-gray-500">Начин:</span> <strong>{method?.name || '—'}</strong></p>
-                <p><span className="text-gray-500">Култура:</span> <strong>{crop?.name || '—'}</strong></p>
-                <p><span className="text-gray-500">№ поливка:</span> <strong>{form.irrigationNumber || '—'}</strong></p>
-              </div>
-            </div>
-
-            <table className="w-full text-xs border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-200 px-2 py-1 text-left">Площ (дка)</th>
-                  <th className="border border-gray-200 px-2 py-1 text-right">куб.м./дка</th>
-                  <th className="border border-gray-200 px-2 py-1 text-right">Вода куб.м.</th>
-                  <th className="border border-gray-200 px-2 py-1 text-right">Ед. цена</th>
-                  <th className="border border-gray-200 px-2 py-1 text-right font-bold">Стойност</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border border-gray-200 px-2 py-2">{num(form.area ?? 0, 2)}</td>
-                  <td className="border border-gray-200 px-2 py-2 text-right">{num(form.cubicPerDka ?? 0, 0)}</td>
-                  <td className="border border-gray-200 px-2 py-2 text-right">{num(form.waterCubic ?? 0, 0)}</td>
-                  <td className="border border-gray-200 px-2 py-2 text-right">{num(form.unitPrice ?? 0, 4)}</td>
-                  <td className="border border-gray-200 px-2 py-2 text-right font-bold text-teal-700">{num(form.value ?? 0, 2)} лв.</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div className="grid grid-cols-2 gap-8 mt-6 pt-4 border-t border-gray-200">
-              <div className="text-center text-xs text-gray-500">
-                <p className="mb-5">Изготвил:</p>
-                <p className="border-t border-gray-400 pt-1">_________________</p>
-              </div>
-              <div className="text-center text-xs text-gray-500">
-                <p className="mb-5">Контрагент:</p>
-                <p className="border-t border-gray-400 pt-1">{cont?.name || '___________'}</p>
-              </div>
+        <div className="bg-white m-4 rounded-lg shadow-sm border border-gray-100 p-6 font-serif text-[10px] leading-relaxed">
+          {/* Header */}
+          <div className="grid grid-cols-2 gap-8 mb-2">
+            <div>
+              <p className="font-bold">ДОСТАВЧИК:ВОДОПОЛЗВАТЕЛ:</p>
+              <p>"НА ПОИТЕ ЛНИ СИСТЕМИ"&nbsp;&nbsp;&nbsp;ФИРМА:{cont?.name || '___________'}</p>
+              <p>ЕАД КЛОН СРЕДНА ТУНДЖА{cont?.bulstat || '___________'}</p>
             </div>
           </div>
+
+          {/* Act Title */}
+          <p className="text-center mb-2">
+            <strong>AКТ   №   {form.number || '___'}   по Договор  № ___/{form.date ? form.date.slice(0,4) : '____'}  год.</strong>
+          </p>
+          <div className="border-b border-gray-300 mb-2"></div>
+
+          {/* Body paragraphs */}
+          <p className="mb-1">
+            Зa вoдни маси за напояване на селскостопански култури и дpyги нужди с държавни водиФизическо лице:___________
+          </p>
+          <p className="mb-1">
+            Днес, {form.date ? formatShortDate(form.date) : '___'} {form.date ? form.date.slice(0,4) : '____'} г., ce състави настояшият акт в уверение на това че Доставчикът е подал
+          </p>
+          <p className="mb-1">
+            на Водоползвателя и последният  приел през времето от ___ до ___ куб. м. вода за напояване,
+          </p>
+          <p className="mb-1">
+            от която гравитачно ___,куб. м., помпено ___куб. м.; за други нужди  ___ куб. м., от която&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Л.К № .......................................................................... издадена от
+          </p>
+          <p className="mb-1">
+            гравитачно ___ куб. и., помпено ___ куб. м............................................ЕИК/ЕГН {cont?.bulstat || '___'}
+          </p>
+          <p className="mb-1">
+            Доставената вода е подадена на Водоползвателя я, както следва ___ живущ в гр./с./ {cont?.address || '___'}.
+          </p>
+          <p className="mb-1">
+            ………………………………………………….….…/канал, ПC, водопровод и др./……………………………………………………
+          </p>
+          <p className="mb-2">
+            …………………………………………………………………………………………………и са поляти следните култури
+          </p>
+
+          {/* Complex Table - 13 columns */}
+          <table className="w-full border-collapse border border-gray-400 text-[8px] mb-2">
+            <thead>
+              {/* Header Row 1 - Top groups */}
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 p-0.5" rowSpan={4}></th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={6}>
+                  ПОЛИВКА  № {form.irrigationNumber || '___'}
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={3}>
+                  ПОЛИВОДЕКАРИ
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={3} rowSpan={2}>
+                  ВСИЧКО ВОДНИ МАСИ
+                </th>
+              </tr>
+              {/* Header Row 2 - Second level */}
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  ПОЛЯТИ<br/>дка<br/>ОБЩО(дка)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={2}>в това число</th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={3}>Актувана вода</th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  ПОЛЯТИ<br/>дка<br/>ОБЩО (дка)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center" colSpan={2}>в това число</th>
+              </tr>
+              {/* Header Row 3 - Third level */}
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  гравитачно<br/>(м3)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  помпено<br/>(дка)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  ОБЩО<br/>(куб. м.)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" colSpan={2}>
+                  в т.ч.
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  гравитачно<br/>(м3)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  помпено<br/>(дка)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" colSpan={2}>
+                  в т.ч.
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]" rowSpan={2}>
+                  ОБЩО<br/>(куб. м.)
+                </th>
+              </tr>
+              {/* Header Row 4 - Final columns */}
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]">
+                  гравитачно<br/>(куб. м.)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]">
+                  помпено<br/>(куб. м.)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]">
+                  гравитачно<br/>(куб. м.)
+                </th>
+                <th className="border border-gray-400 p-0.5 text-center text-[7px]">
+                  помпено<br/>(куб. м.)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Data row */}
+              <tr>
+                <td className="border border-gray-400 p-0.5">{crop?.name || '______'}</td>
+                <td className="border border-gray-400 p-0.5 text-right">{num(form.area ?? 0, 2)}</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">{num(form.waterCubic ?? 0, 0)}</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">{num(form.waterCubic ?? 0, 0)}</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+                <td className="border border-gray-400 p-0.5 text-right">___</td>
+              </tr>
+              {/* Empty rows for additional cultures */}
+              {[...Array(14)].map((_, i) => (
+                <tr key={i}>
+                  {[...Array(13)].map((_, j) => (
+                    <td key={j} className="border border-gray-400 p-0.5 h-4"></td>
+                  ))}
+                </tr>
+              ))}
+              {/* Total row */}
+              <tr className="bg-gray-50 font-bold">
+                <td className="border border-gray-400 p-0.5">ВСИЧКО:</td>
+                {[...Array(12)].map((_, i) => (
+                  <td key={i} className="border border-gray-400 p-0.5 text-right">___</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Footer signatures */}
+          <p className="text-[9px] mb-1">
+            ДОСТАВЧИК : Техн. Напояване ХТР ……………………………………………..ВОДОПОЛЗВА ТЕЛ: ……………………………………………………………
+          </p>
+          <p className="text-[9px] text-center">
+            /&nbsp;&nbsp;&nbsp;&nbsp;инж. Н. Касидов&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{cont?.name || '___________'}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/
+          </p>
         </div>
-        {templateFile && (
-          <p className="text-xs text-center text-blue-600 pb-3">📎 Бланка прикачена — използвайте бутона вляво за попълване и изтегляне</p>
-        )}
       </div>
     </div>
   )
@@ -1880,11 +1988,1446 @@ function RequestGenerator() {
   )
 }
 
+// ─── NAPOYAVANE APPENDICES SECTION ────────────────────────────────────────────
+
+function Appendix6Generator() {
+  const [form, setForm] = useState({
+    MOL: '',
+    EGN: '',
+    nomerlichnakarta: '',
+    izdadenaна: '',
+    ot: '',
+    data: new Date().toISOString().slice(0, 10),
+  })
+  const [filling, setFilling] = useState(false)
+  const [fillError, setFillError] = useState('')
+
+  function setF(patch: Partial<typeof form>) {
+    setForm(prev => ({ ...prev, ...patch }))
+  }
+
+  async function handleGenerate() {
+    setFilling(true)
+    setFillError('')
+    try {
+      const templatePath = 'templates/Напояване шаблони/Декларация за съгласие Приложение 6.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Шаблонът не може да бъде зареден')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'Приложение 6.docx')
+
+      const tagData = {
+        MOL: form.MOL,
+        EGN: form.EGN,
+        nomerlichnakarta: form.nomerlichnakarta,
+        'izdadena na': form.izdadenaна,
+        ot: form.ot,
+        data: formatShortDate(form.data),
+      }
+
+      const blob = await fillDocxTemplate(templateFile, tagData)
+      await downloadBlob(blob, `Приложение_6_Декларация_${form.MOL || 'проект'}.docx`)
+    } catch (err) {
+      setFillError(docxFillErrorMessage(err))
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">📄</div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Приложение 6</p>
+            <p className="text-xs text-gray-400">Декларация за съгласие за обработване на лични данни</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <FormRow label="МОЛ (Име, презиме, фамилия)" required>
+            <Input value={form.MOL} onChange={e => setF({ MOL: e.target.value })} placeholder="Иван Петров Иванов" />
+          </FormRow>
+          <FormRow label="ЕГН" required>
+            <Input value={form.EGN} onChange={e => setF({ EGN: e.target.value })} placeholder="1234567890" />
+          </FormRow>
+          <FormRow label="Номер на лична карта" required>
+            <Input value={form.nomerlichnakarta} onChange={e => setF({ nomerlichnakarta: e.target.value })} placeholder="123456789" />
+          </FormRow>
+          <FormRow label="Издадена на (дата)" required>
+            <Input value={form.izdadenaна} onChange={e => setF({ izdadenaна: e.target.value })} placeholder="15.03.2020" />
+          </FormRow>
+          <FormRow label="Издадена от" required>
+            <Input value={form.ot} onChange={e => setF({ ot: e.target.value })} placeholder="МВР София" />
+          </FormRow>
+          <FormRow label="Дата на декларацията" required>
+            <Input type="date" value={form.data} onChange={e => setF({ data: e.target.value })} />
+          </FormRow>
+        </div>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleGenerate}
+          disabled={filling || !form.MOL || !form.EGN || !form.nomerlichnakarta}
+          variant="primary"
+          className="w-full mt-2"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 font-serif text-sm leading-relaxed">
+          <div className="text-center mb-6">
+            <p className="text-base font-bold">ДЕКЛАРАЦИЯ ЗА СЪГЛАСИЕ</p>
+            <p className="text-xs mt-1">ЗА СЪБИРАНЕ, ИЗПОЛЗВАНЕ И ОБРАБОТВАНЕ НА ЛИЧНИ ДАННИ</p>
+          </div>
+
+          <div className="text-xs space-y-3">
+            <p>
+              Долуподписаният/ата <strong>{form.MOL || '___________'}</strong> ЕГН <strong>{form.EGN || '___________'}</strong> ЛК№<strong>{form.nomerlichnakarta || '___________'}</strong>, издадена на <strong>{form.izdadenaна || '___________'}</strong> - от <strong>{form.ot || '___________'}</strong>, при спазване на разпоредбите и условията на Общия регламент за защита на личните данни и Закона за защита на личните данни (ЗЗЛД),
+            </p>
+
+            <p className="font-semibold mt-4">ДЕКЛАРИРАМ И СЕ СЪГЛАСЯВАМ, че:</p>
+
+            <ol className="space-y-2 ml-4">
+              <li>1. Предоставям пълни и верни данни относно своята самоличност и други пълни и верни данни, позволяващи идентифицирането ми.</li>
+              <li>2. Известно ми е, че тази информация представлява лични данни и тяхната обработка е необходима предпоставка за разглеждане на подадените от мен документи.</li>
+              <li>3. Запознат/а съм с правото да откажа предоставянето на лични данни и да не предоставя това съгласие.</li>
+              <li>4. Известно ми е, че Дружеството е администратор на лични данни.</li>
+              <li>5. Предоставям доброволно личните си данни и давам конкретното си съгласие „Напоителни системи" ЕАД да ги съхранява и обработва.</li>
+              <li>6. Съгласен/а съм личните ми данни да бъдат обработвани от администратора за определени цели.</li>
+              <li>7. Съгласен/а съм личните ми данни да бъдат обработвани и за допълнителни цели.</li>
+              <li>8. Давам съгласие за разкриване на предоставените от мен лични данни пред определени категории получатели.</li>
+              <li>9. Информиран/а съм за правото ми на достъп до отнасящите се за мен лични данни.</li>
+              <li>10. Предоставените от мен данни са пълни и верни.</li>
+              <li>11. Съгласието за обработване на личните ми данни обхваща правото на "Напоителни системи" ЕАД да ги обработва.</li>
+              <li>12. Давам своето изрично съгласие личните ми данни да се съхраняват на електронни носители и на хартия.</li>
+            </ol>
+
+            <p className="mt-4 italic">
+              Настоящата декларация се издава и подписва във връзка със сключване на „Договор за доставка на вода за напояване".
+            </p>
+
+            <div className="flex justify-between mt-8 pt-4">
+              <div>
+                <p>Дата: <strong>{formatShortDate(form.data)}</strong></p>
+              </div>
+              <div className="text-right">
+                <p>Декларатор: ___________________</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Appendix1Generator() {
+  const { contractors } = useStore()
+  const [form, setForm] = useState({
+    vodopolzvatel: contractors[0]?.name ?? '',
+    contractorId: contractors[0]?.id ?? '',
+    applicationNumber: '',
+    year: new Date().getFullYear().toString(),
+    piNumber: '',
+    irrigationSystem: '',
+    equipment: '',
+    zemljishte: '',
+    crop: '',
+    dka: '',
+    napNorma: '',
+    gravitachno: '',
+    pompeno: '',
+    brPolivki: '',
+    obshtoDka: '',
+    obshtoObem: '',
+    kanalps: '',
+  })
+  const [filling, setFilling] = useState(false)
+  const [fillError, setFillError] = useState('')
+
+  const cont = contractors.find(c => c.id === form.contractorId)
+
+  function setF(patch: Partial<typeof form>) {
+    const updated = { ...form, ...patch }
+    if (patch.contractorId) {
+      const contractor = contractors.find(c => c.id === patch.contractorId)
+      updated.vodopolzvatel = contractor?.name ?? ''
+    }
+    setForm(updated)
+  }
+
+  async function handleGenerate() {
+    setFilling(true)
+    setFillError('')
+    try {
+      const templatePath = 'templates/Напояване шаблони/Заявление Приложение 1.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Шаблонът не може да бъде зареден')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'Заявление Приложение 1.docx')
+
+      const tagData = {
+        'ВОДОПОЛЗВАТЕЛ': form.vodopolzvatel,
+        'ЗАЯВЛЕНИЕ НОМЕР': form.applicationNumber,
+        'ГОДИНА': form.year,
+        'ПИ НОМЕР': form.piNumber,
+        'НАПОИТЕЛНА СИСТЕМА': form.irrigationSystem,
+        'СЪОРАЖЕНИЕ': form.equipment,
+        'ЗЕМЛИЩЕ': form.zemljishte,
+        'КУЛТУРА': form.crop,
+        'ДКА': form.dka,
+        'НАП. НОРМА': form.napNorma,
+        'ГРАВИТАЧНО': form.gravitachno,
+        'ПОМПЕНО': form.pompeno,
+        'БР. ПОЛИВКИ': form.brPolivki,
+        'ОБЩО ДКА': form.obshtoDka,
+        'ОБЩО ОБЕМ': form.obshtoObem,
+        'КАНАЛПС': form.kanalps,
+      }
+
+      const blob = await fillDocxTemplate(templateFile, tagData)
+      await downloadBlob(blob, `Приложение_1_Заявление_${form.vodopolzvatel || 'проект'}.docx`)
+    } catch (err) {
+      setFillError(docxFillErrorMessage(err))
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center text-teal-700 text-sm font-bold">📋</div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Приложение 1 - Заявление</p>
+            <p className="text-xs text-gray-400">Заявление за имоти и култури за напояване</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <FormRow label="Водоползвател" required>
+            <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
+              <option value="">— Избери —</option>
+              {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </FormRow>
+          <FormRow label="Заявление номер" required>
+            <Input value={form.applicationNumber} onChange={e => setF({ applicationNumber: e.target.value })} placeholder="123" />
+          </FormRow>
+          <FormRow label="Година" required>
+            <Input value={form.year} onChange={e => setF({ year: e.target.value })} placeholder="2026" />
+          </FormRow>
+          <FormRow label="ПИ Номер">
+            <Input value={form.piNumber} onChange={e => setF({ piNumber: e.target.value })} placeholder="12345.678.90" />
+          </FormRow>
+          <FormRow label="Напоителна система">
+            <Input value={form.irrigationSystem} onChange={e => setF({ irrigationSystem: e.target.value })} placeholder="НС Тунджа" />
+          </FormRow>
+          <FormRow label="Съоръжение">
+            <Input value={form.equipment} onChange={e => setF({ equipment: e.target.value })} placeholder="Канал/ПС" />
+          </FormRow>
+          <FormRow label="Землище">
+            <Input value={form.zemljishte} onChange={e => setF({ zemljishte: e.target.value })} placeholder="с. Асеново" />
+          </FormRow>
+          <FormRow label="Култура">
+            <Input value={form.crop} onChange={e => setF({ crop: e.target.value })} placeholder="Царевица" />
+          </FormRow>
+          <FormRow label="ДКА">
+            <Input value={form.dka} onChange={e => setF({ dka: e.target.value })} placeholder="100" />
+          </FormRow>
+          <FormRow label="Напоителна норма">
+            <Input value={form.napNorma} onChange={e => setF({ napNorma: e.target.value })} placeholder="500" />
+          </FormRow>
+          <FormRow label="Гравитачно">
+            <Input value={form.gravitachno} onChange={e => setF({ gravitachno: e.target.value })} placeholder="0" />
+          </FormRow>
+          <FormRow label="Помпено">
+            <Input value={form.pompeno} onChange={e => setF({ pompeno: e.target.value })} placeholder="50000" />
+          </FormRow>
+          <FormRow label="Брой поливки">
+            <Input value={form.brPolivki} onChange={e => setF({ brPolivki: e.target.value })} placeholder="3" />
+          </FormRow>
+          <FormRow label="Общо ДКА">
+            <Input value={form.obshtoDka} onChange={e => setF({ obshtoDka: e.target.value })} placeholder="100" />
+          </FormRow>
+          <FormRow label="Общо обем">
+            <Input value={form.obshtoObem} onChange={e => setF({ obshtoObem: e.target.value })} placeholder="150000" />
+          </FormRow>
+          <FormRow label="Канал/ПС">
+            <Input value={form.kanalps} onChange={e => setF({ kanalps: e.target.value })} placeholder="Канал 1" />
+          </FormRow>
+        </div>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleGenerate}
+          disabled={filling || !form.vodopolzvatel || !form.applicationNumber}
+          variant="primary"
+          className="w-full mt-2"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 font-serif text-sm leading-relaxed">
+          <div className="text-center mb-6">
+            <p className="font-semibold text-xs">Приложение № 1 по чл.6, ал.1 и ал.2 от Общи условия</p>
+          </div>
+
+          <div className="mb-4 text-center">
+            <p className="font-bold text-base mb-2">З а я в л е н и е  № {form.applicationNumber || '___'}</p>
+            <p className="text-xs">з а  имоти и култури за напояване през поливен сезон {form.year} г.</p>
+          </div>
+
+          <div className="mb-4 text-xs space-y-1">
+            <p>от {form.vodopolzvatel || '___________'} /Водоползвател/</p>
+            <p>ПИ№ {form.piNumber || '___________'}</p>
+            <p>НС {form.irrigationSystem || '___________'}</p>
+            <p>съоръжение/{form.equipment || '___________'}</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-1">№</th>
+                  <th className="border border-gray-300 p-1">напоителен канал, ПС</th>
+                  <th className="border border-gray-300 p-1">землище</th>
+                  <th className="border border-gray-300 p-1">култура</th>
+                  <th className="border border-gray-300 p-1">Засети площи (дка)</th>
+                  <th className="border border-gray-300 p-1">Напоителна норма (м³/дка)</th>
+                  <th className="border border-gray-300 p-1" colSpan={3}>Начин на доставка (водни маси)</th>
+                  <th className="border border-gray-300 p-1">поливки (брой)</th>
+                </tr>
+                <tr className="bg-gray-50 text-[10px]">
+                  <th className="border border-gray-300 p-1" colSpan={6}></th>
+                  <th className="border border-gray-300 p-1">Общо (м³)</th>
+                  <th className="border border-gray-300 p-1">Гравитачно (м³)</th>
+                  <th className="border border-gray-300 p-1">Помпено (м³)</th>
+                  <th className="border border-gray-300 p-1"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-300 p-1 text-center">1</td>
+                  <td className="border border-gray-300 p-1">{form.kanalps || '___'}</td>
+                  <td className="border border-gray-300 p-1">{form.zemljishte || '___'}</td>
+                  <td className="border border-gray-300 p-1">{form.crop || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.dka || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.napNorma || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.obshtoObem || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.gravitachno || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.pompeno || '___'}</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.brPolivki || '___'}</td>
+                </tr>
+                <tr className="font-semibold bg-gray-50">
+                  <td className="border border-gray-300 p-1 text-center" colSpan={4}>ОБЩО</td>
+                  <td className="border border-gray-300 p-1 text-center">{form.obshtoDka || '___'}</td>
+                  <td className="border border-gray-300 p-1"></td>
+                  <td className="border border-gray-300 p-1 text-center">{form.obshtoObem || '___'}</td>
+                  <td className="border border-gray-300 p-1"></td>
+                  <td className="border border-gray-300 p-1"></td>
+                  <td className="border border-gray-300 p-1"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 text-xs text-gray-600 italic">
+            <p>Добавят се толкова редове колкото е нужно...</p>
+          </div>
+
+          <div className="mt-6 text-xs">
+            <p className="mb-2">Подпис на ВОДОПОЛЗВАТЕЛЯ: ___________________</p>
+          </div>
+
+          <div className="mt-6 flex justify-between text-xs">
+            <div>ДОСТАВЧИК: ___________________</div>
+            <div>ВОДОПОЛЗВАТЕЛ: ___________________</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Appendix2Generator() {
+  const { contractors } = useStore()
+  const [form, setForm] = useState({
+    vodopolzvatel: contractors[0]?.name ?? '',
+    contractorId: contractors[0]?.id ?? '',
+    data: new Date().toISOString().slice(0, 10),
+    dogovorNomer: '',
+    zemljishte: '',
+    dka: '',
+    nomerMasiv: '',
+  })
+  const [filling, setFilling] = useState(false)
+  const [fillError, setFillError] = useState('')
+
+  function setF(patch: Partial<typeof form>) {
+    const updated = { ...form, ...patch }
+    if (patch.contractorId) {
+      const contractor = contractors.find(c => c.id === patch.contractorId)
+      updated.vodopolzvatel = contractor?.name ?? ''
+    }
+    setForm(updated)
+  }
+
+  async function handleGenerate() {
+    setFilling(true)
+    setFillError('')
+    try {
+      const templatePath = 'templates/Напояване шаблони/Протокол замерване Приложение 2.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Шаблонът не може да бъде зареден')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'Протокол замерване Приложение 2.docx')
+
+      const tagData = {
+        ' ВОДОПОЛЗВАТЕЛ ': form.vodopolzvatel,
+        'ДАТА': formatShortDate(form.data),
+        'Договор №': form.dogovorNomer,
+        'ЗЕМЛИЩЕ': form.zemljishte,
+        'дка': form.dka,
+        '№ на масив ': form.nomerMasiv,
+      }
+
+      const blob = await fillDocxTemplate(templateFile, tagData)
+      await downloadBlob(blob, `Приложение_2_Протокол_${form.vodopolzvatel || 'проект'}.docx`)
+    } catch (err) {
+      setFillError(docxFillErrorMessage(err))
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold">📋</div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Приложение 2 - Протокол замерване</p>
+            <p className="text-xs text-gray-400">Опис-протокол за контролно замерване на площи</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <FormRow label="Водоползвател" required>
+            <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
+              <option value="">— Избери —</option>
+              {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </FormRow>
+          <FormRow label="Дата" required>
+            <Input type="date" value={form.data} onChange={e => setF({ data: e.target.value })} />
+          </FormRow>
+          <FormRow label="Договор №" required>
+            <Input value={form.dogovorNomer} onChange={e => setF({ dogovorNomer: e.target.value })} placeholder="123/2026" />
+          </FormRow>
+          <FormRow label="Землище">
+            <Input value={form.zemljishte} onChange={e => setF({ zemljishte: e.target.value })} placeholder="с. Асеново" />
+          </FormRow>
+          <FormRow label="№ на масив">
+            <Input value={form.nomerMasiv} onChange={e => setF({ nomerMasiv: e.target.value })} placeholder="1" />
+          </FormRow>
+          <FormRow label="Площ (дка)">
+            <Input value={form.dka} onChange={e => setF({ dka: e.target.value })} placeholder="100.50" />
+          </FormRow>
+        </div>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleGenerate}
+          disabled={filling || !form.vodopolzvatel || !form.dogovorNomer}
+          variant="primary"
+          className="w-full mt-2"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 font-serif text-sm leading-relaxed">
+          <div className="text-center mb-6">
+            <p className="font-semibold text-xs">Приложение 2 по чл.9 ал.1 от Общи Условия</p>
+          </div>
+
+          <div className="text-center mb-6">
+            <p className="font-bold text-base">ОПИС-ПРОТОКОЛ</p>
+            <p className="text-xs mt-1">За</p>
+            <p className="text-xs">Контролно замерване на действително засетите площи през поливен сезон 2026 г.</p>
+          </div>
+
+          <div className="text-xs space-y-3 mb-6">
+            <p>Днес {formatShortDate(form.data)}г. между страните:</p>
+
+            <div className="ml-4 space-y-1">
+              <p>1. ДОСТАВЧИК: „НАПОИТЕЛНИ СИСТЕМИ" ЕАД – КЛОН „Средна Тунджа"</p>
+              <p>2. ВОДОПОЛЗВАТЕЛ: {form.vodopolzvatel || '___________'}</p>
+            </div>
+
+            <p>Представлявани от писмено упълномощени представители:</p>
+            <div className="ml-4 space-y-1">
+              <p>- За Доставчик: инж. Николай Касидов</p>
+              <p>- За Водоползвател {form.vodopolzvatel || '___________'},</p>
+            </div>
+
+            <p>Се състави настоящият протокол за извършено замерване на засетите площи от ВОДОПОЛЗВАТЕЛЯ съгласно Договор № {form.dogovorNomer || '___________'}, при което се установиха следните поливни площи:</p>
+          </div>
+
+          <div className="overflow-x-auto mb-6">
+            <table className="w-full text-xs border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 p-2">№ по ред</th>
+                  <th className="border border-gray-300 p-2">Землище</th>
+                  <th className="border border-gray-300 p-2">№ на масив по карта /КАИС подложка/</th>
+                  <th className="border border-gray-300 p-2">Действително замерени декари</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">1.</td>
+                  <td className="border border-gray-300 p-2">{form.zemljishte || '___'}</td>
+                  <td className="border border-gray-300 p-2 text-center">{form.nomerMasiv || '___'}</td>
+                  <td className="border border-gray-300 p-2 text-center">{form.dka || '___'}</td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">2.</td>
+                  <td className="border border-gray-300 p-2"></td>
+                  <td className="border border-gray-300 p-2"></td>
+                  <td className="border border-gray-300 p-2"></td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-300 p-2 text-center">3.</td>
+                  <td className="border border-gray-300 p-2"></td>
+                  <td className="border border-gray-300 p-2"></td>
+                  <td className="border border-gray-300 p-2"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-xs mb-6">
+            <p className="italic">Приложение: Картов материал/Извадка КАИС/Скица, или съответно</p>
+          </div>
+
+          <div className="flex justify-between text-xs mt-8">
+            <div className="font-semibold">ДОСТАВЧИК: ___________________</div>
+            <div className="font-semibold">ВОДОПОЛЗВАТЕЛ: ___________________</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Appendix3Generator() {
+  const { contractors, acts, crops: allCrops, irrigationMethods } = useStore()
+  const [form, setForm] = useState({
+    vodopolzvatel: contractors[0]?.name ?? '',
+    contractorId: contractors[0]?.id ?? '',
+    contractNumber: '',
+    data: new Date().toISOString().slice(0, 10),
+  })
+  const [filling, setFilling] = useState(false)
+  const [fillError, setFillError] = useState('')
+
+  function setF(patch: Partial<typeof form>) {
+    const updated = { ...form, ...patch }
+    if (patch.contractorId) {
+      const contractor = contractors.find(c => c.id === patch.contractorId)
+      if (contractor) {
+        updated.vodopolzvatel = contractor.name
+      }
+    }
+    setForm(updated)
+  }
+
+  // Филтрираме актовете за избрания контрагент
+  const contractorActs = acts.filter(act => act.contractorId === form.contractorId)
+
+  // Групираме актовете по месеци (8 месеца: Април-Ноември)
+  const actsByMonth = {
+    'Април': contractorActs.filter(a => a.month === 'Април'),
+    'Май': contractorActs.filter(a => a.month === 'Май'),
+    'Юни': contractorActs.filter(a => a.month === 'Юни'),
+    'Юли': contractorActs.filter(a => a.month === 'Юли'),
+    'Август': contractorActs.filter(a => a.month === 'Август'),
+    'Септември': contractorActs.filter(a => a.month === 'Септември'),
+    'Октомври': contractorActs.filter(a => a.month === 'Октомври'),
+    'Ноември': contractorActs.filter(a => a.month === 'Ноември'),
+  }
+
+  // Изчисляване на общи суми
+  const calculateTotals = () => {
+    let totalDeclaredGravity = 0
+    let totalDeclaredPumped = 0
+    let totalActualGravity = 0
+    let totalActualPumped = 0
+    let totalIrrigations = 0
+    let totalPaid = 0
+
+    contractorActs.forEach(act => {
+      const method = irrigationMethods.find(m => m.id === act.irrigationMethodId)
+      if (method?.name === 'Гравитачно') {
+        totalDeclaredGravity += act.waterCubic
+        totalActualGravity += act.waterCubic
+      } else {
+        totalDeclaredPumped += act.waterCubic
+        totalActualPumped += act.waterCubic
+      }
+      totalIrrigations += 1
+      totalPaid += act.value
+    })
+
+    return {
+      totalDeclaredGravity,
+      totalDeclaredPumped,
+      totalActualGravity,
+      totalActualPumped,
+      totalIrrigations,
+      totalPaid,
+      totalDifference: 0, // Заявен = Доставен в този случай
+      priceDifference: 0 // За доплащане/възстановяване
+    }
+  }
+
+  const totals = calculateTotals()
+
+  async function handleGenerate() {
+    setFilling(true)
+    setFillError('')
+    try {
+      const templatePath = 'templates/Напояване шаблони/Рекапитулация Приложение 3.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Не може да се зареди шаблонът')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'Приложение 3.docx')
+
+      // Попълваме плейсхолдърите
+      const tagData: any = {
+        '{ДАТА}': formatShortDate(form.data),
+        '{ ВОДОПОЛЗВАТЕЛ }': form.vodopolzvatel,
+        '{Договор №}': form.contractNumber,
+        // Таблица 1 - Масиви (вземаме уникалните землища от актовете)
+        '{ЗЕМЛИЩЕ}': contractorActs[0]?.village || '',
+        '{№ на масив }': '1',
+        '{дка}': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
+        // Общи суми
+        '{ЗАЯВЕН ОБЕМ ОБЩО ГР.}': num(totals.totalDeclaredGravity, 0),
+        '{ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО}': num(totals.totalDeclaredPumped, 0),
+        '{ Доставен обем вода гравитачно }': num(totals.totalActualGravity, 0),
+        '{ Доставен обем вода помпено }': num(totals.totalActualPumped, 0),
+        '{ Разлика }': num(totals.totalDifference, 0),
+        '{ Цена по Заповед }': form.vodopolzvatel ? '0.0128' : '',
+        '{ Заплатена сума }': num(totals.totalPaid, 2),
+        '{ Разлика за доплащане/за възстановяване }': num(totals.priceDifference, 2),
+        '{БРОЙ ПОЛИВКИОБЩО}': totals.totalIrrigations.toString(),
+      }
+
+      // Добавяме плейсхолдъри за 8-те месечни таблици
+      Object.entries(actsByMonth).forEach(([month, monthActs], index) => {
+        const act = monthActs[0] // Вземаме първия акт за месеца
+        const crop = act ? allCrops.find(c => c.id === act.cropId) : null
+        const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
+
+        tagData[`{ЗЕМЛИЩЕ}`] = act?.village || ''
+        tagData[`{дка}`] = act?.area ? num(act.area, 2) : ''
+        tagData[`{КУЛТУРА}`] = crop?.name || ''
+        tagData[`{ПОЛ НОРМА}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ГР.}`] = method?.name === 'Гравитачно' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО}`] = method?.name === 'Помпено' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{БР. ПОЛИВКИ}`] = monthActs.length.toString()
+        tagData[`{АКТУВАН ОБЕМ ГР.}`] = method?.name === 'Гравитачно' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО}`] = method?.name === 'Помпено' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{РАЗЛИКА}`] = '0'
+      })
+
+      const blob = await fillDocxTemplate(templateFile, tagData)
+      await downloadBlob(blob, `Приложение_3_Рекапитулация_${form.vodopolzvatel || 'проект'}.docx`)
+    } catch (err) {
+      setFillError(docxFillErrorMessage(err))
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold">📊</div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Приложение 3 - Рекапитулация</p>
+            <p className="text-xs text-gray-400">Констативен протокол за водни обеми</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <FormRow label="Водоползвател" required>
+            <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
+              <option value="">— Избери —</option>
+              {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </FormRow>
+          <FormRow label="Договор №" required>
+            <Input value={form.contractNumber} onChange={e => setF({ contractNumber: e.target.value })} placeholder="123/2026" />
+          </FormRow>
+          <FormRow label="Дата">
+            <Input type="date" value={form.data} onChange={e => setF({ data: e.target.value })} />
+          </FormRow>
+        </div>
+
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+          <p className="font-semibold mb-1 text-blue-800">📋 Налични актове: {contractorActs.length}</p>
+          <div className="space-y-1 text-blue-700">
+            {Object.entries(actsByMonth).map(([month, monthActs]) => (
+              <p key={month}>
+                {month}: <strong>{monthActs.length}</strong> акта
+              </p>
+            ))}
+          </div>
+        </div>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleGenerate}
+          disabled={filling || !form.vodopolzvatel || !form.contractNumber}
+          variant="primary"
+          className="w-full mt-2"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 font-serif text-xs leading-relaxed">
+          <div className="text-center mb-4">
+            <p className="font-bold text-[11px]">Приложение 3 по чл.8, ал.6 от Общите условия</p>
+            <p className="font-bold text-sm mt-2">Констативен Протокол</p>
+            <p className="text-[11px]">за действително доставен обем вода през поливен сезон 2026г.</p>
+          </div>
+
+          <div className="space-y-1 mb-4 text-[10px]">
+            <p className="indent-8">Днес {formatShortDate(form.data)} г. между страните:</p>
+            <p>ДОСТАВЧИК: „НАПОИТЕЛНИ СИСТЕМИ" ЕАД – КЛОН „Средна Тунджа"</p>
+            <p>ВОДОПОЛЗВАТЕЛ: {form.vodopolzvatel || '___________'}</p>
+            <p>Представлявани от писмено упълномощени представители:</p>
+            <p>За Доставчик: инж. Николай Касидов</p>
+            <p>За Водоползвател {form.vodopolzvatel || '___________'},</p>
+            <p className="mt-1">
+              се състави настоящият протокол за действително доставен обем вода през поливен сезон 2026г. за напояване на засетите площи от ВОДОПОЛЗВАТЕЛЯ съгласно Договор № {form.contractNumber || '___________'}, при което се установиха следните доставени водни обеми:
+            </p>
+            <p className="mt-1">Замерени площи по Договор № {form.contractNumber || '___________'},</p>
+          </div>
+
+          {/* Таблица 1: Замерени площи */}
+          <table className="w-full border-collapse border border-gray-400 text-[9px] mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-400 p-1 w-12">№ по ред</th>
+                <th className="border border-gray-400 p-1">Землище</th>
+                <th className="border border-gray-400 p-1">№ на масив по карта /КАИС подложка/</th>
+                <th className="border border-gray-400 p-1">Действително замерени декари</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contractorActs.slice(0, 3).map((act, idx) => (
+                <tr key={idx}>
+                  <td className="border border-gray-400 p-1 text-center">{idx + 1}</td>
+                  <td className="border border-gray-400 p-1">{act.village}</td>
+                  <td className="border border-gray-400 p-1 text-center">1</td>
+                  <td className="border border-gray-400 p-1 text-right">{num(act.area, 2)}</td>
+                </tr>
+              ))}
+              {contractorActs.length === 0 && (
+                <tr>
+                  <td className="border border-gray-400 p-1 text-center">1</td>
+                  <td className="border border-gray-400 p-1">___________</td>
+                  <td className="border border-gray-400 p-1 text-center">1</td>
+                  <td className="border border-gray-400 p-1 text-right">___</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          {/* Месечни таблици */}
+          {Object.entries(actsByMonth).map(([month, monthActs], monthIndex) => {
+            if (monthActs.length === 0) return null
+
+            const monthNames: { [key: string]: string } = {
+              'Април': 'IV', 'Май': 'V', 'Юни': 'VI', 'Юли': 'VII',
+              'Август': 'VIII', 'Септември': 'IX', 'Октомври': 'X', 'Ноември': 'XI'
+            }
+
+            return (
+              <div key={month} className="mb-4">
+                <p className="font-bold text-[9px] mb-1">Заявени и доставени водни обеми през месец {monthNames[month]}</p>
+                <table className="w-full border-collapse border border-gray-400 text-[8px]">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-400 p-0.5" rowSpan={2}>Землище</th>
+                      <th className="border border-gray-400 p-0.5">Площи за напояване</th>
+                      <th className="border border-gray-400 p-0.5" rowSpan={2}>култури</th>
+                      <th className="border border-gray-400 p-0.5">Поливна норма</th>
+                      <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>гравитачно</th>
+                      <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>помпено</th>
+                      <th className="border border-gray-400 p-0.5">поливки</th>
+                      <th className="border border-gray-400 p-0.5">Доставен обем вода гравитачно</th>
+                      <th className="border border-gray-400 p-0.5">Доставен обем вода помпено</th>
+                      <th className="border border-gray-400 p-0.5">Разлика</th>
+                    </tr>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-400 p-0.5">/дка/</th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup> / дка</th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                      <th className="border border-gray-400 p-0.5">брой</th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                      <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthActs.map((act, idx) => {
+                      const crop = allCrops.find(c => c.id === act.cropId)
+                      const method = irrigationMethods.find(m => m.id === act.irrigationMethodId)
+
+                      return (
+                        <tr key={idx}>
+                          <td className="border border-gray-400 p-0.5">{act.village}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{num(act.area, 2)}</td>
+                          <td className="border border-gray-400 p-0.5">{crop?.name || ''}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{num(act.cubicPerDka, 0)}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{method?.name === 'Гравитачно' ? num(act.waterCubic, 0) : ''}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{method?.name === 'Помпено' ? num(act.waterCubic, 0) : ''}</td>
+                          <td className="border border-gray-400 p-0.5 text-center">1</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{method?.name === 'Гравитачно' ? num(act.waterCubic, 0) : ''}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">{method?.name === 'Помпено' ? num(act.waterCubic, 0) : ''}</td>
+                          <td className="border border-gray-400 p-0.5 text-right">0</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          })}
+
+          {/* Сумарна таблица за целия поливен сезон */}
+          {contractorActs.length > 0 && (
+            <div className="mb-4">
+              <p className="font-bold text-[9px] mb-1">Заявени и доставени водни обеми общо за поливен сезон</p>
+              <table className="w-full border-collapse border border-gray-400 text-[8px]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 p-0.5" rowSpan={2}>Землище</th>
+                    <th className="border border-gray-400 p-0.5">Площи за напояване</th>
+                    <th className="border border-gray-400 p-0.5" rowSpan={2}>култури</th>
+                    <th className="border border-gray-400 p-0.5">Поливна норма</th>
+                    <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>гравитачно</th>
+                    <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>помпено</th>
+                    <th className="border border-gray-400 p-0.5">поливки</th>
+                    <th className="border border-gray-400 p-0.5">Доставен обем вода гравитачно</th>
+                    <th className="border border-gray-400 p-0.5">Доставен обем вода помпено</th>
+                    <th className="border border-gray-400 p-0.5">Разлика</th>
+                  </tr>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 p-0.5">/дка/</th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup> / дка</th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">брой</th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="font-bold">
+                    <td className="border border-gray-400 p-0.5">{contractorActs[0]?.village || ''}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{contractorActs[0]?.area ? num(contractorActs[0].area, 2) : ''}</td>
+                    <td className="border border-gray-400 p-0.5">Всички</td>
+                    <td className="border border-gray-400 p-0.5 text-right">-</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{num(totals.totalDeclaredGravity, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{num(totals.totalDeclaredPumped, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-center">{totals.totalIrrigations}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{num(totals.totalActualGravity, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{num(totals.totalActualPumped, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">{num(totals.totalDifference, 0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Обобщена финансова таблица */}
+          {contractorActs.length > 0 && (
+            <div className="mt-6">
+              <p className="font-bold text-[9px] mb-1">ОБЩО ПО ДОГОВОР</p>
+              <table className="w-full border-collapse border border-gray-400 text-[8px]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>гравитачно</th>
+                    <th className="border border-gray-400 p-0.5">Заявен обем вода<br/>помпено</th>
+                    <th className="border border-gray-400 p-0.5">Извършени<br/>поливки</th>
+                    <th className="border border-gray-400 p-0.5">Доставен обем вода гравитачно</th>
+                    <th className="border border-gray-400 p-0.5">Доставен обем вода помпено</th>
+                    <th className="border border-gray-400 p-0.5">Разлика</th>
+                    <th className="border border-gray-400 p-0.5">Цена по Заповед</th>
+                    <th className="border border-gray-400 p-0.5">Заплатена сума</th>
+                    <th className="border border-gray-400 p-0.5">Разлика за доплащане/за възстановяване</th>
+                  </tr>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">брой</th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">м<sup>3</sup></th>
+                    <th className="border border-gray-400 p-0.5">€</th>
+                    <th className="border border-gray-400 p-0.5">€</th>
+                    <th className="border border-gray-400 p-0.5">€</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.totalDeclaredGravity, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.totalDeclaredPumped, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-center font-bold">{totals.totalIrrigations}</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.totalActualGravity, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.totalActualPumped, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.totalDifference, 0)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right">0.0128</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold text-green-700">{num(totals.totalPaid, 2)}</td>
+                    <td className="border border-gray-400 p-0.5 text-right font-bold">{num(totals.priceDifference, 2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p className="text-[10px] mt-6 font-bold">ДОСТАВЧИК……………………</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Appendix4Generator() {
+  const { contractors } = useStore()
+  const [form, setForm] = useState({
+    vodopolzvatel: contractors[0]?.name ?? '',
+    contractorId: contractors[0]?.id ?? '',
+    bulstat: contractors[0]?.bulstat ?? '',
+    address: contractors[0]?.address ?? '',
+    phone: contractors[0]?.phone ?? '',
+    representative: contractors[0]?.contact ?? '',
+    contractNumber: '',
+    piNumber: '',
+    htu: '',
+    irrigationSystem: '',
+    equipment: '',
+    irrigationNumber: '',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: '',
+    waterMeasurementMethod: '',
+    price: '0.0128', // Цена по подразбиране
+    crops: [{
+      crop: '',
+      area: '',
+      irrigationNorm: '',
+      gravitational: '',
+      pumped: '',
+      calculatedAmount: 0
+    }] as Array<{
+      crop: string;
+      area: string;
+      irrigationNorm: string;
+      gravitational: string;
+      pumped: string;
+      calculatedAmount: number;
+    }>,
+  })
+  const [filling, setFilling] = useState(false)
+  const [fillError, setFillError] = useState('')
+
+  function setF(patch: Partial<typeof form>) {
+    const updated = { ...form, ...patch }
+    if (patch.contractorId) {
+      const contractor = contractors.find(c => c.id === patch.contractorId)
+      if (contractor) {
+        updated.vodopolzvatel = contractor.name
+        updated.bulstat = contractor.bulstat
+        updated.address = contractor.address
+        updated.phone = contractor.phone ?? ''
+        updated.representative = contractor.contact ?? ''
+      }
+    }
+    setForm(updated)
+  }
+
+  function addCrop() {
+    setForm({
+      ...form,
+      crops: [...form.crops, {
+        crop: '',
+        area: '',
+        irrigationNorm: '',
+        gravitational: '',
+        pumped: '',
+        calculatedAmount: 0
+      }]
+    })
+  }
+
+  function removeCrop(index: number) {
+    const newCrops = form.crops.filter((_, i) => i !== index)
+    setForm({ ...form, crops: newCrops })
+  }
+
+  function updateCrop(index: number, field: 'crop' | 'area' | 'irrigationNorm' | 'gravitational' | 'pumped', value: string) {
+    const newCrops = [...form.crops]
+    newCrops[index] = { ...newCrops[index], [field]: value }
+
+    // Автоматично изчисление: дка * поливна норма * цена * 1.20 (20% ДДС)
+    if (field === 'area' || field === 'irrigationNorm') {
+      const area = parseFloat(field === 'area' ? value : newCrops[index].area) || 0
+      const norm = parseFloat(field === 'irrigationNorm' ? value : newCrops[index].irrigationNorm) || 0
+      const price = parseFloat(form.price) || 0
+      newCrops[index].calculatedAmount = area * norm * price * 1.20 // +20% ДДС
+    }
+
+    setForm({ ...form, crops: newCrops })
+  }
+
+  // Функция за обновяване на цената
+  function updatePrice(newPrice: string) {
+    const price = parseFloat(newPrice) || 0
+    const updatedCrops = form.crops.map(crop => ({
+      ...crop,
+      calculatedAmount: (parseFloat(crop.area) || 0) * (parseFloat(crop.irrigationNorm) || 0) * price * 1.20
+    }))
+    setForm({ ...form, price: newPrice, crops: updatedCrops })
+  }
+
+  async function handleGenerate() {
+    setFilling(true)
+    setFillError('')
+    try {
+      const templatePath = 'templates/Напояване шаблони/Заявка Приложение 4.docx'
+      const response = await fetch(templatePath)
+      if (!response.ok) throw new Error('Не може да се зареди шаблонът')
+      const arrayBuffer = await response.arrayBuffer()
+      const templateFile = new File([arrayBuffer], 'Приложение 4.docx')
+
+      const tagData = {
+        '{ ВОДОПОЛЗВАТЕЛ }': form.vodopolzvatel,
+        '{ПОЛИВКА НОМЕР}': form.irrigationNumber,
+        '{Договор №}': form.contractNumber || '________',
+        '{ХТУ}': form.htu || '________',
+        '{ПИ}': form.piNumber || '________',
+        '{НАП. СИСТЕМА}': form.irrigationSystem || '________',
+        '{СЪОРАЖЕНИЕ}': form.equipment || '________',
+        '{ПОЛИВКА НОМ}': form.irrigationNumber,
+        '{OT}': formatShortDate(form.startDate), // Paragraph - Latin O
+        '{ДО}': form.endDate ? formatShortDate(form.endDate) : '________',
+        '{ОТ}': formatShortDate(form.startDate), // Table - Cyrillic О
+        '{ Начин на отчитане на в. маси }': form.waterMeasurementMethod || '________',
+        '{ЦЕНА}': form.price || '0.0128',
+        // Култура 1
+        '{КУЛТУРА}': form.crops[0]?.crop || '______',
+        '{ДКА}': form.crops[0]?.area || '___',
+        '{ПОЛ НОРМА}': form.crops[0]?.irrigationNorm || '___',
+        '{ГРАВИТАЧНО}': form.crops[0]?.gravitational || '',
+        '{ПОМПЕНО}': form.crops[0]?.pumped || '',
+        '{АВТОМАТИЧНО ИЗЧИСЛЕНИЕ}': num(form.crops[0]?.calculatedAmount || 0, 2),
+        // Култура 2
+        '{КУЛТУРА2}': form.crops[1]?.crop || '______',
+        // Култура 3
+        '{КУЛТУРА 3}': form.crops[2]?.crop || '______',
+      }
+
+      const blob = await fillDocxTemplate(templateFile, tagData)
+      await downloadBlob(blob, `Приложение_4_Заявка_${form.irrigationNumber || 'проект'}.docx`)
+    } catch (err) {
+      setFillError(docxFillErrorMessage(err))
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-6 h-full">
+      <div className="flex flex-col gap-4 overflow-y-auto pr-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 text-sm font-bold">📝</div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Приложение 4 - Заявка</p>
+            <p className="text-xs text-gray-400">Заявка за напояване</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <FormRow label="Водоползвател" required>
+            <Select value={form.contractorId} onChange={e => setF({ contractorId: e.target.value })}>
+              <option value="">— Избери —</option>
+              {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </FormRow>
+          <FormRow label="Договор №" required>
+            <Input value={form.contractNumber} onChange={e => setF({ contractNumber: e.target.value })} placeholder="123/2026" />
+          </FormRow>
+          <FormRow label="ПИ №" required>
+            <Input value={form.piNumber} onChange={e => setF({ piNumber: e.target.value })} placeholder="12345.678.90" />
+          </FormRow>
+          <FormRow label="ХТУ" required>
+            <Input value={form.htu} onChange={e => setF({ htu: e.target.value })} placeholder="ХТУ Ямбол" />
+          </FormRow>
+          <FormRow label="НС (Напоителна система)" required>
+            <Input value={form.irrigationSystem} onChange={e => setF({ irrigationSystem: e.target.value })} placeholder="Тунджа" />
+          </FormRow>
+          <FormRow label="Съоръжение" required>
+            <Input value={form.equipment} onChange={e => setF({ equipment: e.target.value })} placeholder="Канал К-1" />
+          </FormRow>
+          <FormRow label="Номер на поливка" required>
+            <Input value={form.irrigationNumber} onChange={e => setF({ irrigationNumber: e.target.value })} placeholder="1" />
+          </FormRow>
+          <FormRow label="Начална дата" required>
+            <Input type="date" value={form.startDate} onChange={e => setF({ startDate: e.target.value })} />
+          </FormRow>
+          <FormRow label="Крайна дата">
+            <Input type="date" value={form.endDate} onChange={e => setF({ endDate: e.target.value })} />
+          </FormRow>
+          <FormRow label="Начин на отчитане на в. маси" required>
+            <Input value={form.waterMeasurementMethod} onChange={e => setF({ waterMeasurementMethod: e.target.value })} placeholder="Водомер" />
+          </FormRow>
+          <FormRow label="Цена (€)" required>
+            <Input value={form.price} onChange={e => updatePrice(e.target.value)} placeholder="0.0128" />
+          </FormRow>
+        </div>
+
+        {/* Култури секция */}
+        <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/30">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-gray-700">Култури</p>
+            <button
+              type="button"
+              onClick={addCrop}
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg transition-colors"
+            >
+              + Добави култура
+            </button>
+          </div>
+
+          {form.crops.map((cropItem, index) => (
+            <div key={index} className="bg-white rounded-lg p-3 mb-2 border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-gray-600">Култура {index + 1}</p>
+                {form.crops.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeCrop(index)}
+                    className="text-red-500 hover:text-red-700 text-xs"
+                  >
+                    ✕ Премахни
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <FormRow label="Култура">
+                    <Input
+                      value={cropItem.crop}
+                      onChange={e => updateCrop(index, 'crop', e.target.value)}
+                      placeholder="Царевица"
+                    />
+                  </FormRow>
+                  <FormRow label="Площ (дка)">
+                    <Input
+                      value={cropItem.area}
+                      onChange={e => updateCrop(index, 'area', e.target.value)}
+                      placeholder="100"
+                    />
+                  </FormRow>
+                  <FormRow label="Норма (м³)">
+                    <Input
+                      value={cropItem.irrigationNorm}
+                      onChange={e => updateCrop(index, 'irrigationNorm', e.target.value)}
+                      placeholder="300"
+                    />
+                  </FormRow>
+                </div>
+
+                {/* Начин на водоподаване */}
+                <div className="grid grid-cols-2 gap-2">
+                  <FormRow label="Гравитачно">
+                    <Input
+                      value={cropItem.gravitational as string}
+                      onChange={e => updateCrop(index, 'gravitational', e.target.value)}
+                      placeholder="Капково"
+                    />
+                  </FormRow>
+                  <FormRow label="Помпено">
+                    <Input
+                      value={cropItem.pumped as string}
+                      onChange={e => updateCrop(index, 'pumped', e.target.value)}
+                      placeholder="Помпа"
+                    />
+                  </FormRow>
+                </div>
+
+                {/* Автоматично изчисление */}
+                <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-green-700 font-medium">Дължима сума с ДДС:</span>
+                    <span className="text-sm font-bold text-green-800">{num(cropItem.calculatedAmount, 2)} €</span>
+                  </div>
+                  <p className="text-[10px] text-green-600 mt-0.5">
+                    {cropItem.area} дка × {cropItem.irrigationNorm} м³ × {form.price} € × 1.20
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {fillError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {fillError}
+          </div>
+        )}
+
+        <Btn
+          onClick={handleGenerate}
+          disabled={filling || !form.vodopolzvatel || !form.contractNumber || !form.piNumber || !form.htu || !form.irrigationSystem || !form.equipment || !form.irrigationNumber}
+          variant="primary"
+          className="w-full mt-2"
+        >
+          {filling ? 'Генериране...' : '📥 Генерирай и изтегли'}
+        </Btn>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-y-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 font-serif text-xs leading-relaxed">
+          {/* Header - Right aligned */}
+          <p className="text-right font-bold mb-4">Приложение № 4 по чл.12 от Общите условия</p>
+
+          {/* Title - Center aligned */}
+          <p className="text-center font-bold text-sm mb-1">ЗАЯВКА   ЗА ПОЛИВКА №  {form.irrigationNumber || '___'}</p>
+          <p className="mb-3"></p>
+
+          {/* Subtitle - Justified, Bold */}
+          <p className="font-bold mb-3">Към Договор за доставка на вода за напояване №  {form.contractNumber || '________'}</p>
+          <p className="mb-3"></p>
+
+          {/* Supplier & Client Info */}
+          <p className="mb-1">ДОСТАВЧИК: клон " Средна Тунджа", ХТР/ХТУ: ЯМБОЛ/{form.htu || '________'}</p>
+          <p className="mb-3">ВОДОПОЛЗВАТЕЛ: {form.vodopolzvatel || '___________'}</p>
+          <p className="mb-3"></p>
+
+          {/* Introduction */}
+          <p className="text-justify mb-3">
+            Доставчикът се задължава да достави вода за напояване за имоти и по култури,
+            заявени от Водоползвателя, както следва:
+          </p>
+          <p className="mb-3"></p>
+
+          {/* Property & System Info */}
+          <p className="font-bold mb-1">
+            ПИ№ {form.piNumber || '________'} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; НС  {form.irrigationSystem || '________'}
+          </p>
+          <p className="font-bold text-justify mb-1">съоръжение/{form.equipment || '________'}, поливка № {form.irrigationNumber || '___'}</p>
+          <p className="font-bold text-justify mb-3">
+            за времето от {formatShortDate(form.startDate)} до {form.endDate ? formatShortDate(form.endDate) : '________'} 2026 г. желая да ми бъде доставена вода, както следва:
+          </p>
+          <p className="mb-2"></p>
+
+          {/* Table */}
+          <table className="w-full border-collapse border border-gray-400 text-[10px] mb-3">
+            {/* Header Row 0 */}
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>КУЛТУРИ</th>
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>Площ</th>
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>Поливна норма</th>
+                <th className="border border-gray-400 p-1 text-center" rowSpan={4}>поливка</th>
+                <th className="border border-gray-400 p-1 text-center" colSpan={4}>времетраене  на  поливането</th>
+                <th className="border border-gray-400 p-1 text-center" colSpan={2} rowSpan={3}>Начин на водопод.</th>
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>Начин на отчитане на в. маси</th>
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>Цена по Заповед</th>
+                <th className="border border-gray-400 p-1 text-left" rowSpan={4}>Дължима сума, с ДДС</th>
+              </tr>
+              {/* Header Row 1 */}
+              <tr className="bg-gray-50">
+                <th className="border border-gray-400 p-1 text-left" colSpan={2}>Начало</th>
+                <th className="border border-gray-400 p-1 text-left" colSpan={2}>Край</th>
+              </tr>
+              {/* Header Row 2 */}
+              <tr className="bg-gray-50">
+                <th className="border border-gray-400 p-1 text-left">дата</th>
+                <th className="border border-gray-400 p-1 text-left">час</th>
+                <th className="border border-gray-400 p-1 text-left">дата</th>
+                <th className="border border-gray-400 p-1 text-left">час</th>
+              </tr>
+              {/* Header Row 3 - Column Numbers */}
+              <tr className="bg-gray-50">
+                <th className="border border-gray-400 p-1 text-center">Гравитачно</th>
+                <th className="border border-gray-400 p-1 text-center">Помпено</th>
+              </tr>
+              {/* Header Row 4 - Units */}
+              <tr className="bg-gray-100 font-normal">
+                <td className="border border-gray-400 p-1 text-center">1</td>
+                <td className="border border-gray-400 p-1 text-center">2</td>
+                <td className="border border-gray-400 p-1 text-center">3</td>
+                <td className="border border-gray-400 p-1 text-center">4</td>
+                <td className="border border-gray-400 p-1 text-center">5</td>
+                <td className="border border-gray-400 p-1 text-center">6</td>
+                <td className="border border-gray-400 p-1 text-center">7</td>
+                <td className="border border-gray-400 p-1 text-center">8</td>
+                <td className="border border-gray-400 p-1 text-center">9</td>
+                <td className="border border-gray-400 p-1 text-center">10</td>
+                <td className="border border-gray-400 p-1 text-center">11</td>
+                <td className="border border-gray-400 p-1 text-center">12</td>
+                <td className="border border-gray-400 p-1 text-center">13</td>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Data Rows - динамични култури */}
+              {form.crops.map((cropItem, index) => (
+                <tr key={index}>
+                  <td className="border border-gray-400 p-1">{cropItem.crop || '______'}</td>
+                  <td className="border border-gray-400 p-1">{cropItem.area || '___'}</td>
+                  <td className="border border-gray-400 p-1">{cropItem.irrigationNorm || '___'}</td>
+                  <td className="border border-gray-400 p-1">{form.irrigationNumber || ''}</td>
+                  <td className="border border-gray-400 p-1">{form.startDate ? formatShortDate(form.startDate) : '___'}</td>
+                  <td className="border border-gray-400 p-1"></td>
+                  <td className="border border-gray-400 p-1">{form.endDate ? formatShortDate(form.endDate) : '___'}</td>
+                  <td className="border border-gray-400 p-1"></td>
+                  <td className="border border-gray-400 p-1 text-[9px]">{cropItem.gravitational || ''}</td>
+                  <td className="border border-gray-400 p-1 text-[9px]">{cropItem.pumped || ''}</td>
+                  <td className="border border-gray-400 p-1 text-[9px]">{form.waterMeasurementMethod || ''}</td>
+                  <td className="border border-gray-400 p-1 text-right">{form.price}</td>
+                  <td className="border border-gray-400 p-1 text-right font-bold text-green-700">{num(cropItem.calculatedAmount, 2)} €</td>
+                </tr>
+              ))}
+              {/* Empty Rows - само ако има по-малко от 6 */}
+              {[...Array(Math.max(0, 6 - form.crops.length))].map((_, i) => (
+                <tr key={`empty-${i}`}>
+                  {[...Array(13)].map((_, j) => (
+                    <td key={j} className="border border-gray-400 p-1 h-6"></td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Footer Text */}
+          <p className="text-justify text-[11px] mb-1">
+            На основание чл. 13 от Общите условия към Договори за доставка на вода за напояване:
+          </p>
+          <p className="text-justify text-[11px] mb-1">
+            - Доставчикът отчита доставената вода на Водоползвателя, чрез Акт дневник за напояване.
+          </p>
+          <p className="text-justify text-[11px] mb-3">
+            - Водоползвателят, заявява, че е запознат с Общите условия към Договори за доставка на вода за
+            напояване и ги приема безусловно.
+          </p>
+
+          <p className="mb-2"></p>
+
+          {/* Signatures */}
+          <p className="text-justify text-[11px]">
+            Доставчик: ……………………&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Водоползвател: ………………………...
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── UDVN SECTION ──────────────────────────────────────────────────────────────
 
-/** Replaces XML placeholders like {NAME} with their actual values. */
+/** Converts newline characters to Word XML line breaks
+ * Uses proper XML structure: close current text run, add break, start new text run
+ * Also applies Times New Roman 12pt formatting and left alignment */
+function textToWordXml(text: string): string {
+  // Split text by newlines and rebuild with proper Word XML structure
+  const lines = text.split('\n')
+
+  if (lines.length === 1) {
+    return text // No newlines, return as-is
+  }
+
+  // Build proper XML with formatting and left alignment
+  // Close current paragraph, start new paragraph with left alignment
+  const fontProps = '<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>'
+  const paraProps = '<w:pPr><w:jc w:val="left"/></w:pPr>' // Left alignment
+
+  return lines.join(`</w:t></w:r></w:p><w:p>${paraProps}<w:r>${fontProps}<w:t>`)
+}
+
+/** Replaces XML placeholders like {NAME} with their actual values, even if split by XML tags. */
 function replacePlaceholder(xml: string, placeholder: string, value: string): string {
-  return xml.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value)
+  // Convert newlines in value to Word XML line breaks (only for {РЕМОНТИ})
+  const processedValue = placeholder === '{РЕМОНТИ}' ? textToWordXml(value) : value
+
+  // First try simple replacement (for placeholders that aren't split)
+  const escapedPlaceholder = placeholder.replace(/[{}]/g, '\\$&')
+  let result = xml.replace(new RegExp(escapedPlaceholder, 'g'), processedValue)
+
+  // If the placeholder might be split across XML tags, use a more flexible pattern
+  // For example: {</w:t></w:r><w:r><w:t>МЕСЕЦ</w:t></w:r><w:r><w:t>}
+  // Pattern matches: \{ + (XML tags + text)* + \}
+  const placeholderText = placeholder.slice(1, -1) // Remove { and }
+
+  // This pattern allows any combination of XML tags and text between { and }
+  // as long as all the placeholder characters appear in order
+  const chars = placeholderText.split('')
+  const xmlTagPattern = '(?:<[^>]+>)*'
+
+  // Build flexible pattern that allows XML tags anywhere
+  const flexPattern = '\\{' + xmlTagPattern +
+    chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + xmlTagPattern).join('') +
+    '\\}'
+
+  result = result.replace(new RegExp(flexPattern, 'g'), processedValue)
+
+  return result
 }
 
 interface UdvnLocation {
@@ -1912,6 +3455,7 @@ interface UdvnRepairItem {
 
 interface UdvnFacility {
   name: string
+  zemljishte?: string
   repairs: UdvnRepairItem[]
 }
 
@@ -1929,7 +3473,7 @@ const EMPTY_REPAIR: UdvnRepairItem = {
 
 const EMPTY_FACILITY: UdvnFacility = {
   name: '',
-  repairs: [{ ...EMPTY_REPAIR }]
+  repairs: [JSON.parse(JSON.stringify(EMPTY_REPAIR))]
 }
 
 function migrateLegacyLocation(repair: UdvnRepairItem): UdvnRepairItem {
@@ -1969,14 +3513,46 @@ function UdvnUpcomingGenerator({
   facilities: UdvnFacility[]
   setFacilities: (f: UdvnFacility[]) => void
 }) {
+  const [submittedRepairsText, setSubmittedRepairsText] = useState('')
+
+  function filterOutSubmittedRepairs() {
+    if (!submittedRepairsText.trim()) {
+      alert('Моля, въведете текст с вече подадените ремонти.')
+      return
+    }
+
+    // Normalize the submitted text for comparison
+    const normalizedText = submittedRepairsText.toLowerCase().trim()
+
+    // Filter facilities: keep only those whose name is NOT mentioned in the submitted text
+    const remainingFacilities = facilities.filter(facility => {
+      if (!facility.name) return true // Keep empty facilities
+
+      const facilityNameLower = facility.name.toLowerCase()
+
+      // Check if facility name appears in the submitted text
+      const isMentioned = normalizedText.includes(facilityNameLower)
+
+      return !isMentioned // Keep only facilities NOT mentioned
+    })
+
+    if (remainingFacilities.length === 0) {
+      alert('Всички съоръжения са споменати в подадените ремонти. Списъкът ще бъде изчистен.')
+      setFacilities([JSON.parse(JSON.stringify(EMPTY_FACILITY))])
+    } else {
+      setFacilities(remainingFacilities)
+      alert(`Филтрирани ${facilities.length - remainingFacilities.length} вече подадени ремонти. Остават ${remainingFacilities.length} съоръжения.`)
+    }
+  }
+
   function updateFacility(index: number, field: keyof UdvnFacility, value: any) {
-    const updated = [...facilities]
-    updated[index] = { ...updated[index], [field]: value }
+    const updated = JSON.parse(JSON.stringify(facilities))
+    updated[index][field] = value
     setFacilities(updated)
   }
 
   function addFacility() {
-    setFacilities([...facilities, { ...EMPTY_FACILITY }])
+    setFacilities([...facilities, JSON.parse(JSON.stringify(EMPTY_FACILITY))])
   }
 
   function removeFacility(index: number) {
@@ -1986,13 +3562,13 @@ function UdvnUpcomingGenerator({
   }
 
   function addRepair(facilityIndex: number) {
-    const updated = [...facilities]
-    updated[facilityIndex].repairs.push({ ...EMPTY_REPAIR })
+    const updated = JSON.parse(JSON.stringify(facilities))
+    updated[facilityIndex].repairs.push(JSON.parse(JSON.stringify(EMPTY_REPAIR)))
     setFacilities(updated)
   }
 
   function removeRepair(facilityIndex: number, repairIndex: number) {
-    const updated = [...facilities]
+    const updated = JSON.parse(JSON.stringify(facilities))
     if (updated[facilityIndex].repairs.length > 1) {
       updated[facilityIndex].repairs.splice(repairIndex, 1)
       setFacilities(updated)
@@ -2000,7 +3576,7 @@ function UdvnUpcomingGenerator({
   }
 
   function updateRepair(facilityIndex: number, repairIndex: number, field: keyof UdvnRepairItem, value: any) {
-    const updated = [...facilities]
+    const updated = JSON.parse(JSON.stringify(facilities))
     const repair = updated[facilityIndex].repairs[repairIndex]
 
     // Update the field
@@ -2049,13 +3625,13 @@ function UdvnUpcomingGenerator({
   }
 
   function addLocation(facilityIndex: number, repairIndex: number) {
-    const updated = [...facilities]
+    const updated = JSON.parse(JSON.stringify(facilities))
     updated[facilityIndex].repairs[repairIndex].locations.push({ unit: 'hkm', value: '' })
     setFacilities(updated)
   }
 
   function removeLocation(facilityIndex: number, repairIndex: number, locationIndex: number) {
-    const updated = [...facilities]
+    const updated = JSON.parse(JSON.stringify(facilities))
     if (updated[facilityIndex].repairs[repairIndex].locations.length > 1) {
       updated[facilityIndex].repairs[repairIndex].locations.splice(locationIndex, 1)
       setFacilities(updated)
@@ -2063,7 +3639,7 @@ function UdvnUpcomingGenerator({
   }
 
   function updateLocation(facilityIndex: number, repairIndex: number, locationIndex: number, field: 'unit' | 'value', value: string) {
-    const updated = [...facilities]
+    const updated = JSON.parse(JSON.stringify(facilities))
     updated[facilityIndex].repairs[repairIndex].locations[locationIndex] = {
       ...updated[facilityIndex].repairs[repairIndex].locations[locationIndex],
       [field]: value
@@ -2088,22 +3664,38 @@ function UdvnUpcomingGenerator({
 
       // Generate repairs list formatted text
       let repairsList = ''
+
+      // Add submitted repairs text if provided and count how many facilities are in it
+      let submittedFacilitiesCount = 0
+      if (submittedRepairsText.trim()) {
+        repairsList += submittedRepairsText.trim() + '\n\n'
+
+        // Count numbered items (1., 2., 3., etc.) in the submitted text
+        const matches = submittedRepairsText.match(/^\s*\d+\.\s/gm)
+        submittedFacilitiesCount = matches ? matches.length : 0
+      }
+
       facilities.forEach((facility, fIdx) => {
         if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
 
-        // Facility title with number
-        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+        // Facility title with number - continue numbering after submitted repairs
+        const facilityNum = submittedFacilitiesCount + fIdx + 1
+        repairsList += `${facilityNum}. ${facility.name || '____________'}\n`
 
         // Repairs for this facility
         facility.repairs.forEach(repair => {
           if (!repair.pipeline && !repair.repairType) return
 
+          const facilityType = repair.facilityType || 'Тръбопровод'
           const locations = formatLocations(repair.locations)
           const pipeline = repair.pipeline || '______'
           const repairType = repair.repairType || '______'
           const materials = repair.materials || '____________'
+          const workers = repair.workers || '____________'
 
-          repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+          repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType}\n`
+          repairsList += `Необходими материали :  ${materials}\n`
+          repairsList += `Необходими техника и хора: ${workers}\n`
         })
 
         repairsList += '\n' // Empty line between facilities
@@ -2128,13 +3720,25 @@ function UdvnUpcomingGenerator({
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
     let repairsList = ''
+
+    // Add submitted repairs text if provided and count facilities
+    let submittedFacilitiesCount = 0
+    if (submittedRepairsText.trim()) {
+      repairsList += submittedRepairsText.trim() + '\n\n'
+
+      // Count numbered items (1., 2., 3., etc.) in the submitted text
+      const matches = submittedRepairsText.match(/^\s*\d+\.\s/gm)
+      submittedFacilitiesCount = matches ? matches.length : 0
+    }
+
     facilities.forEach((facility, fIdx) => {
       // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
       const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
       if (!hasContent) return
 
-      // Напоително поле като заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Напоително поле като заглавие - continue numbering after submitted repairs
+      const facilityNum = submittedFacilitiesCount + fIdx + 1
+      repairsList += `${facilityNum}. ${facility.name || '____________'}\n`
 
       // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
       facility.repairs.forEach(repair => {
@@ -2211,6 +3815,29 @@ ${repairsList}
           </div>
         </div>
 
+        {/* Filter for submitted repairs */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <label className="block text-xs font-semibold text-amber-900 mb-2">
+            Филтър: Вече подадени ремонти (опционално)
+          </label>
+          <p className="text-xs text-amber-700 mb-3">
+            Въведете текст с вече подадените ремонти и натиснете бутона за да останат само непосочените съоръжения.
+          </p>
+          <textarea
+            value={submittedRepairsText}
+            onChange={e => setSubmittedRepairsText(e.target.value)}
+            placeholder="Например: НП &quot;Зимница&quot;, НП &quot;Безмер&quot;..."
+            className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm font-mono resize-y"
+            rows={4}
+          />
+          <button
+            onClick={filterOutSubmittedRepairs}
+            className="mt-3 w-full px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors shadow-sm"
+          >
+            Филтрирай (остави само непосочените)
+          </button>
+        </div>
+
         {/* Facilities section */}
         <div>
           <div className="flex justify-between items-center mb-3">
@@ -2238,6 +3865,15 @@ ${repairsList}
                     value={facility.name}
                     onChange={e => updateFacility(fIdx, 'name', e.target.value)}
                     placeholder='НП "Зимница"'
+                    className="px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Землище</label>
+                  <Input
+                    value={facility.zemljishte || ''}
+                    onChange={e => updateFacility(fIdx, 'zemljishte', e.target.value)}
+                    placeholder='с. Зимница'
                     className="px-3 py-2"
                   />
                 </div>
@@ -2471,6 +4107,8 @@ function UdvnCompletedGenerator({
   facilities: UdvnFacility[]
   setFacilities: (f: UdvnFacility[]) => void
 }) {
+  const [plainText, setPlainText] = useState('')
+
   async function handleDownload() {
     try {
       const templatePath = './templates/УДВН шаблони/Доклад извършени ремонти.docx'
@@ -2486,28 +4124,46 @@ function UdvnCompletedGenerator({
       xml = replacePlaceholder(xml, '{ГОДИНА}', '2026')
       xml = replacePlaceholder(xml, '{ДАТА}', formatShortDate(reportDate))
 
-      // Generate repairs list formatted text
+      // Generate repairs list - use plainText if facilities are empty, otherwise build from structure
       let repairsList = ''
-      facilities.forEach((facility, fIdx) => {
-        if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
 
-        // Facility title with number
-        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Check if facilities have any content
+      const hasStructuredContent = facilities.some(facility =>
+        facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+      )
 
-        // Repairs for this facility
-        facility.repairs.forEach(repair => {
-          if (!repair.pipeline && !repair.repairType) return
+      if (!hasStructuredContent && plainText.trim()) {
+        // Use plain text directly if no structured data
+        repairsList = plainText.trim()
+      } else {
+        // Build from structured facilities
+        facilities.forEach((facility, fIdx) => {
+          const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+          if (!hasContent) return
 
-          const locations = formatLocations(repair.locations)
-          const pipeline = repair.pipeline || '______'
-          const repairType = repair.repairType || '______'
-          const materials = repair.materials || '____________'
+          // Facility title with number
+          repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n\n`
 
-          repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+          // Repairs for this facility with zemljishte
+          facility.repairs.forEach(repair => {
+            if (!repair.pipeline && !repair.repairType && !repair.materials) return
+
+            const facilityType = repair.facilityType || 'Тръбопровод'
+            const locations = formatLocations(repair.locations)
+            const pipeline = repair.pipeline || '______'
+            const repairType = repair.repairType || '______'
+            const materials = repair.materials || '____________'
+            const workers = repair.workers || '____________'
+            const zemljishte = facility.zemljishte || '____________'
+
+            repairsList += `-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}\n`
+            repairsList += `\nИзползвани материали :  ${materials}\n`
+            repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+          })
+
+          repairsList += '\n' // Empty line between facilities
         })
-
-        repairsList += '\n' // Empty line between facilities
-      })
+      }
 
       xml = replacePlaceholder(xml, '{РЕМОНТИ}', repairsList.trim())
 
@@ -2536,7 +4192,7 @@ function UdvnCompletedGenerator({
       // Напоително поле като заглавие
       repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
+      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
@@ -2547,10 +4203,11 @@ function UdvnCompletedGenerator({
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
         const workers = repair.workers || '____________'
+        const zemljishte = facility.zemljishte || '____________'
 
-        repairsList += `-    ${facilityType} ${pipeline} ${locations || '_______'} ${repairType}\n`
-        repairsList += `Необходими материали :  ${materials}\n`
-        repairsList += `Необходими техника и хора: ${workers}\n`
+        repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
+        repairsList += `\nИзползвани материали :  ${materials}\n`
+        repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
@@ -2611,10 +4268,17 @@ ${repairsList}
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-xs text-blue-700">
+          <p className="text-xs text-blue-700 mb-3">
             Данните за ремонти се вземат от секцията <strong>"Предстоящи ремонти"</strong>.
-            Попълнете там информацията за съоръжения, тръбопроводи и ремонти.
+            Или можете да поставите текст директно в полето по-долу (ако не са попълнени съоръжения).
           </p>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Текст на ремонти (алтернатива на структурираните данни)</label>
+          <textarea
+            value={plainText}
+            onChange={e => setPlainText(e.target.value)}
+            placeholder="Поставете текста с извършените ремонти тук... Ако има попълнени съоръжения в 'Предстоящи ремонти', те ще имат приоритет."
+            className="w-full h-48 px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm font-mono resize-none"
+          />
         </div>
 
         <button onClick={handleDownload} className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md">
@@ -2645,6 +4309,8 @@ ${repairsList}
 // ODZ LETTER GENERATOR
 
 function OdzLetterGenerator({
+  month,
+  setMonth,
   letterDate,
   setLetterDate,
   outgoingNumber,
@@ -2652,6 +4318,8 @@ function OdzLetterGenerator({
   facilities,
   setFacilities
 }: {
+  month: string
+  setMonth: (m: string) => void
   letterDate: string
   setLetterDate: (d: string) => void
   outgoingNumber: string
@@ -2661,7 +4329,7 @@ function OdzLetterGenerator({
 }) {
   async function handleDownload() {
     try {
-      const templatePath = './templates/УДВН шаблони/писмо ОДЗ УДВН предстоящи.docx'
+      const templatePath = './templates/УДВН шаблони/писмо ОДЗ.docx'
       const response = await fetch(templatePath)
       if (!response.ok) throw new Error(`Грешка: ${response.status}`)
       const arrayBuffer = await response.arrayBuffer()
@@ -2672,6 +4340,7 @@ function OdzLetterGenerator({
 
       xml = replacePlaceholder(xml, '{ИЗХ_НОМЕР}', outgoingNumber)
       xml = replacePlaceholder(xml, '{ДАТА}', formatShortDate(letterDate))
+      xml = replacePlaceholder(xml, '{МЕСЕЦ}', month)
 
       let listContent = ''
       facilities.forEach((facility, fIdx) => {
@@ -2679,17 +4348,18 @@ function OdzLetterGenerator({
         if (!hasContent) return
 
         // Напоително поле като заглавие
-        listContent += `${fIdx + 1}. ${facility.name || '____________'}\n`
+        listContent += `${fIdx + 1}. ${facility.name || '____________'}:\n\n`
 
-        // Ремонти - само вид съоръжение, pipeline и локации (БЕЗ материали)
+        // Ремонти - само вид съоръжение, pipeline и локации с землище
         facility.repairs.forEach(repair => {
           if (!repair.pipeline && !repair.facilityType) return
 
           const facilityType = repair.facilityType || 'Тръбопровод'
           const locations = formatLocations(repair.locations)
           const pipeline = repair.pipeline || '______'
+          const zemljishte = facility.zemljishte || '____________'
 
-          listContent += `-    ${facilityType} ${pipeline} ${locations || '_______'}\n`
+          listContent += `-\t${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}\n`
         })
 
         listContent += '\n' // Празен ред между съоръженията
@@ -2710,8 +4380,9 @@ function OdzLetterGenerator({
 
   // Preview content generator
   function generatePreviewContent() {
-    const dateStr = letterDate ? formatShortDate(letterDate) : '__.__.____'
+    const monthName = month || '____________'
     const outNum = outgoingNumber || '______'
+    const dateStr = letterDate ? formatShortDate(letterDate) : '__.__.____'
 
     let listContent = ''
     facilities.forEach((facility, fIdx) => {
@@ -2720,44 +4391,57 @@ function OdzLetterGenerator({
       if (!hasContent) return
 
       // Напоително поле като заглавие
-      listContent += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      listContent += `${fIdx + 1}. ${facility.name || '____________'}:\n\n`
 
-      // Ремонти - само вид съоръжение, pipeline и локации (БЕЗ материали)
+      // Ремонти - само вид съоръжение, pipeline и локации с землище
       facility.repairs.forEach(repair => {
         if (!repair.pipeline && !repair.facilityType) return
 
         const facilityType = repair.facilityType || 'Тръбопровод'
         const locations = formatLocations(repair.locations)
         const pipeline = repair.pipeline || '______'
+        const zemljishte = facility.zemljishte || '____________'
 
-        listContent += `-    ${facilityType} ${pipeline} ${locations || '_______'}\n`
+        listContent += `-\t${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}\n`
       })
 
       listContent += '\n' // Празен ред между съоръженията
     })
 
-    return `                                                        Изх. № ${outNum}
-                                                        Дата: ${dateStr} г.
+    return `Изх. № ${outNum}/${dateStr} г.
 
-                                                        До
-                                                        Областна дирекция "Земеделие"
-                                                        гр. Ямбол
+ДО Г-ЖА ДОНКА ГЕОРГИЕВА				Съгласувам:……………………
+ДИРЕКТОР НА ОБЛАСТНА ДИРЕКЦИЯ		 		/Донка Георгиева/
+„ЗЕМЕДЕЛИЕ" - ГР. ЯМБОЛ	Директор на Областна дирекция        „Земеделие" – гр. Ямбол
 
-УВЕДОМЛЕНИЕ
-за предстоящи ремонтни дейности по УДВН
 
-Уважаема госпожо/господин Директор,
+КОПИЕ:
+ДО Г-ЖА СНЕЖИНА ДИНЕВА
+ИЗПЪЛНИТЕЛЕН ДИРЕКТОР
+НА „НАПОИТЕЛНИ СИСТЕМИ" ЕАД
+СОФИЯ
 
-Уведомяваме Ви, че предстоят следните ремонтни дейности по напоителната система:
+ОТНОСНО: Ремонтно - възстановителни работи/РВР/ на обекти за УДВН за
+м. ${monthName}  2026 г.
 
+УВАЖАЕМА ГОСПОЖО ГЕОРГИЕВА,
+В изпълнение на Договор № РД-206/04.12.2025г. за УДВН, приложено, изпращаме Ви информация за следните  обекти:
+СЪОРЪЖЕНИЕ:
 ${listContent}
 
-Моля да бъдат предприети необходимите действия.
+за изпълнение "със собствени сили" на  ремонтно- възстановителни работи /РВР/.
+Уведомяваме Ви, че предприемаме  неотложните  ремонтно- възстановителни работи /РВР/ на горецитираните обекти.
+
+Изготвил: ………………………
+      /инж. Ст. Димитрова/
 
 
-                                                        гр. Ямбол, ${dateStr} г.
-                                                        инж. УДВН
-                                                        /Ст. Димитрова/`
+
+С уважение,
+
+инж. Митошка Ишмериева
+Управител на „Напоителни системи" ЕАД
+Клон „Средна Тунджа" – Сливен`
   }
 
   return (
@@ -2767,12 +4451,20 @@ ${listContent}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Изх. номер*</label>
-            <Input value={outgoingNumber} onChange={e => setOutgoingNumber(e.target.value)} placeholder="РД-123" className="px-3 py-2 shadow-sm" />
+            <Input value={outgoingNumber} onChange={e => setOutgoingNumber(e.target.value)} placeholder="РД-02-540" className="px-3 py-2 shadow-sm" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата на писмото*</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата*</label>
             <Input type="date" value={letterDate} onChange={e => setLetterDate(e.target.value)} className="px-3 py-2 shadow-sm" />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Месец*</label>
+          <select className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm" value={month} onChange={e => setMonth(e.target.value)}>
+            <option value="">Избери...</option>
+            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -2810,6 +4502,8 @@ ${listContent}
 // PROTOCOL GENERATOR
 
 function ProtocolGenerator({
+  month,
+  setMonth,
   protocolNumber,
   setProtocolNumber,
   protocolDate,
@@ -2817,6 +4511,8 @@ function ProtocolGenerator({
   facilities,
   setFacilities
 }: {
+  month: string
+  setMonth: (m: string) => void
   protocolNumber: string
   setProtocolNumber: (n: string) => void
   protocolDate: string
@@ -2824,6 +4520,8 @@ function ProtocolGenerator({
   facilities: UdvnFacility[]
   setFacilities: (f: UdvnFacility[]) => void
 }) {
+  const [plainText, setPlainText] = useState('')
+
   async function handleDownload() {
     try {
       const templatePath = './templates/УДВН шаблони/Протокол.docx'
@@ -2835,31 +4533,49 @@ function ProtocolGenerator({
       if (!docXml) throw new Error('Липсва document.xml')
       let xml = docXml.asText()
 
-      xml = replacePlaceholder(xml, '{НОМЕР}', protocolNumber)
+      xml = replacePlaceholder(xml, '{МЕСЕЦ}', month)
       xml = replacePlaceholder(xml, '{ДАТА}', formatShortDate(protocolDate))
 
-      // Generate repairs list formatted text
+      // Generate repairs list - use plainText if facilities are empty, otherwise build from structure
       let repairsList = ''
-      facilities.forEach((facility, fIdx) => {
-        if (!facility.name && facility.repairs.every(r => !r.pipeline)) return
 
-        // Facility title with number
-        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+      // Check if facilities have any content
+      const hasStructuredContent = facilities.some(facility =>
+        facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+      )
 
-        // Repairs for this facility
-        facility.repairs.forEach(repair => {
-          if (!repair.pipeline && !repair.repairType) return
+      if (!hasStructuredContent && plainText.trim()) {
+        // Use plain text directly if no structured data
+        repairsList = plainText.trim()
+      } else {
+        // Build from structured facilities
+        facilities.forEach((facility, fIdx) => {
+          const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+          if (!hasContent) return
 
-          const locations = formatLocations(repair.locations)
-          const pipeline = repair.pipeline || '______'
-          const repairType = repair.repairType || '______'
-          const materials = repair.materials || '____________'
+          // Facility title with number
+          repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n\n`
 
-          repairsList += `  - ${pipeline} ${locations || '_______'} – ${repairType} ${materials}\n`
+          // Repairs for this facility with zemljishte
+          facility.repairs.forEach(repair => {
+            if (!repair.pipeline && !repair.repairType && !repair.materials) return
+
+            const facilityType = repair.facilityType || 'Тръбопровод'
+            const locations = formatLocations(repair.locations)
+            const pipeline = repair.pipeline || '______'
+            const repairType = repair.repairType || '______'
+            const materials = repair.materials || '____________'
+            const workers = repair.workers || '____________'
+            const zemljishte = facility.zemljishte || '____________'
+
+            repairsList += `-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}\n`
+            repairsList += `\nИзползвани материали :  ${materials}\n`
+            repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+          })
+
+          repairsList += '\n' // Empty line between facilities
         })
-
-        repairsList += '\n' // Empty line between facilities
-      })
+      }
 
       xml = replacePlaceholder(xml, '{РЕМОНТИ}', repairsList.trim())
 
@@ -2876,7 +4592,7 @@ function ProtocolGenerator({
 
   // Preview content generator - returns JSX with underlined text
   function generatePreviewContent() {
-    const protocolNum = protocolNumber || '____'
+    const monthName = month || '____________'
     const dateStr = protocolDate ? formatShortDate(protocolDate) : '__.__.____'
 
     let repairsList = ''
@@ -2888,7 +4604,7 @@ function ProtocolGenerator({
       // Напоително поле като заглавие
       repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации
+      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
       facility.repairs.forEach(repair => {
         // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
         if (!repair.pipeline && !repair.repairType && !repair.materials) return
@@ -2899,32 +4615,39 @@ function ProtocolGenerator({
         const repairType = repair.repairType || '______'
         const materials = repair.materials || '____________'
         const workers = repair.workers || '____________'
+        const zemljishte = facility.zemljishte || '____________'
 
-        repairsList += `-    ${facilityType} ${pipeline} ${locations || '_______'} ${repairType}\n`
-        repairsList += `Необходими материали :  ${materials}\n`
-        repairsList += `Необходими техника и хора: ${workers}\n`
+        repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
+        repairsList += `\nИзползвани материали :  ${materials}\n`
+        repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
       })
 
-      repairsList += '\n' // Празен ред между съоръженията
+      repairsList += '\n' // Празен ред mezi съоръженията
     })
 
     return (
       <div style={{ whiteSpace: 'pre-wrap' }}>
-        {`ПРОТОКОЛ № ${protocolNum}
-от ${dateStr} г.
+        {`Изх. № ………............/……………….
+ПРОТОКОЛ
+По чл. 1, ал. 3,  от Договор № РД-50-206/04.12.2025 г.
+за установяване изпълнение и завършване на натурални видове работи
+ за м. ${monthName} 2026г.
 
-За извършени ремонтни дейности по УДВН
+Днес ${dateStr} г., представители на Областна дирекция „Земеделие" – Ямбол - инж. Евгени Енев – Старши експерт и „Напоителни системи" ЕАД – клон „Средна Тунджа" – инж. Николай Касидов – Р-л ХТР Ямбол, установиха:
 
-На основание заявка от "Напоителни системи" ЕАД, клон Средна Тунджа, инж. УДВН извърши следните ремонтни дейности:
+На  следните обекти са извършени /изпълнени и завършени/ следните натурални видове работи:
 
 ${repairsList}
 
-Протоколът се съставя в два еднообразни екземпляра.
+Работите са извършени от „Напоителни системи" ЕАД – клон „Средна Тунджа" със собствени сили и механизация през месец ${monthName}.
 
+За Областна дирекция „Земеделие" – Ямбол
+…………………………
+/инж. Евгени Енев – Старши експерт/
 
-                                                        Изготвил:
-                                                        инж. УДВН
-                                                        /Ст. Димитрова/`}
+За „Напоителни системи" ЕАД – клон „Средна Тунджа"
+…………………………
+/инж. Николай Касидов – Р-л ХТР Ямбол/`}
       </div>
     )
   }
@@ -2937,8 +4660,11 @@ ${repairsList}
       <div className="overflow-y-auto space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Изх. номер*</label>
-            <Input value={protocolNumber} onChange={e => setProtocolNumber(e.target.value)} placeholder="РД-456" className="px-3 py-2 shadow-sm" />
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Месец*</label>
+            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm" value={month} onChange={e => setMonth(e.target.value)}>
+              <option value="">Избери...</option>
+              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата*</label>
@@ -2947,10 +4673,17 @@ ${repairsList}
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-xs text-blue-700">
+          <p className="text-xs text-blue-700 mb-3">
             Данните за ремонти се вземат от секцията <strong>"Предстоящи ремонти"</strong>.
-            Попълнете там информацията за съоръжения, тръбопроводи и ремонти.
+            Или можете да поставите текст директно в полето по-долу (ако не са попълнени съоръжения).
           </p>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">Текст на ремонти (алтернатива на структурираните данни)</label>
+          <textarea
+            value={plainText}
+            onChange={e => setPlainText(e.target.value)}
+            placeholder="Поставете текста с ремонтите тук... Ако има попълнени съоръжения в 'Предстоящи ремонти', те ще имат приоритет."
+            className="w-full h-48 px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-teal-500 text-sm font-mono resize-none"
+          />
         </div>
 
         <button onClick={handleDownload} className="w-full py-2.5 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors flex items-center justify-center gap-2 shadow-md">
@@ -2990,111 +4723,123 @@ interface LocalityInfo {
 
 const YAMBOL_LOCALITIES: LocalityInfo[] = [
   // Болярово
-  { name: 'Болярово', ekatte: '04787', municipality: 'Болярово' },
-  { name: 'Воден', ekatte: '11215', municipality: 'Болярово' },
-  { name: 'Голям извор', ekatte: '15255', municipality: 'Болярово' },
-  { name: 'Голямо Крушево', ekatte: '15539', municipality: 'Болярово' },
-  { name: 'Горна хубавка', ekatte: '15915', municipality: 'Болярово' },
-  { name: 'Долно Ботево', ekatte: '21256', municipality: 'Болярово' },
-  { name: 'Малко Шарково', ekatte: '46821', municipality: 'Болярово' },
-  { name: 'Оман', ekatte: '53154', municipality: 'Болярово' },
-  { name: 'Попово', ekatte: '58286', municipality: 'Болярово' },
-  { name: 'Поточе', ekatte: '58564', municipality: 'Болярово' },
-  { name: 'Силен', ekatte: '66552', municipality: 'Болярово' },
-  { name: 'Стройно', ekatte: '70514', municipality: 'Болярово' },
-  { name: 'Three Sequoia Trees', ekatte: '73169', municipality: 'Болярово' },
-  { name: 'Шарково', ekatte: '82495', municipality: 'Болярово' },
+  { name: 'гр. Болярово', ekatte: '05284', municipality: 'Болярово' },
+  { name: 'с. Воден', ekatte: '11658', municipality: 'Болярово' },
+  { name: 'с. Вълчи извор', ekatte: '12588', municipality: 'Болярово' },
+  { name: 'с. Голямо Крушево', ekatte: '15881', municipality: 'Болярово' },
+  { name: 'с. Горска поляна', ekatte: '17097', municipality: 'Болярово' },
+  { name: 'с. Денница', ekatte: '20657', municipality: 'Болярово' },
+  { name: 'с. Дъбово', ekatte: '24356', municipality: 'Болярово' },
+  { name: 'с. Златиница', ekatte: '31019', municipality: 'Болярово' },
+  { name: 'с. Иглика', ekatte: '32264', municipality: 'Болярово' },
+  { name: 'с. Камен връх', ekatte: '35756', municipality: 'Болярово' },
+  { name: 'с. Крайново', ekatte: '39356', municipality: 'Болярово' },
+  { name: 'с. Малко Шарково', ekatte: '46704', municipality: 'Болярово' },
+  { name: 'с. Мамарчево', ekatte: '46958', municipality: 'Болярово' },
+  { name: 'с. Оман', ekatte: '53504', municipality: 'Болярово' },
+  { name: 'с. Попово', ekatte: '57652', municipality: 'Болярово' },
+  { name: 'с. Ружица', ekatte: '63272', municipality: 'Болярово' },
+  { name: 'с. Ситово', ekatte: '66679', municipality: 'Болярово' },
+  { name: 'с. Стефан Караджово', ekatte: '69208', municipality: 'Болярово' },
+  { name: 'с. Странджа', ekatte: '69674', municipality: 'Болярово' },
+  { name: 'с. Шарково', ekatte: '83051', municipality: 'Болярово' },
 
   // Елхово
-  { name: 'Елхово', ekatte: '24235', municipality: 'Елхово' },
-  { name: 'Бисер', ekatte: '04139', municipality: 'Елхово' },
-  { name: 'Борисово', ekatte: '05642', municipality: 'Елхово' },
-  { name: 'Вълча поляна', ekatte: '13209', municipality: 'Елхово' },
-  { name: 'Gabra', ekatte: '13712', municipality: 'Елхово' },
-  { name: 'Голям Дервент', ekatte: '15240', municipality: 'Елхово' },
-  { name: 'Golyam Manastir', ekatte: '15446', municipality: 'Елхово' },
-  { name: 'Granit', ekatte: '16115', municipality: 'Елхово' },
-  { name: 'Group', ekatte: '16387', municipality: 'Елхово' },
-  { name: 'Dramatic', ekatte: '20886', municipality: 'Елхово' },
-  { name: 'Lesovo', ekatte: '43089', municipality: 'Елхово' },
-  { name: 'Malak Manastir', ekatte: '46203', municipality: 'Елхово' },
-  { name: 'Маломир', ekatte: '46719', municipality: 'Елхово' },
-  { name: 'Мелница', ekatte: '47859', municipality: 'Елхово' },
-  { name: 'Пчела', ekatte: '61361', municipality: 'Елхово' },
-  { name: 'Раздел', ekatte: '61932', municipality: 'Елхово' },
-  { name: 'Sabrano', ekatte: '63357', municipality: 'Елхово' },
-  { name: 'Svetlina', ekatte: '71436', municipality: 'Елхово' },
-  { name: 'Trankovo', ekatte: '73434', municipality: 'Елхово' },
-  { name: 'Chernozem', ekatte: '79646', municipality: 'Елхово' },
+  { name: 'гр. Елхово', ekatte: '27382', municipality: 'Елхово' },
+  { name: 'с. Борисово', ekatte: '05520', municipality: 'Елхово' },
+  { name: 'с. Бояново', ekatte: '06001', municipality: 'Елхово' },
+  { name: 'с. Вълча поляна', ekatte: '12530', municipality: 'Елхово' },
+  { name: 'с. Голям Дервент', ekatte: '15730', municipality: 'Елхово' },
+  { name: 'с. Гранитово', ekatte: '17748', municipality: 'Елхово' },
+  { name: 'с. Добрич', ekatte: '21542', municipality: 'Елхово' },
+  { name: 'с. Жребино', ekatte: '29516', municipality: 'Елхово' },
+  { name: 'с. Изгрев', ekatte: '32576', municipality: 'Елхово' },
+  { name: 'с. Кирилово', ekatte: '36909', municipality: 'Елхово' },
+  { name: 'с. Лалково', ekatte: '43116', municipality: 'Елхово' },
+  { name: 'с. Лесово', ekatte: '43459', municipality: 'Елхово' },
+  { name: 'с. Малко Кирилово', ekatte: '46615', municipality: 'Елхово' },
+  { name: 'с. Маломирово', ekatte: '46797', municipality: 'Елхово' },
+  { name: 'с. Малък манастир', ekatte: '46904', municipality: 'Елхово' },
+  { name: 'с. Мелница', ekatte: '47768', municipality: 'Елхово' },
+  { name: 'с. Пчела', ekatte: '58801', municipality: 'Елхово' },
+  { name: 'с. Раздел', ekatte: '61738', municipality: 'Елхово' },
+  { name: 'с. Славейково', ekatte: '66980', municipality: 'Елхово' },
+  { name: 'с. Стройно', ekatte: '69883', municipality: 'Елхово' },
+  { name: 'с. Трънково', ekatte: '73328', municipality: 'Елхово' },
+  { name: 'с. Чернозем', ekatte: '81121', municipality: 'Елхово' },
 
   // Стралджа
-  { name: 'Стралджа', ekatte: '69888', municipality: 'Стралджа' },
-  { name: 'Aleksandrovo', ekatte: '00393', municipality: 'Стралджа' },
-  { name: 'Атолово', ekatte: '02378', municipality: 'Стралджа' },
-  { name: 'Воденичарово', ekatte: '11149', municipality: 'Стралджа' },
-  { name: 'Джинот', ekatte: '19747', municipality: 'Стралджа' },
-  { name: 'Zimnitsa', ekatte: '30627', municipality: 'Стралджа' },
-  { name: 'Иречеково', ekatte: '33403', municipality: 'Стралджа' },
-  { name: 'Kayaloba', ekatte: '38784', municipality: 'Стралджа' },
-  { name: 'Лозен', ekatte: '44252', municipality: 'Стралджа' },
-  { name: 'Monastery', ekatte: '47522', municipality: 'Стралджа' },
-  { name: 'Обручище', ekatte: '52568', municipality: 'Стралджа' },
-  { name: 'Поляна', ekatte: '58177', municipality: 'Стралджа' },
-  { name: 'Правдино', ekatte: '59069', municipality: 'Стралджа' },
-  { name: 'Саранско', ekatte: '65161', municipality: 'Стралджа' },
-  { name: 'Sini rid', ekatte: '67136', municipality: 'Стралджа' },
-  { name: 'Тамарино', ekatte: '72098', municipality: 'Стралджа' },
-  { name: 'Чарда', ekatte: '79360', municipality: 'Стралджа' },
+  { name: 'гр. Стралджа', ekatte: '69660', municipality: 'Стралджа' },
+  { name: 'с. Александрово', ekatte: '00343', municipality: 'Стралджа' },
+  { name: 'с. Атолово', ekatte: '00816', municipality: 'Стралджа' },
+  { name: 'с. Богорово', ekatte: '04786', municipality: 'Стралджа' },
+  { name: 'с. Воденичане', ekatte: '11661', municipality: 'Стралджа' },
+  { name: 'с. Войника', ekatte: '11908', municipality: 'Стралджа' },
+  { name: 'с. Джинот', ekatte: '20804', municipality: 'Стралджа' },
+  { name: 'с. Зимница', ekatte: '30898', municipality: 'Стралджа' },
+  { name: 'с. Иречеково', ekatte: '32771', municipality: 'Стралджа' },
+  { name: 'с. Каменец', ekatte: '35794', municipality: 'Стралджа' },
+  { name: 'с. Леярово', ekatte: '43615', municipality: 'Стралджа' },
+  { name: 'с. Лозенец', ekatte: '44118', municipality: 'Стралджа' },
+  { name: 'с. Люлин', ekatte: '44666', municipality: 'Стралджа' },
+  { name: 'с. Маленово', ekatte: '46303', municipality: 'Стралджа' },
+  { name: 'с. Недялско', ekatte: '51384', municipality: 'Стралджа' },
+  { name: 'с. Палаузово', ekatte: '55244', municipality: 'Стралджа' },
+  { name: 'с. Поляна', ekatte: '57409', municipality: 'Стралджа' },
+  { name: 'с. Правдино', ekatte: '58003', municipality: 'Стралджа' },
+  { name: 'с. Първенец', ekatte: '59046', municipality: 'Стралджа' },
+  { name: 'с. Саранско', ekatte: '65406', municipality: 'Стралджа' },
+  { name: 'с. Тамарино', ekatte: '72076', municipality: 'Стралджа' },
+  { name: 'с. Чарда', ekatte: '80220', municipality: 'Стралджа' },
 
   // Тунджа
-  { name: 'Ябълково', ekatte: '84707', municipality: 'Тунджа' },
-  { name: 'Асеново', ekatte: '02072', municipality: 'Тунджа' },
-  { name: 'Безмер', ekatte: '03590', municipality: 'Тунджа' },
-  { name: 'Ботево', ekatte: '06003', municipality: 'Тунджа' },
-  { name: 'Veselinovo', ekatte: '10123', municipality: 'Тунджа' },
-  { name: 'Генерал Инзово', ekatte: '14266', municipality: 'Тунджа' },
-  { name: 'Generand Toshevo', ekatte: '14348', municipality: 'Тунджа' },
-  { name: 'Завой', ekatte: '29634', municipality: 'Тунджа' },
-  { name: 'Zlatari', ekatte: '31166', municipality: 'Тунджа' },
-  { name: 'Kalamitsa', ekatte: '36564', municipality: 'Тунджа' },
-  { name: 'Kamenets', ekatte: '37127', municipality: 'Тунджа' },
-  { name: 'Konevets', ekatte: '40780', municipality: 'Тунджа' },
-  { name: 'Maglizh', ekatte: '45528', municipality: 'Тунджа' },
-  { name: 'Меден кладенец', ekatte: '47587', municipality: 'Тунджа' },
-  { name: 'Międlevo', ekatte: '48239', municipality: 'Тунджа' },
-  { name: 'Окоп', ekatte: '53044', municipality: 'Тунджа' },
-  { name: 'Победа', ekatte: '57191', municipality: 'Тунджа' },
-  { name: 'Робово', ekatte: '62985', municipality: 'Тунджа' },
-  { name: 'Сламино', ekatte: '67632', municipality: 'Тунджа' },
-  { name: 'Скалица', ekatte: '67694', municipality: 'Тунджа' },
-  { name: 'Tenkovo', ekatte: '72576', municipality: 'Тунджа' },
-  { name: 'Huhla', ekatte: '77500', municipality: 'Тунджа' },
-  { name: 'Челник', ekatte: '79857', municipality: 'Тунджа' },
+  { name: 'с. Асеново', ekatte: '00758', municipality: 'Тунджа' },
+  { name: 'с. Безмер', ekatte: '03229', municipality: 'Тунджа' },
+  { name: 'с. Болярско', ekatte: '05308', municipality: 'Тунджа' },
+  { name: 'с. Ботево', ekatte: '05863', municipality: 'Тунджа' },
+  { name: 'с. Бояджик', ekatte: '05952', municipality: 'Тунджа' },
+  { name: 'с. Веселиново', ekatte: '10776', municipality: 'Тунджа' },
+  { name: 'с. Видинци', ekatte: '10985', municipality: 'Тунджа' },
+  { name: 'с. Генерал Инзово', ekatte: '32740', municipality: 'Тунджа' },
+  { name: 'с. Генерал Тошево', ekatte: '14725', municipality: 'Тунджа' },
+  { name: 'с. Голям манастир', ekatte: '15789', municipality: 'Тунджа' },
+  { name: 'с. Гълъбинци', ekatte: '18259', municipality: 'Тунджа' },
+  { name: 'с. Дражево', ekatte: '23501', municipality: 'Тунджа' },
+  { name: 'с. Драма', ekatte: '23557', municipality: 'Тунджа' },
+  { name: 'с. Дряново', ekatte: '23978', municipality: 'Тунджа' },
+  { name: 'с. Завой', ekatte: '30096', municipality: 'Тунджа' },
+  { name: 'с. Златари', ekatte: '30956', municipality: 'Тунджа' },
+  { name: 'с. Кабиле', ekatte: '35028', municipality: 'Тунджа' },
+  { name: 'с. Калчево', ekatte: '35609', municipality: 'Тунджа' },
+  { name: 'с. Каравелово', ekatte: '36200', municipality: 'Тунджа' },
+  { name: 'с. Козарево', ekatte: '37681', municipality: 'Тунджа' },
+  { name: 'с. Коневец', ekatte: '38279', municipality: 'Тунджа' },
+  { name: 'с. Крумово', ekatte: '40018', municipality: 'Тунджа' },
+  { name: 'с. Кукорево', ekatte: '40484', municipality: 'Тунджа' },
+  { name: 'с. Маломир', ekatte: '46783', municipality: 'Тунджа' },
+  { name: 'с. Меден кладенец', ekatte: '47562', municipality: 'Тунджа' },
+  { name: 'с. Межда', ekatte: '47682', municipality: 'Тунджа' },
+  { name: 'с. Миладиновци', ekatte: '48101', municipality: 'Тунджа' },
+  { name: 'с. Могила', ekatte: '48787', municipality: 'Тунджа' },
+  { name: 'с. Овчи кладенец', ekatte: '53299', municipality: 'Тунджа' },
+  { name: 'с. Окоп', ekatte: '53480', municipality: 'Тунджа' },
+  { name: 'с. Победа', ekatte: '56873', municipality: 'Тунджа' },
+  { name: 'с. Робово', ekatte: '62757', municipality: 'Тунджа' },
+  { name: 'с. Роза', ekatte: '62921', municipality: 'Тунджа' },
+  { name: 'с. Савино', ekatte: '65036', municipality: 'Тунджа' },
+  { name: 'с. Симеоново', ekatte: '66456', municipality: 'Тунджа' },
+  { name: 'с. Скалица', ekatte: '66737', municipality: 'Тунджа' },
+  { name: 'с. Сламино', ekatte: '67177', municipality: 'Тунджа' },
+  { name: 'с. Стара река', ekatte: '68878', municipality: 'Тунджа' },
+  { name: 'с. Тенево', ekatte: '72240', municipality: 'Тунджа' },
+  { name: 'с. Търнава', ekatte: '73657', municipality: 'Тунджа' },
+  { name: 'с. Хаджидимитрово', ekatte: '77030', municipality: 'Тунджа' },
+  { name: 'с. Ханово', ekatte: '77150', municipality: 'Тунджа' },
+  { name: 'с. Чарган', ekatte: '80217', municipality: 'Тунджа' },
+  { name: 'с. Челник', ekatte: '80306', municipality: 'Тунджа' },
 
   // Ямбол
-  { name: 'Ямбол', ekatte: '84943', municipality: 'Ямбол' },
-  { name: 'Боляриново', ekatte: '05279', municipality: 'Ямбол' },
-  { name: 'Ботево', ekatte: '06004', municipality: 'Ямбол' },
-  { name: 'Byal kladenets', ekatte: '07751', municipality: 'Ямбол' },
-  { name: 'Войника', ekatte: '11555', municipality: 'Ямбол' },
-  { name: 'Горна кабда', ekatte: '15824', municipality: 'Ямбол' },
-  { name: 'Денница', ekatte: '19249', municipality: 'Ямбол' },
-  { name: 'Диня', ekatte: '19958', municipality: 'Ямбол' },
-  { name: 'Дражево', ekatte: '20784', municipality: 'Ямбол' },
-  { name: 'Zhrebino', ekatte: '29140', municipality: 'Ямбол' },
-  { name: 'Zlatари', ekatte: '31167', municipality: 'Ямбол' },
-  { name: 'Kabile', ekatte: '35882', municipality: 'Ямбол' },
-  { name: 'Каравелово', ekatte: '38072', municipality: 'Ямбол' },
-  { name: 'Козарево', ekatte: '40148', municipality: 'Ямбол' },
-  { name: 'Крумово', ekatte: '42580', municipality: 'Ямбол' },
-  { name: 'Ловец', ekatte: '44144', municipality: 'Ямбол' },
-  { name: 'Memoria', ekatte: '47967', municipality: 'Ямбол' },
-  { name: 'Роза', ekatte: '63057', municipality: 'Ямбол' },
-  { name: 'Савино', ekatte: '63646', municipality: 'Ямбол' },
-  { name: 'Скалица', ekatte: '67695', municipality: 'Ямбол' },
-  { name: 'Стара река', ekatte: '69236', municipality: 'Ямбол' },
-  { name: 'Съединение', ekatte: '71126', municipality: 'Ямбол' },
-  { name: 'Hannock', ekatte: '77370', municipality: 'Ямбол' },
+  { name: 'гр. Ямбол', ekatte: '87374', municipality: 'Ямбол' },
 ]
 
 interface IrrigationCertificate {
@@ -3106,8 +4851,10 @@ interface IrrigationCertificate {
   municipality: string
   kadNumber: string
   area: string
-  sketchType: 'location' | 'sketch'
-  isIrrigable: boolean
+  sketchType: 'Скица' | 'Скица - проект'
+  representsType: 'представлява' | 'не представлява'
+  sketchNumber: string
+  issueDate: string
 }
 
 function IrrigationCertificateGenerator() {
@@ -3120,9 +4867,16 @@ function IrrigationCertificateGenerator() {
     municipality: '',
     kadNumber: '',
     area: '',
-    sketchType: 'location',
-    isIrrigable: true
+    sketchType: 'Скица',
+    representsType: 'не представлява',
+    sketchNumber: '',
+    issueDate: new Date().toISOString().split('T')[0]
   })
+
+  // Autocomplete state
+  const [localitySearch, setLocalitySearch] = useState('')
+  const [showLocalityDropdown, setShowLocalityDropdown] = useState(false)
+  const [previewText, setPreviewText] = useState('')
 
   // Group localities by municipality
   const localitiesByMunicipality = YAMBOL_LOCALITIES.reduce((acc, loc) => {
@@ -3132,6 +4886,11 @@ function IrrigationCertificateGenerator() {
   }, {} as Record<string, LocalityInfo[]>)
 
   const municipalities = Object.keys(localitiesByMunicipality).sort()
+
+  // Filter localities based on search
+  const filteredLocalities = YAMBOL_LOCALITIES.filter(loc =>
+    loc.name.toLowerCase().includes(localitySearch.toLowerCase())
+  )
 
   function updateField(field: keyof IrrigationCertificate, value: any) {
     setCert({ ...cert, [field]: value })
@@ -3146,8 +4905,48 @@ function IrrigationCertificateGenerator() {
         ekatte: locality.ekatte,
         municipality: locality.municipality
       })
+      setLocalitySearch(locality.name)
+      setShowLocalityDropdown(false)
     }
   }
+
+  // Generate formatted preview matching official template
+  function generatePreview() {
+    const irrigableText = cert.representsType === 'представлява' ? 'ПОЛИВНА' : 'НЕПОЛИВНА'
+    const localityWithoutPrefix = cert.locality.replace(/^(гр\.|с\.)\s*/, '')
+    const localityType = cert.locality.startsWith('гр.') ? 'гр.' : 'с.'
+
+    return `Приложение към Заповед № РД-09-845/02.08.2024 г.
+
+
+УДОСТОВЕРЕНИЕ
+ЗА ПОЛИВНОСТ НА ЗЕМЕДЕЛСКА ЗЕМЯ
+
+На основание чл. 30, ал. 1, т. 4 от Правилника за прилагане на Закона за опазване на земеделските земи, във връзка с § 1, т. 10 от Допълнителни разпоредби на Закона за опазване на земеделските земи и в изпълнение на Заповед № РД-09-845./02.08.2024 г. на министъра на земеделието и храните,
+
+„НАПОИТЕЛНИ СИСТЕМИ" ЕАД, клон Средна Тунджа, издава настоящото удостоверение за:
+
+Поземлен имот с идентификатор ${cert.ekatte || '…..'}.${cert.kadNumber || '……………………..'}, с площ  ${cert.area || '…………'}  кв. м по Кадастралната карта и кадастралните регистри на ${localityWithoutPrefix || '……………………..'} община ${cert.municipality || '……………………..'}, област Ямбол, съгласно ${cert.sketchType}  № ${cert.sketchNumber || '……………………..'}-${formatShortDate(cert.issueDate)} г., издадена от Служба по геодезия, картография и кадастър – гр. Ямбол или
+
+Поземлен имот № ………………….. по Картата на възстановената собственост на ${localityType}${cert.locality ? localityWithoutPrefix : '……………………..'}, община ${cert.municipality || '……………………..'}, област Ямбол, с площ от ${cert.area || '…………'} кв. м., съгласно Скица № ${cert.sketchNumber || '……………………..'} / ${formatShortDate(cert.issueDate)} г., издадена от Общинска служба по земеделие - ${cert.municipality || '……………………..'}
+
+в уверение на това, че земята в обхвата на имота  ${cert.representsType} земеделска земя, която е разположена на територията, обслужвана от напоителна система или напоително поле, или може да се напоява от естествен водоизточник, позволяващ гравитачно подаване на вода в имота.
+
+Предвид гореизложеното, към датата на издаване на настоящото Удостоверение, земята в обхвата на поземления имот с идентификатор ${cert.ekatte || '…..'}.${cert.kadNumber || '……………………..'} по КККР
+ (№ …………………. по КВС на землище ${localityType}/${cert.locality ? localityWithoutPrefix : '……………………..'}) е ${irrigableText}  земеделска земя.
+
+
+
+
+Инж. Митошка Ишмериева
+Управител на „Напоителни системи" ЕАД
+клон Средна Тунджа`
+  }
+
+  // Update preview when cert changes
+  useEffect(() => {
+    setPreviewText(generatePreview())
+  }, [cert])
 
   async function handleDownload() {
     try {
@@ -3160,24 +4959,30 @@ function IrrigationCertificateGenerator() {
       if (!docXml) throw new Error('Липсва document.xml')
       let xml = docXml.asText()
 
-      xml = replacePlaceholder(xml, '{ИМЕ}', cert.ownerName)
-      xml = replacePlaceholder(xml, '{ЕГН}', cert.ownerEgn)
-      xml = replacePlaceholder(xml, '{АДРЕС}', cert.ownerAddress)
-      xml = replacePlaceholder(xml, '{НАСЕЛЕНО_МЯСТО}', cert.locality)
+      // Irrigability status - automatic based on representsType
+      const irrigableText = cert.representsType === 'представлява' ? 'ПОЛИВНА' : 'НЕПОЛИВНА'
+
+      xml = replacePlaceholder(xml, '{ИМОТНОМЕР}', cert.kadNumber)
+      xml = replacePlaceholder(xml, '{ПЛОЩ}', cert.area)
+      xml = replacePlaceholder(xml, '{ЗЕМЛИЩЕ}', cert.locality)
       xml = replacePlaceholder(xml, '{ЕКАТТЕ}', cert.ekatte)
       xml = replacePlaceholder(xml, '{ОБЩИНА}', cert.municipality)
-      xml = replacePlaceholder(xml, '{КАД_НОМЕР}', cert.kadNumber)
-      xml = replacePlaceholder(xml, '{ПЛОЩ}', cert.area)
-
-      const sketchText = cert.sketchType === 'location' ? 'местоположение' : 'скица'
-      xml = replacePlaceholder(xml, '{ВИД_СКИЦА}', sketchText)
-
-      const irrigableText = cert.isIrrigable ? 'ПОЛИВНА' : 'НЕПОЛИВНА'
+      xml = replacePlaceholder(xml, '{ОБЛАСТ}', 'Ямбол')
+      xml = replacePlaceholder(xml, '{НОМЕРСКИЦА}', cert.sketchNumber)
+      xml = replacePlaceholder(xml, '{ОТДАТА}', formatShortDate(cert.issueDate))
       xml = replacePlaceholder(xml, '{ПОЛИВНОСТ}', irrigableText)
+
+      // Replace sketch type and represents type in the text
+      xml = xml.replace(/съгласно Скица/g, `съгласно ${cert.sketchType}`)
+      xml = xml.replace(/не представлява/g, cert.representsType)
 
       zip.file('word/document.xml', xml)
       const blob = zip.generate({ type: 'blob' })
-      const fileName = `Удостоверение_${cert.ownerName.replace(/\s+/g, '_')}_${cert.kadNumber}.docx`
+
+      // Премахваме префикса "гр." или "с." от землището за по-чисто име на файла
+      const localityName = cert.locality.replace(/^(гр\.|с\.)\s*/, '')
+      const fileName = `Удостоверение_поливност_${localityName}_${cert.kadNumber.replace(/\./g, '_')}.docx`
+
       await downloadBlob(blob, fileName)
       alert('Документът е генериран!')
     } catch (error) {
@@ -3187,95 +4992,155 @@ function IrrigationCertificateGenerator() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <FormRow label="Име на собственик" required>
-          <Input value={cert.ownerName} onChange={e => updateField('ownerName', e.target.value)} placeholder="Иван Петров Иванов" />
-        </FormRow>
-        <FormRow label="ЕГН" required>
-          <Input value={cert.ownerEgn} onChange={e => updateField('ownerEgn', e.target.value)} placeholder="1234567890" maxLength={10} />
-        </FormRow>
-      </div>
+    <div className="space-y-4">
+      {/* Property Information */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Данни за имота</h3>
 
-      <FormRow label="Адрес">
-        <Input value={cert.ownerAddress} onChange={e => updateField('ownerAddress', e.target.value)} placeholder="гр. Ямбол, ул. ..." />
-      </FormRow>
-
-      <div className="grid grid-cols-3 gap-4">
-        <FormRow label="Населено място" required>
-          <select
-            className="w-full px-3 py-2 border rounded"
-            value={cert.locality}
-            onChange={e => handleLocalityChange(e.target.value)}
-          >
-            <option value="">Избери...</option>
-            {municipalities.map(mun => (
-              <optgroup key={mun} label={mun}>
-                {localitiesByMunicipality[mun].map(loc => (
-                  <option key={loc.ekatte} value={loc.name}>{loc.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </FormRow>
-
-        <FormRow label="ЕКАТТЕ код">
-          <Input value={cert.ekatte} readOnly className="bg-gray-50" />
-        </FormRow>
-
-        <FormRow label="Община">
-          <Input value={cert.municipality} readOnly className="bg-gray-50" />
-        </FormRow>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <FormRow label="Кадастрален номер" required>
-          <Input value={cert.kadNumber} onChange={e => updateField('kadNumber', e.target.value)} placeholder="12345.678.901" />
-        </FormRow>
-
-        <FormRow label="Площ (дка)" required>
-          <Input value={cert.area} onChange={e => updateField('area', e.target.value)} placeholder="12.50" />
-        </FormRow>
-      </div>
-
-      <div className="border rounded-lg p-4 space-y-3">
-        <FormRow label="Вид на скицата">
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={cert.sketchType === 'location'}
-                onChange={() => updateField('sketchType', 'location')}
-                className="w-4 h-4"
-              />
-              <span>Местоположение</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                checked={cert.sketchType === 'sketch'}
-                onChange={() => updateField('sketchType', 'sketch')}
-                className="w-4 h-4"
-              />
-              <span>Скица</span>
-            </label>
-          </div>
-        </FormRow>
-
-        <FormRow label="Поливност">
-          <label className="flex items-center gap-2 cursor-pointer">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="relative">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Населено място*</label>
             <input
-              type="checkbox"
-              checked={cert.isIrrigable}
-              onChange={e => updateField('isIrrigable', e.target.checked)}
-              className="w-4 h-4"
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              value={localitySearch}
+              onChange={e => {
+                setLocalitySearch(e.target.value)
+                setShowLocalityDropdown(true)
+              }}
+              onFocus={() => setShowLocalityDropdown(true)}
+              placeholder="Започни да пишеш..."
             />
-            <span>Земята е поливна</span>
-          </label>
-        </FormRow>
+            {showLocalityDropdown && filteredLocalities.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {filteredLocalities.map(loc => (
+                  <div
+                    key={loc.ekatte}
+                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                    onClick={() => handleLocalityChange(loc.name)}
+                  >
+                    <div className="font-medium">{loc.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {loc.municipality} • ЕКАТТЕ: {loc.ekatte}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">ЕКАТТЕ код</label>
+            <Input value={cert.ekatte} readOnly className="bg-gray-50 px-3 py-2" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Община</label>
+            <Input value={cert.municipality} readOnly className="bg-gray-50 px-3 py-2" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Кадастрален номер (идентификатор)*</label>
+            <Input
+              value={cert.kadNumber}
+              onChange={e => updateField('kadNumber', e.target.value)}
+              placeholder="12345.678.901"
+              className="px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Площ (кв.м)*</label>
+            <Input
+              value={cert.area}
+              onChange={e => updateField('area', e.target.value)}
+              placeholder="12500"
+              className="px-3 py-2"
+            />
+          </div>
+        </div>
       </div>
 
-      <Btn onClick={handleDownload}>
+      {/* Certificate Details */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Детайли на удостоверението</h3>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Вид скица*</label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              value={cert.sketchType}
+              onChange={e => updateField('sketchType', e.target.value as 'Скица' | 'Скица - проект')}
+            >
+              <option value="Скица">Скица</option>
+              <option value="Скица - проект">Скица - проект</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Номер на скицата*</label>
+            <Input
+              value={cert.sketchNumber}
+              onChange={e => updateField('sketchNumber', e.target.value)}
+              placeholder="123/2026"
+              className="px-3 py-2"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Имотът...</label>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              value={cert.representsType}
+              onChange={e => updateField('representsType', e.target.value as 'представлява' | 'не представлява')}
+            >
+              <option value="не представлява">не представлява</option>
+              <option value="представлява">представлява</option>
+            </select>
+            <span className="text-xs text-gray-500 mt-1 block">...поземлен имот с недвижима собственост</span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Дата на издаване*</label>
+            <Input
+              type="date"
+              value={cert.issueDate}
+              onChange={e => updateField('issueDate', e.target.value)}
+              className="px-3 py-2"
+            />
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="flex items-start gap-2">
+            <FileTextIcon className="w-4 h-4 text-blue-600 mt-0.5" />
+            <div className="text-xs text-blue-800">
+              <strong>Поливност:</strong> {cert.representsType === 'представлява' ? 'ПОЛИВНА' : 'НЕПОЛИВНА'}
+              <div className="text-blue-600 mt-1">
+                (Автоматично определена според избора "{cert.representsType}")
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <FileTextIcon className="w-4 h-4" />
+          Преглед на съдържанието
+        </h3>
+        <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+          {previewText || 'Зареждане на шаблон...'}
+        </div>
+      </div>
+
+      <Btn onClick={handleDownload} className="w-full">
         <DownloadIcon className="w-4 h-4" />
         Изтегли удостоверение
       </Btn>
@@ -3289,7 +5154,7 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
   const [category, setCategory] = useState<'napoyavane' | 'udvn' | 'certificates'>('napoyavane')
 
   // Napoyavane tabs
-  const [napoyavaneTab, setNapoyavaneTab] = useState<'contract' | 'act' | 'request'>('contract')
+  const [napoyavaneTab, setNapoyavaneTab] = useState<'contract' | 'act' | 'app1' | 'app2' | 'app3' | 'app4' | 'app6'>('contract')
 
   // UDVN tabs
   const [udvnTab, setUdvnTab] = useState<'upcoming' | 'completed' | 'odz-letter' | 'protocol'>('upcoming')
@@ -3297,7 +5162,7 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
   // UDVN state for all generators
   const [udvnMonth, setUdvnMonth] = useState('Януари')
   const [udvnReportDate, setUdvnReportDate] = useState('')
-  const [udvnFacilities, setUdvnFacilities] = useState<UdvnFacility[]>([{ ...EMPTY_FACILITY }])
+  const [udvnFacilities, setUdvnFacilities] = useState<UdvnFacility[]>([JSON.parse(JSON.stringify(EMPTY_FACILITY))])
   const [udvnLetterDate, setUdvnLetterDate] = useState('')
   const [udvnOutgoingNumber, setUdvnOutgoingNumber] = useState('')
   const [udvnProtocolNumber, setUdvnProtocolNumber] = useState('')
@@ -3315,14 +5180,18 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
       else if (defaultTab === 'protocol') setUdvnTab('protocol')
     } else if (defaultTab) {
       setCategory('napoyavane')
-      setNapoyavaneTab(defaultTab as 'contract' | 'act' | 'request')
+      setNapoyavaneTab(defaultTab as 'contract' | 'act' | 'app1' | 'app2' | 'app3' | 'app4' | 'app6')
     }
   })
 
   const napoyavaneTabs = [
-    { id: 'contract', label: 'Договор' },
-    { id: 'act', label: 'Акт' },
-    { id: 'request', label: 'Заявка' },
+    { id: 'contract', label: 'Договор', subtitle: '' },
+    { id: 'act', label: 'Акт', subtitle: '' },
+    { id: 'app1', label: 'Заявление', subtitle: 'прил. 1' },
+    { id: 'app2', label: 'Протокол замерване', subtitle: 'прил. 2' },
+    { id: 'app3', label: 'Рекапитулация', subtitle: 'прил. 3' },
+    { id: 'app4', label: 'Заявка', subtitle: 'прил. 4' },
+    { id: 'app6', label: 'Декларация', subtitle: 'прил. 6' },
   ] as const
 
   const udvnTabs = [
@@ -3343,23 +5212,23 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setCategory('napoyavane')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${category === 'napoyavane' ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm ${category === 'napoyavane' ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
-          <WaterDropIcon className="w-4 h-4" />
+          <WaterDropIcon className="w-5 h-5" />
           Напояване
         </button>
         <button
           onClick={() => setCategory('udvn')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${category === 'udvn' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm ${category === 'udvn' ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
-          <ToolsIcon className="w-4 h-4" />
+          <ToolsIcon className="w-5 h-5" />
           УДВН
         </button>
         <button
           onClick={() => setCategory('certificates')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${category === 'certificates' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm ${category === 'certificates' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
-          <FileTextIcon className="w-4 h-4" />
+          <FileTextIcon className="w-5 h-5" />
           Удостоверения
         </button>
       </div>
@@ -3367,14 +5236,17 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
       {/* Napoyavane tabs */}
       {category === 'napoyavane' && (
         <>
-          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
             {napoyavaneTabs.map(t => (
               <button
                 key={t.id}
                 onClick={() => setNapoyavaneTab(t.id)}
                 className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${napoyavaneTab === t.id ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
               >
-                {t.label}
+                <div className="flex flex-col items-center">
+                  <span>{t.label}</span>
+                  {t.subtitle && <span className="text-xs opacity-70 mt-0.5">{t.subtitle}</span>}
+                </div>
               </button>
             ))}
           </div>
@@ -3382,7 +5254,11 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
           <div className="flex-1 min-h-0">
             {napoyavaneTab === 'contract' && <ContractGenerator />}
             {napoyavaneTab === 'act' && <ActGenerator />}
-            {napoyavaneTab === 'request' && <RequestGenerator />}
+            {napoyavaneTab === 'app1' && <Appendix1Generator />}
+            {napoyavaneTab === 'app2' && <Appendix2Generator />}
+            {napoyavaneTab === 'app3' && <Appendix3Generator />}
+            {napoyavaneTab === 'app4' && <Appendix4Generator />}
+            {napoyavaneTab === 'app6' && <Appendix6Generator />}
           </div>
         </>
       )}
@@ -3425,6 +5301,8 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
             )}
             {udvnTab === 'odz-letter' && (
               <OdzLetterGenerator
+                month={udvnMonth}
+                setMonth={setUdvnMonth}
                 letterDate={udvnLetterDate}
                 setLetterDate={setUdvnLetterDate}
                 outgoingNumber={udvnOutgoingNumber}
@@ -3435,6 +5313,8 @@ export default function Generators({ defaultTab }: { defaultTab?: 'contract' | '
             )}
             {udvnTab === 'protocol' && (
               <ProtocolGenerator
+                month={udvnMonth}
+                setMonth={setUdvnMonth}
                 protocolNumber={udvnProtocolNumber}
                 setProtocolNumber={setUdvnProtocolNumber}
                 protocolDate={udvnProtocolDate}

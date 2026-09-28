@@ -1,0 +1,4074 @@
+{
+  "paragraphs": [
+    {
+      "index": 0,
+      "text": "Приложение № 4 по чл.12 от Общите условия ",
+      "alignment": "RIGHT",
+      "runs": [
+        {
+          "text": "Приложение № 4 по чл.",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "12",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " от Общи",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "те",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " условия ",
+          "formatting": {
+            "bold": true
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "text": "",
+      "alignment": "RIGHT",
+      "runs": []
+    },
+    {
+      "index": 2,
+      "text": "",
+      "alignment": "CENTER",
+      "runs": []
+    },
+    {
+      "index": 3,
+      "text": "ЗАЯВКА   ЗА ПОЛИВКА №  {ПОЛИВКА НОМЕР}",
+      "alignment": "CENTER",
+      "runs": [
+        {
+          "text": "ЗАЯВ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "КА",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "   ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ЗА ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ПОЛИВКА",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "№  ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ПОЛИВКА НОМЕР",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "}",
+          "formatting": {
+            "bold": true
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 5,
+      "text": "Към Договор за доставка на вода за напояване №  {Договор №}",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "Към ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "Договор",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " за доставка на вода за напояване № ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {}
+        },
+        {
+          "text": "Договор №",
+          "formatting": {}
+        },
+        {
+          "text": "}",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 7,
+      "text": "ДОСТАВЧИК: клон “ Средна Тунджа”, ХТР/ХТУ: ЯМБОЛ/{ХТУ} ",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "ДОСТАВЧИК",
+          "formatting": {}
+        },
+        {
+          "text": ": ",
+          "formatting": {}
+        },
+        {
+          "text": "клон ",
+          "formatting": {}
+        },
+        {
+          "text": "“ ",
+          "formatting": {}
+        },
+        {
+          "text": "Средна Тунджа",
+          "formatting": {}
+        },
+        {
+          "text": "”",
+          "formatting": {}
+        },
+        {
+          "text": ",",
+          "formatting": {}
+        },
+        {
+          "text": " ",
+          "formatting": {}
+        },
+        {
+          "text": "ХТР",
+          "formatting": {}
+        },
+        {
+          "text": "/ХТУ",
+          "formatting": {}
+        },
+        {
+          "text": ":",
+          "formatting": {}
+        },
+        {
+          "text": " ",
+          "formatting": {}
+        },
+        {
+          "text": "ЯМБОЛ/",
+          "formatting": {}
+        },
+        {
+          "text": "{",
+          "formatting": {}
+        },
+        {
+          "text": "ХТУ",
+          "formatting": {}
+        },
+        {
+          "text": "}",
+          "formatting": {}
+        },
+        {
+          "text": " ",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "text": "ВОДОПОЛЗВАТЕЛ: { ВОДОПОЛЗВАТЕЛ }",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "ВОДОПОЛЗВАТЕЛ: ",
+          "formatting": {}
+        },
+        {
+          "text": "{",
+          "formatting": {}
+        },
+        {
+          "text": " ",
+          "formatting": {}
+        },
+        {
+          "text": "ВОДОПОЛЗВАТЕЛ",
+          "formatting": {}
+        },
+        {
+          "text": " }",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 10,
+      "text": "Доставчикът се задължава да достави вода за напояване за имоти и по култури, заявени от Водоползвателя, както следва:",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "Доставчикът се задължава да достави вода за напояване за имоти и по култури, заявени от Водоползвателя, както следва:",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 12,
+      "text": "ПИ№ {ПИ} \t\t\t\t\t\t\tНС  {НАП. СИСТЕМА}",
+      "alignment": "LEFT",
+      "runs": [
+        {
+          "text": "ПИ№",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ПИ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "}",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "\t",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "НС",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "  ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "НАП",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": ". ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "СИСТЕМА",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "}",
+          "formatting": {
+            "bold": true
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "text": "съоръжение/{СЪОРАЖЕНИЕ}, поливка № {ПОЛИВКА НОМ} ",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "съоръжение",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "/",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "СЪОРАЖЕНИЕ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "}",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": ", поливка №",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ПОЛИВКА НОМ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "}",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "text": "за времето от{OT} до {ДО} 2026 г. желая да ми бъде доставена вода, както следва:",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "за времето от",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{OT} ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "до",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "{",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "ДО",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "} ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "2026",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": " ",
+          "formatting": {
+            "bold": true
+          }
+        },
+        {
+          "text": "г. желая да ми бъде доставена вода, както следва:",
+          "formatting": {
+            "bold": true
+          }
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 16,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 17,
+      "text": "На основание чл. 13 от Общите условия към Договори за доставка на вода за напояване:",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "На ",
+          "formatting": {}
+        },
+        {
+          "text": "основание чл. ",
+          "formatting": {}
+        },
+        {
+          "text": "1",
+          "formatting": {}
+        },
+        {
+          "text": "3",
+          "formatting": {}
+        },
+        {
+          "text": " от Общите условия ",
+          "formatting": {}
+        },
+        {
+          "text": "към ",
+          "formatting": {}
+        },
+        {
+          "text": "Договор",
+          "formatting": {}
+        },
+        {
+          "text": "и",
+          "formatting": {}
+        },
+        {
+          "text": " за доставка на вода за напояване:",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "text": "- Доставчикът отчита доставената вода на Водоползвателя, чрез Акт дневник за напояване.",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "- Доставчикът отчита",
+          "formatting": {}
+        },
+        {
+          "text": " доставената вода на Водоползвателя, чрез Акт дневник за напояване.",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "text": "- Водоползвателят, заявява, че е запознат с Общите условия към Договори за доставка на вода за напояване и ги приема безусловно.",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": "- Водоползвателят, заявява, че е ",
+          "formatting": {}
+        },
+        {
+          "text": "запознат с Общите условия ",
+          "formatting": {}
+        },
+        {
+          "text": "към",
+          "formatting": {}
+        },
+        {
+          "text": " Договор",
+          "formatting": {}
+        },
+        {
+          "text": "и",
+          "formatting": {}
+        },
+        {
+          "text": " за доставка на вода за напояване и ги приема безусловно",
+          "formatting": {}
+        },
+        {
+          "text": ".",
+          "formatting": {}
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 21,
+      "text": "",
+      "alignment": "JUSTIFY",
+      "runs": []
+    },
+    {
+      "index": 22,
+      "text": " Доставчик: ……………………                               Водоползвател: ………………………...",
+      "alignment": "JUSTIFY",
+      "runs": [
+        {
+          "text": " Доставчик: ……………………                               Водоползвател: ………………………...",
+          "formatting": {}
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "index": 0,
+      "type": "table",
+      "rows": 12,
+      "cols": 13,
+      "cells": [
+        [
+          {
+            "row": 0,
+            "col": 0,
+            "text": "КУЛТУРИ",
+            "paragraphs": [
+              {
+                "text": "КУЛТУРИ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "КУЛТУРИ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 1,
+            "text": "Площ\n ",
+            "paragraphs": [
+              {
+                "text": "Площ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Площ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 2,
+            "text": "Поливна норма",
+            "paragraphs": [
+              {
+                "text": "Поливна норма",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Поливна норма",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 3,
+            "text": "поливка",
+            "paragraphs": [
+              {
+                "text": "поливка",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "поливка",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 4,
+            "text": "времетраене  на  поливането",
+            "paragraphs": [
+              {
+                "text": "времетраене  на  поливането",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "времетраене  на  поливането",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 5,
+            "text": "времетраене  на  поливането",
+            "paragraphs": [
+              {
+                "text": "времетраене  на  поливането",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "времетраене  на  поливането",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 6,
+            "text": "времетраене  на  поливането",
+            "paragraphs": [
+              {
+                "text": "времетраене  на  поливането",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "времетраене  на  поливането",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 7,
+            "text": "времетраене  на  поливането",
+            "paragraphs": [
+              {
+                "text": "времетраене  на  поливането",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "времетраене  на  поливането",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 8,
+            "text": "Начин на водопод.",
+            "paragraphs": [
+              {
+                "text": "Начин на водопод.",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Начин на водопод.",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 9,
+            "text": "Начин на водопод.",
+            "paragraphs": [
+              {
+                "text": "Начин на водопод.",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Начин на водопод.",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 10,
+            "text": "Начин на отчитане на в. маси",
+            "paragraphs": [
+              {
+                "text": "Начин на отчитане на в. маси",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Начин на отчитане на в. маси",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 11,
+            "text": "Цена по Заповед",
+            "paragraphs": [
+              {
+                "text": "Цена по Заповед",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Цена по Заповед",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 0,
+            "col": 12,
+            "text": "Дължима сума, с ДДС",
+            "paragraphs": [
+              {
+                "text": "Дължима сума, с ДДС",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Дължима сума, с ДДС",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 1,
+            "col": 0,
+            "text": "КУЛТУРИ",
+            "paragraphs": [
+              {
+                "text": "КУЛТУРИ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "КУЛТУРИ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 1,
+            "text": "Площ\n ",
+            "paragraphs": [
+              {
+                "text": "Площ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Площ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 2,
+            "text": "Поливна норма",
+            "paragraphs": [
+              {
+                "text": "Поливна норма",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Поливна норма",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 3,
+            "text": "поливка",
+            "paragraphs": [
+              {
+                "text": "поливка",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "поливка",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 4,
+            "text": "Начало",
+            "paragraphs": [
+              {
+                "text": "Начало",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Начало",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 5,
+            "text": "Начало",
+            "paragraphs": [
+              {
+                "text": "Начало",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Начало",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 6,
+            "text": "Край",
+            "paragraphs": [
+              {
+                "text": "Край",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Край",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 7,
+            "text": "Край",
+            "paragraphs": [
+              {
+                "text": "Край",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Край",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 8,
+            "text": "Гравитачно\n",
+            "paragraphs": [
+              {
+                "text": "Гравитачно",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Гравитачно",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": "",
+                "alignment": "CENTER",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 9,
+            "text": "Помпено\n",
+            "paragraphs": [
+              {
+                "text": "Помпено",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Помпено",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": "",
+                "alignment": "CENTER",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 10,
+            "text": "Начин на отчитане на в. маси",
+            "paragraphs": [
+              {
+                "text": "Начин на отчитане на в. маси",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Начин на отчитане на в. маси",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 11,
+            "text": "Цена по Заповед",
+            "paragraphs": [
+              {
+                "text": "Цена по Заповед",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Цена по Заповед",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 1,
+            "col": 12,
+            "text": "Дължима сума, с ДДС",
+            "paragraphs": [
+              {
+                "text": "Дължима сума, с ДДС",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "Дължима сума, с ДДС",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 2,
+            "col": 0,
+            "text": "КУЛТУРИ",
+            "paragraphs": [
+              {
+                "text": "КУЛТУРИ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "КУЛТУРИ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 1,
+            "text": "дка",
+            "paragraphs": [
+              {
+                "text": "дка",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "дка",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 2,
+            "text": "м3",
+            "paragraphs": [
+              {
+                "text": "м3",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "м3",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 3,
+            "text": "№",
+            "paragraphs": [
+              {
+                "text": "№",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "№",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 4,
+            "text": "дата",
+            "paragraphs": [
+              {
+                "text": "дата",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "дата",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 5,
+            "text": "час",
+            "paragraphs": [
+              {
+                "text": "час",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "час",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 6,
+            "text": "дата",
+            "paragraphs": [
+              {
+                "text": "дата",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "дата",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 7,
+            "text": "час",
+            "paragraphs": [
+              {
+                "text": "час",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "час",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 8,
+            "text": "Гравитачно\n",
+            "paragraphs": [
+              {
+                "text": "Гравитачно",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Гравитачно",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": "",
+                "alignment": "CENTER",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 9,
+            "text": "Помпено\n",
+            "paragraphs": [
+              {
+                "text": "Помпено",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Помпено",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              },
+              {
+                "text": "",
+                "alignment": "CENTER",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 10,
+            "text": "Начин на отчитане на в. маси",
+            "paragraphs": [
+              {
+                "text": "Начин на отчитане на в. маси",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "Начин на отчитане на в. маси",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 11,
+            "text": "€",
+            "paragraphs": [
+              {
+                "text": "€",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "€",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 2,
+            "col": 12,
+            "text": "€",
+            "paragraphs": [
+              {
+                "text": "€",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "€",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 3,
+            "col": 0,
+            "text": "1",
+            "paragraphs": [
+              {
+                "text": "1",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "1",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 1,
+            "text": "2",
+            "paragraphs": [
+              {
+                "text": "2",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "2",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 2,
+            "text": "3",
+            "paragraphs": [
+              {
+                "text": "3",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "3",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 3,
+            "text": "4",
+            "paragraphs": [
+              {
+                "text": "4",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "4",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 4,
+            "text": "5",
+            "paragraphs": [
+              {
+                "text": "5",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "5",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 5,
+            "text": "6",
+            "paragraphs": [
+              {
+                "text": "6",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "6",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 6,
+            "text": "7",
+            "paragraphs": [
+              {
+                "text": "7",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "7",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 7,
+            "text": "8",
+            "paragraphs": [
+              {
+                "text": "8",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "8",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 8,
+            "text": "9",
+            "paragraphs": [
+              {
+                "text": "9",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "9",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 9,
+            "text": "10",
+            "paragraphs": [
+              {
+                "text": "10",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "10",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 10,
+            "text": "11",
+            "paragraphs": [
+              {
+                "text": "11",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "11",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 11,
+            "text": "12",
+            "paragraphs": [
+              {
+                "text": "12",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "12",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 3,
+            "col": 12,
+            "text": "13",
+            "paragraphs": [
+              {
+                "text": "13",
+                "alignment": "CENTER",
+                "runs": [
+                  {
+                    "text": "13",
+                    "formatting": {
+                      "italic": true,
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 4,
+            "col": 0,
+            "text": " {КУЛТУРА}",
+            "paragraphs": [
+              {
+                "text": " {КУЛТУРА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "КУЛТУРА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 1,
+            "text": "{ДКА}",
+            "paragraphs": [
+              {
+                "text": "{ДКА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДКА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 2,
+            "text": " {ПОЛ НОРМА}",
+            "paragraphs": [
+              {
+                "text": " {ПОЛ НОРМА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ПОЛ НОРМА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 4,
+            "text": " {ОТ}",
+            "paragraphs": [
+              {
+                "text": " {ОТ}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ОТ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 6,
+            "text": " {ДО}",
+            "paragraphs": [
+              {
+                "text": " {ДО}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДО",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 10,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 4,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 5,
+            "col": 0,
+            "text": "  {КУЛТУРА2}",
+            "paragraphs": [
+              {
+                "text": "  {КУЛТУРА2}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "КУЛТУРА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "2",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 1,
+            "text": " {ДКА}",
+            "paragraphs": [
+              {
+                "text": " {ДКА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДКА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 2,
+            "text": "  {ПОЛ НОРМА}",
+            "paragraphs": [
+              {
+                "text": "  {ПОЛ НОРМА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ПОЛ НОРМА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 4,
+            "text": " {ОТ}",
+            "paragraphs": [
+              {
+                "text": " {ОТ}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ОТ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 6,
+            "text": " {ДО}",
+            "paragraphs": [
+              {
+                "text": " {ДО}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДО",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 5,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 6,
+            "col": 0,
+            "text": "  {КУЛТУРА 3}",
+            "paragraphs": [
+              {
+                "text": "  {КУЛТУРА 3}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "КУЛТУРА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": " 3",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 1,
+            "text": " {ДКА}",
+            "paragraphs": [
+              {
+                "text": " {ДКА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДКА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 2,
+            "text": "  {ПОЛ НОРМА}",
+            "paragraphs": [
+              {
+                "text": "  {ПОЛ НОРМА}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ПОЛ НОРМА",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 4,
+            "text": " {ОТ}",
+            "paragraphs": [
+              {
+                "text": " {ОТ}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ОТ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 6,
+            "text": " {ДО}",
+            "paragraphs": [
+              {
+                "text": " {ДО}",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "{",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "ДО",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  },
+                  {
+                    "text": "}",
+                    "formatting": {
+                      "font_size": 8.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 6,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 7,
+            "col": 0,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 1,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 2,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 4,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 6,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 7,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 8,
+            "col": 0,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 1,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 2,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 4,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 6,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 8,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 9,
+            "col": 0,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 1,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 2,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 4,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 6,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 9,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 10,
+            "col": 0,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 1,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 2,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 4,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 6,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 10,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "row": 11,
+            "col": 0,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 1,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 2,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 3,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 4,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 5,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 6,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 7,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 8,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 9,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 10,
+            "text": " ",
+            "paragraphs": [
+              {
+                "text": " ",
+                "alignment": "JUSTIFY",
+                "runs": [
+                  {
+                    "text": " ",
+                    "formatting": {
+                      "font_size": 9.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 11,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          },
+          {
+            "row": 11,
+            "col": 12,
+            "text": "",
+            "paragraphs": [
+              {
+                "text": "",
+                "alignment": "JUSTIFY",
+                "runs": []
+              }
+            ]
+          }
+        ]
+      ]
+    }
+  ],
+  "all_placeholders": [
+    " ВОДОПОЛЗВАТЕЛ ",
+    "OT",
+    "ДКА",
+    "ДО",
+    "Договор №",
+    "КУЛТУРА",
+    "КУЛТУРА 3",
+    "КУЛТУРА2",
+    "НАП. СИСТЕМА",
+    "ОТ",
+    "ПИ",
+    "ПОЛ НОРМА",
+    "ПОЛИВКА НОМ",
+    "ПОЛИВКА НОМЕР",
+    "СЪОРАЖЕНИЕ",
+    "ХТУ"
+  ],
+  "full_text": [
+    "Приложение № 4 по чл.12 от Общите условия ",
+    "",
+    "",
+    "ЗАЯВКА   ЗА ПОЛИВКА №  {ПОЛИВКА НОМЕР}",
+    "",
+    "Към Договор за доставка на вода за напояване №  {Договор №}",
+    "",
+    "ДОСТАВЧИК: клон “ Средна Тунджа”, ХТР/ХТУ: ЯМБОЛ/{ХТУ} ",
+    "ВОДОПОЛЗВАТЕЛ: { ВОДОПОЛЗВАТЕЛ }",
+    "",
+    "Доставчикът се задължава да достави вода за напояване за имоти и по култури, заявени от Водоползвателя, както следва:",
+    "",
+    "ПИ№ {ПИ} \t\t\t\t\t\t\tНС  {НАП. СИСТЕМА}",
+    "съоръжение/{СЪОРАЖЕНИЕ}, поливка № {ПОЛИВКА НОМ} ",
+    "за времето от{OT} до {ДО} 2026 г. желая да ми бъде доставена вода, както следва:",
+    "",
+    "КУЛТУРИ",
+    "Площ\n ",
+    "Поливна норма",
+    "поливка",
+    "времетраене  на  поливането",
+    "времетраене  на  поливането",
+    "времетраене  на  поливането",
+    "времетраене  на  поливането",
+    "Начин на водопод.",
+    "Начин на водопод.",
+    "Начин на отчитане на в. маси",
+    "Цена по Заповед",
+    "Дължима сума, с ДДС",
+    "КУЛТУРИ",
+    "Площ\n ",
+    "Поливна норма",
+    "поливка",
+    "Начало",
+    "Начало",
+    "Край",
+    "Край",
+    "Гравитачно\n",
+    "Помпено\n",
+    "Начин на отчитане на в. маси",
+    "Цена по Заповед",
+    "Дължима сума, с ДДС",
+    "КУЛТУРИ",
+    "дка",
+    "м3",
+    "№",
+    "дата",
+    "час",
+    "дата",
+    "час",
+    "Гравитачно\n",
+    "Помпено\n",
+    "Начин на отчитане на в. маси",
+    "€",
+    "€",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    " {КУЛТУРА}",
+    "{ДКА}",
+    " {ПОЛ НОРМА}",
+    "",
+    " {ОТ}",
+    " ",
+    " {ДО}",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    "",
+    "  {КУЛТУРА2}",
+    " {ДКА}",
+    "  {ПОЛ НОРМА}",
+    "",
+    " {ОТ}",
+    " ",
+    " {ДО}",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    "  {КУЛТУРА 3}",
+    " {ДКА}",
+    "  {ПОЛ НОРМА}",
+    "",
+    " {ОТ}",
+    " ",
+    " {ДО}",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    " ",
+    " ",
+    " ",
+    "",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    " ",
+    " ",
+    " ",
+    "",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    " ",
+    " ",
+    " ",
+    "",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    " ",
+    " ",
+    " ",
+    "",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    " ",
+    " ",
+    " ",
+    "",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "",
+    "",
+    "",
+    "На основание чл. 13 от Общите условия към Договори за доставка на вода за напояване:",
+    "- Доставчикът отчита доставената вода на Водоползвателя, чрез Акт дневник за напояване.",
+    "- Водоползвателят, заявява, че е запознат с Общите условия към Договори за доставка на вода за напояване и ги приема безусловно.",
+    "",
+    "",
+    " Доставчик: ……………………                               Водоползвател: ………………………..."
+  ]
+}
