@@ -470,8 +470,8 @@ function ReportingTable({ data }: { data: any[] }) {
               <td className="border border-gray-300 px-2 py-2 font-medium text-center">{row.month}</td>
               <td className="border border-gray-300 px-2 py-2 text-center">{row.availableArea ? num(row.availableArea, 2) : '—'}</td>
               {/* ПО ДОГОВОР */}
-              <td className="border border-gray-300 px-2 py-2 text-center">{row.contractArea ? num(row.contractArea, 2) : '—'}</td>
-              <td className="border border-gray-300 px-2 py-2 text-center">{row.contractWater ? num(row.contractWater, 2) : '—'}</td>
+              <td className="border border-gray-300 px-2 py-2 text-center">{num(row.contractArea || 0, 2)}</td>
+              <td className="border border-gray-300 px-2 py-2 text-center">{num(row.contractWater || 0, 2)}</td>
               {/* ОБЩО ПОЛЯТИ */}
               <td className="border border-gray-300 px-2 py-2 text-center font-medium">{row.totalFirstArea ? num(row.totalFirstArea, 2) : '—'}</td>
               <td className="border border-gray-300 px-2 py-2 text-center font-medium">{row.totalFirstWater ? num(row.totalFirstWater, 2) : '—'}</td>
