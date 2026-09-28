@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { Contractor } from '../types'
 import { Modal, Btn, FormRow, Input, Select, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, ImportButton, ImportResultModal, EditIcon, TrashIcon } from './ui'
 import { parseSpreadsheetFile, findByField, rowGet } from '../lib/spreadsheet'
@@ -13,6 +14,8 @@ const EMPTY: Omit<Contractor, 'id'> = {
 type SortField = 'name' | 'bulstat' | 'address' | 'contact' | 'phone' | 'iban'
 
 export default function Contractors() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const { contractors, setContractors, contracts, setContracts, acts, setActs, requests, setRequests, payments, setPayments } = useStore()
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Contractor | null>(null)
@@ -35,11 +38,17 @@ export default function Contractors() {
   }
 
   const filtered = contractors
-    .filter(c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.bulstat.includes(search) ||
-      c.contact.toLowerCase().includes(search.toLowerCase())
-    )
+    .filter(c => {
+      const q = search.toLowerCase()
+      return (
+        c.name.toLowerCase().includes(q) ||
+        c.bulstat.includes(search) ||
+        c.contact.toLowerCase().includes(q) ||
+        c.address.toLowerCase().includes(q) ||
+        c.phone.includes(search) ||
+        c.iban.toLowerCase().includes(q)
+      )
+    })
     .sort((a, b) => {
       if (!sortField) return 0
       const cmp = a[sortField].localeCompare(b[sortField], 'bg', { numeric: true })
@@ -101,9 +110,24 @@ export default function Contractors() {
       const name = String(rowGet(row, 'Наименование') ?? '').trim()
       if (!name) { errors.push(`Ред ${rowNum}: липсва наименование`); return }
       const bulstat = String(rowGet(row, 'БУЛСТАТ') ?? '').trim()
-      if (bulstat && (findByField(contractors, 'bulstat', bulstat) || findByField(added, 'bulstat', bulstat))) {
-        errors.push(`Ред ${rowNum}: контрагент с БУЛСТАТ "${bulstat}" вече съществува`); return
+
+      // Проверка за дубликат по БУЛСТАТ (ако е попълнен)
+      if (bulstat) {
+        const duplicateBulstat = findByField(contractors, 'bulstat', bulstat) || findByField(added, 'bulstat', bulstat)
+        if (duplicateBulstat) {
+          errors.push(`Ред ${rowNum}: контрагент с БУЛСТАТ "${bulstat}" вече съществува, пропуснат`)
+          return
+        }
       }
+
+      // Проверка за дубликат по Наименование (case-insensitive)
+      const nameLower = name.toLowerCase()
+      const duplicateName = contractors.find(c => c.name.toLowerCase() === nameLower) || added.find(c => c.name.toLowerCase() === nameLower)
+      if (duplicateName) {
+        errors.push(`Ред ${rowNum}: контрагент с наименование "${name}" вече съществува, пропуснат`)
+        return
+      }
+
       added.push({
         id: `${Date.now()}-${i}`,
         name,
@@ -229,9 +253,11 @@ export default function Contractors() {
                   ['name', 'Наименование'],
                   ['bulstat', 'БУЛСТАТ'],
                   ['address', 'Адрес'],
-                  ['contact', 'МОЛ / Контакт'],
-                  ['phone', 'Телефон'],
-                  ['iban', 'IBAN'],
+                  ...(isAdmin ? [
+                    ['contact', 'МОЛ / Контакт'],
+                    ['phone', 'Телефон'],
+                    ['iban', 'IBAN'],
+                  ] : [])
                 ] as [SortField, string][]).map(([field, label]) => (
                   <th
                     key={field}
@@ -246,16 +272,16 @@ export default function Contractors() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState message="Няма намерени контрагенти" /></td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 4}><EmptyState message="Няма намерени контрагенти" /></td></tr>
               ) : (
                 filtered.map((c, i) => (
                   <tr key={c.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
                     <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{c.bulstat}</td>
                     <td className="px-4 py-3 text-gray-600 max-w-xs whitespace-normal break-words">{c.address}</td>
-                    <td className="px-4 py-3 text-gray-600">{c.contact}</td>
-                    <td className="px-4 py-3 text-gray-600">{c.phone}</td>
-                    <td className="px-4 py-3 text-gray-600 text-xs">{c.iban}</td>
+                    {isAdmin && <td className="px-4 py-3 text-gray-600">{c.contact}</td>}
+                    {isAdmin && <td className="px-4 py-3 text-gray-600">{c.phone}</td>}
+                    {isAdmin && <td className="px-4 py-3 text-gray-600 text-xs">{c.iban}</td>}
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5">
                         <Btn size="sm" variant="ghost" onClick={() => openEdit(c)}><EditIcon /></Btn>
@@ -315,11 +341,13 @@ export default function Contractors() {
                   />
                   <label htmlFor="vatRegistered" className="text-sm text-gray-700">Регистриран по ДДС</label>
                 </div>
-                <div className="col-span-2">
-                  <FormRow label="МОЛ / Управител">
-                    <Input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} placeholder="Иван Петров" />
-                  </FormRow>
-                </div>
+                {isAdmin && (
+                  <div className="col-span-2">
+                    <FormRow label="МОЛ / Управител">
+                      <Input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} placeholder="Иван Петров" />
+                    </FormRow>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -340,19 +368,23 @@ export default function Contractors() {
               </>
             )}
 
-            <FormRow label="Телефон">
-              <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="0888 123 456" />
-            </FormRow>
+            {isAdmin && (
+              <FormRow label="Телефон">
+                <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="0888 123 456" />
+              </FormRow>
+            )}
             <div className="col-span-2">
               <FormRow label="Адрес">
                 <Input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="с. Горно Езерово, ул. Главна 5" />
               </FormRow>
             </div>
-            <div className="col-span-2">
-              <FormRow label="IBAN">
-                <Input value={form.iban} onChange={e => setForm({ ...form, iban: e.target.value })} placeholder="BG00XXXX00000000000000" />
-              </FormRow>
-            </div>
+            {isAdmin && (
+              <div className="col-span-2">
+                <FormRow label="IBAN">
+                  <Input value={form.iban} onChange={e => setForm({ ...form, iban: e.target.value })} placeholder="BG00XXXX00000000000000" />
+                </FormRow>
+              </div>
+            )}
 
             <div className="col-span-2 flex items-center gap-2 mt-1">
               <input

@@ -120,6 +120,8 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
   const filtered = contracts.filter(c => {
     const contractor = contractors.find(x => x.id === c.contractorId)
     const htu = htus.find(x => x.id === c.htuId)
+    const crop = crops.find(x => x.id === c.cropId)
+    const method = irrigationMethods.find(x => x.id === c.irrigationMethodId)
     const q = search.toLowerCase()
     return (
       (!htuFilter || htu?.htuName === htuFilter) &&
@@ -128,7 +130,10 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
         (contractor?.name.toLowerCase().includes(q) ?? false) ||
         (htu?.htuName.toLowerCase().includes(q) ?? false) ||
         c.village.toLowerCase().includes(q) ||
-        c.month.toLowerCase().includes(q)
+        c.month.toLowerCase().includes(q) ||
+        (crop?.name.toLowerCase().includes(q) ?? false) ||
+        String(c.area).includes(q) ||
+        (method?.name.toLowerCase().includes(q) ?? false)
       )
     )
   }).sort((a, b) => {
@@ -228,6 +233,10 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
       const number = String(rowGet(row, '№ Договор', 'Номер') ?? '').trim()
       const contractorName = String(rowGet(row, 'Контрагент') ?? '').trim()
       if (!number || !contractorName) { errors.push(`Ред ${rowNum}: липсва номер или контрагент`); return }
+
+      // Всички редове се импортират - няма проверка за дубликати
+      // Договори с един номер + дата се групират автоматично като 1 документ чрез contractKey()
+
       const contractor = findByField(contractors, 'name', contractorName)
       if (!contractor) { errors.push(`Ред ${rowNum}: контрагент "${contractorName}" не е намерен`); return }
       const htuName = String(rowGet(row, 'ХТУ') ?? '').trim()

@@ -100,12 +100,23 @@ export default function Requests() {
   const filtered = requests.filter(r => {
     const cont = contractors.find(x => x.id === r.contractorId)
     const q = search.toLowerCase()
+
+    // Check if search matches any crop name or area in items
+    const matchesItems = r.items.some(item => {
+      const crop = crops.find(c => c.id === item.cropId)
+      return (
+        (crop?.name.toLowerCase().includes(q) ?? false) ||
+        String(item.area).includes(q)
+      )
+    })
+
     return (
       (!statusFilter || statusById.get(r.id) === statusFilter) &&
       (!htuFilter || requestHtuIds(r).some(id => htuIdsForName(htuFilter).includes(id))) &&
       (
         (cont?.name.toLowerCase().includes(q) ?? false) ||
-        r.irrigationNumber.toLowerCase().includes(q)
+        r.irrigationNumber.toLowerCase().includes(q) ||
+        matchesItems
       )
     )
   }).sort((a, b) => {
@@ -207,13 +218,19 @@ export default function Requests() {
       if (!contractorName) { errors.push(`Ред ${rowNum}: липсва контрагент`); return }
       const contractor = findByField(contractors, 'name', contractorName)
       if (!contractor) { errors.push(`Ред ${rowNum}: контрагент "${contractorName}" не е намерен`); return }
+
+      const irrigationNumber = String(rowGet(row, '№ поливка') ?? '').trim()
+
+      // Всички редове се импортират - няма проверка за дубликати
+      // Заявки с един контрагент + № поливка могат да имат няколко реда за различни култури
+
       const cropName = String(rowGet(row, 'Култура') ?? '').trim()
       const crop = cropName ? findSimilarByField(crops, 'name', cropName) : undefined
       if (cropName && !crop) errors.push(`Ред ${rowNum}: култура "${cropName}" не е намерена, оставена празна`)
       added.push({
         id: `${Date.now()}-${i}`,
         contractorId: contractor.id,
-        irrigationNumber: String(rowGet(row, '№ поливка') ?? '').trim(),
+        irrigationNumber,
         startDate: cellToDateStr(rowGet(row, 'Начална дата')),
         endDate: cellToDateStr(rowGet(row, 'Крайна дата')),
         items: crop ? [{ cropId: crop.id, area: cellToNum(rowGet(row, 'Дка')) }] : [],

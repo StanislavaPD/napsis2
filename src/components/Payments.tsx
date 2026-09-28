@@ -67,12 +67,23 @@ export default function Payments() {
   const filtered = payments.filter(p => {
     const cont = contractors.find(c => c.id === p.contractorId)
     const q = search.toLowerCase()
+
+    // Check if search matches any crop name or area in items
+    const matchesItems = p.items.some(item => {
+      const crop = crops.find(c => c.id === item.cropId)
+      return (
+        (crop?.name.toLowerCase().includes(q) ?? false) ||
+        String(item.area).includes(q)
+      )
+    })
+
     return (
       (paidFilter === null || p.paid === paidFilter) &&
       (!htuFilter || paymentHtuIds(p).some(id => htuIdsForName(htuFilter).includes(id))) &&
       (
         p.invoiceNumber.toLowerCase().includes(q) ||
-        (cont?.name.toLowerCase().includes(q) ?? false)
+        (cont?.name.toLowerCase().includes(q) ?? false) ||
+        matchesItems
       )
     )
   }).sort((a, b) => {
@@ -163,6 +174,10 @@ export default function Payments() {
       const invoiceNumber = String(rowGet(row, '№ Фактура', 'Номер') ?? '').trim()
       const contractorName = String(rowGet(row, 'Контрагент') ?? '').trim()
       if (!invoiceNumber || !contractorName) { errors.push(`Ред ${rowNum}: липсва номер или контрагент`); return }
+
+      // Всички редове се импортират - няма проверка за дубликати
+      // Плащания с един номер на фактура могат да имат няколко реда
+
       const contractor = findByField(contractors, 'name', contractorName)
       if (!contractor) { errors.push(`Ред ${rowNum}: контрагент "${contractorName}" не е намерен`); return }
       const cropNames = String(rowGet(row, 'Култури', 'Култура') ?? '').split(',').map(s => s.trim()).filter(Boolean)

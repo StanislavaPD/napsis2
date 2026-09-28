@@ -108,6 +108,8 @@ export default function Acts({ initialContractorId, onClearFilter }: { initialCo
 
   const filtered = acts.filter(a => {
     const cont = contractors.find(x => x.id === a.contractorId)
+    const crop = crops.find(x => x.id === a.cropId)
+    const method = irrigationMethods.find(x => x.id === a.irrigationMethodId)
     const q = search.toLowerCase()
     return (
       (!htuFilter || htus.find(h => h.id === a.htuId)?.htuName === htuFilter) &&
@@ -117,7 +119,10 @@ export default function Acts({ initialContractorId, onClearFilter }: { initialCo
         (cont?.name.toLowerCase().includes(q) ?? false) ||
         a.village.toLowerCase().includes(q) ||
         a.month.toLowerCase().includes(q) ||
-        a.irrigationNumber.toLowerCase().includes(q)
+        a.irrigationNumber.toLowerCase().includes(q) ||
+        (crop?.name.toLowerCase().includes(q) ?? false) ||
+        String(a.area).includes(q) ||
+        (method?.name.toLowerCase().includes(q) ?? false)
       )
     )
   }).sort((a, b) => {
@@ -308,6 +313,10 @@ export default function Acts({ initialContractorId, onClearFilter }: { initialCo
         value: cellToNum(rowGet(row, 'Стойност', 'Стойност (€)', 'Сума')),
         month: String(rowGet(row, 'Месец') ?? '').trim(),
       }
+
+      // Всички редове се импортират - няма проверка за дубликати
+      // Актове с един номер + дата се групират автоматично като 1 документ чрез actKey()
+
       const calculated = calcAct(base)
       added.push({ ...calculated, value: base.value || calculated.value, id: `${Date.now()}-${i}` })
     })
