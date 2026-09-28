@@ -206,7 +206,32 @@ function CropMonthAnalysisTable({ data, color = 'amber' }: { data: any[]; color?
   )
 }
 
-function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = false }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS; showTotals?: boolean; sumCounts?: boolean }) {
+function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = false, showHtuMonth = false }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS; showTotals?: boolean; sumCounts?: boolean; showHtuMonth?: boolean }) {
+
+  // Ако showHtuMonth е true, добавяме колони за ХТУ и Месец
+  const headers = showHtuMonth ? [
+    ['ХТУ', 'ХТУ'],
+    ['Месец', 'Месец'],
+    ['Култура', 'Култура'],
+    [<>Договори<br/>бр.</>, 'Договори бр.'],
+    [<>Договорирана<br/>площ дка</>, 'Договорирана площ дка'],
+    [<>Вода<br/>договори<br/>м³</>, 'Вода договори м³'],
+    [<>Стойност<br/>договори €</>, 'Стойност договори €'],
+    [<>Актове<br/>бр.</>, 'Актове бр.'],
+    [<>Актувана<br/>площ дка</>, 'Актувана площ дка'],
+    [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
+    [<>Стойност<br/>актове €</>, 'Стойност актове €'],
+  ] : [
+    ['Наименование', 'Наименование'],
+    [<>Договори<br/>бр.</>, 'Договори бр.'],
+    [<>Договорирана<br/>площ дка</>, 'Договорирана площ дка'],
+    [<>Вода<br/>договори<br/>м³</>, 'Вода договори м³'],
+    [<>Стойност<br/>договори €</>, 'Стойност договори €'],
+    [<>Актове<br/>бр.</>, 'Актове бр.'],
+    [<>Актувана<br/>площ дка</>, 'Актувана площ дка'],
+    [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
+    [<>Стойност<br/>актове €</>, 'Стойност актове €'],
+  ]
 
   return (
     <div className="overflow-x-auto">
@@ -216,21 +241,11 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
         <thead>
           <tr className={`bg-gradient-to-br ${ANALYSIS_COLORS[color]}`}>
 
-            {([
-              ['Наименование', 'Наименование'],
-              [<>Договори<br/>бр.</>, 'Договори бр.'],
-              [<>Договорирана<br/>площ дка</>, 'Договорирана площ дка'],
-              [<>Вода<br/>договори<br/>м³</>, 'Вода договори м³'],
-              [<>Стойност<br/>договори €</>, 'Стойност договори €'],
-              [<>Актове<br/>бр.</>, 'Актове бр.'],
-              [<>Актувана<br/>площ дка</>, 'Актувана площ дка'],
-              [<>Актувана<br/>вода м³</>, 'Актувана вода м³'],
-              [<>Стойност<br/>актове €</>, 'Стойност актове €'],
-            ] as [React.ReactNode, string][]).map(([label, key], idx) => (
+            {(headers as [React.ReactNode, string][]).map(([label, key], idx) => (
 
               <th
                 key={key}
-                className={`${idx === 0 ? 'text-left' : 'text-center'} px-3 py-3 text-xs font-semibold text-white leading-tight`}
+                className={`${idx === 0 || (showHtuMonth && idx <= 2) ? 'text-left' : 'text-center'} px-3 py-3 text-xs font-semibold text-white leading-tight`}
               >
                 {label}
               </th>
@@ -246,11 +261,22 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
           {data.map((x, i) => (
 
             <tr
-              key={x.name}
+              key={showHtuMonth ? `${x.htuName}-${x.month}-${x.name}` : x.name}
               className={`border-b border-gray-50 ${
                 i % 2 === 0 ? '' : 'bg-gray-50/40'
               }`}
             >
+
+              {showHtuMonth && (
+                <>
+                  <td className="px-3 py-2 font-medium text-left">
+                    {x.htuName}
+                  </td>
+                  <td className="px-3 py-2 text-left">
+                    {x.month}
+                  </td>
+                </>
+              )}
 
               <td className="px-3 py-2 font-medium text-left">
                 {x.name}
@@ -298,7 +324,13 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
         {showTotals && (
           <tfoot>
             <tr className="bg-gray-100 font-semibold border-t-2 border-gray-300">
-              <td className="px-3 py-2 text-left">ОБЩО:</td>
+              {showHtuMonth && (
+                <>
+                  <td className="px-3 py-2 text-left" colSpan={2}>ОБЩО:</td>
+                  <td className="px-3 py-2"></td>
+                </>
+              )}
+              {!showHtuMonth && <td className="px-3 py-2 text-left">ОБЩО:</td>}
               <td className="px-3 py-2 text-center">{sumCounts ? data.reduce((sum, x) => sum + (x.contractCount || 0), 0) : <span className="text-gray-400">—</span>}</td>
               <td className="px-3 py-2 text-center">
                 {num(data.reduce((sum, x) => sum + (x.contractArea || 0), 0), 2)}
@@ -950,8 +982,11 @@ const c = filteredContracts.filter(x=>htuNameOf(x.htuId)===htuName && x.cropId==
 const a = filteredActs.filter(x=>htuNameOf(x.htuId)===htuName && x.cropId===cropId && x.month===month)
 
 return {
-name: `${htuName} / ${cropName} — ${month || 'без месец'}`,
-sortKey: `${htuName} / ${cropName}`,
+month: month || 'без месец',
+htuName: htuName,
+name: cropName,
+sortKey: `${htuName}`,
+sortHtu: htuName,
 sortMonth: MONTHS.indexOf(month),
 contractCount: countContracts(c),
 contractWater: c.reduce((s,x)=>s+x.waterCubic,0),
@@ -1909,6 +1944,7 @@ data={analysisByHtuCropMonth}
 color="emerald"
 showTotals={true}
 sumCounts={false}
+showHtuMonth={true}
 />
 
 
