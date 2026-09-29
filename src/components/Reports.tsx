@@ -1095,8 +1095,9 @@ const reportingData = useMemo(() => {
     // Площта = сума от физическата площ (area) на всички договори за месеца
     // Забележка: В договорите няма irrigationNumber - има само 1 ред на договор с физическата площ
     const contractArea = monthContracts.reduce((s, x) => s + x.area, 0)
-    // Водата = от всички договори в хилядни кубици
-    const contractWater = monthContracts.reduce((s, x) => s + x.waterCubic, 0) / 1000
+    // Водата = от всички договорени поливки в хилядни кубици
+    // waterCubic е вода за 1 поливка, затова умножаваме по irrigationCount
+    const contractWater = monthContracts.reduce((s, x) => s + (x.waterCubic * x.irrigationCount), 0) / 1000
 
     // Инициализираме данните за всяка категория
     const data: any = {
