@@ -1092,8 +1092,9 @@ const reportingData = useMemo(() => {
     })
 
     // ПО ДОГОВОР:
-    // Площта = сума от всички договорирани декари (всички поливки)
-    const contractArea = monthContracts.reduce((s, x) => s + x.area, 0)
+    // Площта = само физически декари (само първа поливка)
+    const firstIrrigationContracts = monthContracts.filter(c => c.irrigationNumber === '1' || c.irrigationNumber === 'Първа')
+    const contractArea = firstIrrigationContracts.reduce((s, x) => s + x.area, 0)
     // Водата = от всички поливки в хилядни кубици
     const contractWater = monthContracts.reduce((s, x) => s + x.waterCubic, 0) / 1000
 
