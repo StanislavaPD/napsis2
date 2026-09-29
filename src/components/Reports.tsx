@@ -1099,6 +1099,17 @@ const reportingData = useMemo(() => {
     // waterCubic е вода за 1 поливка, затова умножаваме по irrigationCount
     const contractWater = monthContracts.reduce((s, x) => s + (x.waterCubic * x.irrigationCount), 0) / 1000
 
+    // DEBUG - показваме в конзолата какво се изчислява
+    if (monthContracts.length > 0) {
+      console.log(`\n=== ${monthName} ===`)
+      console.log(`Брой договори: ${monthContracts.length}`)
+      console.log(`contractArea: ${contractArea} дка`)
+      console.log(`contractWater: ${contractWater} хил.м3`)
+      monthContracts.forEach((c, i) => {
+        console.log(`  Договор ${i+1}: area=${c.area}, waterCubic=${c.waterCubic}, irrigationCount=${c.irrigationCount}, month="${c.month}", date="${c.date}"`)
+      })
+    }
+
     // Инициализираме данните за всяка категория
     const data: any = {
       month: monthName, // Използваме името на месеца вместо число
