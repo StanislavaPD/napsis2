@@ -2575,8 +2575,9 @@ function Appendix3Generator() {
 
       // Ако има точно един договор - автоматично го попълваме
       if (availableContracts.length === 1) {
-        updated.contractNumber = availableContracts[0].number
-        updated.contractId = availableContracts[0].id
+        const contract = availableContracts[0]
+        updated.contractNumber = `${contract.number}/${contract.date}`
+        updated.contractId = contract.id
       } else {
         // Ако има повече от един или няма - изчистваме полето
         updated.contractNumber = ''
@@ -2587,7 +2588,7 @@ function Appendix3Generator() {
     if (patch.contractId) {
       const contract = contracts.find(c => c.id === patch.contractId)
       if (contract) {
-        updated.contractNumber = contract.number
+        updated.contractNumber = `${contract.number}/${contract.date}`
       }
     }
     setForm(updated)
