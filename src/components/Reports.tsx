@@ -1051,10 +1051,11 @@ const getCropCategory = (cropName: string): 'corn' | 'tobacco' | 'vegetables' | 
     name.includes('фасул')
   ) return 'vegetables'
 
-  // ТРАЙНИ НАСАЖДЕНИЯ: лозя, тр насаждения, сливи, овошки, праскови, ябълки, бадем
+  // ТРАЙНИ НАСАЖДЕНИЯ: лозя, тр насаждения, тр. насаждения, сливи, овошки, праскови, ябълки, бадем
   if (
     name.includes('лозя') ||
     name.includes('тр насаждения') ||
+    name.includes('тр. насаждения') ||
     name.includes('трайни насаждения') ||
     name.includes('сливи') ||
     name.includes('овошки') ||
