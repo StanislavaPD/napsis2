@@ -364,7 +364,20 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
 // Компонент за отчетност по месеци
 function ReportingTable({ data }: { data: any[] }) {
   return (
-    <div className="overflow-x-auto">
+    <div>
+      {/* DEBUG INFO - показва детайли за изчисленията */}
+      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-xs">
+        <h4 className="font-bold mb-2">🔍 DEBUG INFO - Детайли за договорите по месеци:</h4>
+        <div className="space-y-1 font-mono text-[10px]">
+          {data.map((row, i) => (
+            <div key={i} className="border-b border-yellow-200 pb-1">
+              <strong>{row.month}:</strong> {row.debugInfo}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse border border-gray-300">
         {/* Header Row 1 - Main groups */}
         <thead>
@@ -587,6 +600,7 @@ function ReportingTable({ data }: { data: any[] }) {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -1099,16 +1113,10 @@ const reportingData = useMemo(() => {
     // waterCubic е вода за 1 поливка, затова умножаваме по irrigationCount
     const contractWater = monthContracts.reduce((s, x) => s + (x.waterCubic * x.irrigationCount), 0) / 1000
 
-    // DEBUG - показваме в конзолата какво се изчислява
-    if (monthContracts.length > 0) {
-      console.log(`\n=== ${monthName} ===`)
-      console.log(`Брой договори: ${monthContracts.length}`)
-      console.log(`contractArea: ${contractArea} дка`)
-      console.log(`contractWater: ${contractWater} хил.м3`)
-      monthContracts.forEach((c, i) => {
-        console.log(`  Договор ${i+1}: area=${c.area}, waterCubic=${c.waterCubic}, irrigationCount=${c.irrigationCount}, month="${c.month}", date="${c.date}"`)
-      })
-    }
+    // DEBUG INFO - създаваме текст за debug колона
+    const debugInfo = monthContracts.length > 0
+      ? `Договори: ${monthContracts.length} | Area sum: ${contractArea} | Детайли: ${monthContracts.map((c, i) => `#${i+1}:area=${c.area},water=${c.waterCubic},cnt=${c.irrigationCount}`).join(' | ')}`
+      : 'Няма договори'
 
     // Инициализираме данните за всяка категория
     const data: any = {
@@ -1116,6 +1124,7 @@ const reportingData = useMemo(() => {
       availableArea: 0, // Годни площи - това ще остане празно или ще се попълва ръчно
       contractArea,
       contractWater,
+      debugInfo, // DEBUG: информация за изчисленията
       // ОБЩО ПОЛЯТИ - ще се изчисли от формули
       totalFirstArea: 0,
       totalFirstWater: 0,
