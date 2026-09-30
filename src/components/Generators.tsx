@@ -2549,15 +2549,19 @@ function Appendix2Generator() {
 }
 
 function Appendix3Generator() {
-  const { contractors, acts, crops: allCrops, irrigationMethods } = useStore()
+  const { contractors, acts, crops: allCrops, irrigationMethods, contracts } = useStore()
   const [form, setForm] = useState({
     vodopolzvatel: contractors[0]?.name ?? '',
     contractorId: contractors[0]?.id ?? '',
     contractNumber: '',
+    contractId: '',
     data: new Date().toISOString().slice(0, 10),
   })
   const [filling, setFilling] = useState(false)
   const [fillError, setFillError] = useState('')
+
+  // Договорите за избрания водоползвател
+  const contractorContracts = contracts.filter(c => c.contractorId === form.contractorId)
 
   function setF(patch: Partial<typeof form>) {
     const updated = { ...form, ...patch }
@@ -2565,6 +2569,25 @@ function Appendix3Generator() {
       const contractor = contractors.find(c => c.id === patch.contractorId)
       if (contractor) {
         updated.vodopolzvatel = contractor.name
+      }
+      // Намираме договорите за този водоползвател
+      const availableContracts = contracts.filter(c => c.contractorId === patch.contractorId)
+
+      // Ако има точно един договор - автоматично го попълваме
+      if (availableContracts.length === 1) {
+        updated.contractNumber = availableContracts[0].number
+        updated.contractId = availableContracts[0].id
+      } else {
+        // Ако има повече от един или няма - изчистваме полето
+        updated.contractNumber = ''
+        updated.contractId = ''
+      }
+    }
+    // Ако е избран конкретен договор от dropdown
+    if (patch.contractId) {
+      const contract = contracts.find(c => c.id === patch.contractId)
+      if (contract) {
+        updated.contractNumber = contract.number
       }
     }
     setForm(updated)
@@ -2697,9 +2720,46 @@ function Appendix3Generator() {
               {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
           </FormRow>
+
+          {/* Ако има повече от 1 договор - показваме dropdown */}
+          {contractorContracts.length > 1 && (
+            <FormRow label="Избери договор" required>
+              <Select value={form.contractId} onChange={e => setF({ contractId: e.target.value })}>
+                <option value="">— Избери договор —</option>
+                {contractorContracts.map(c => (
+                  <option key={c.id} value={c.id}>
+                    Договор № {c.number} от {c.date}
+                  </option>
+                ))}
+              </Select>
+            </FormRow>
+          )}
+
           <FormRow label="Договор №" required>
-            <Input value={form.contractNumber} onChange={e => setF({ contractNumber: e.target.value })} placeholder="123/2026" />
+            <Input
+              value={form.contractNumber}
+              onChange={e => setF({ contractNumber: e.target.value })}
+              placeholder="123/2026"
+              readOnly={contractorContracts.length === 1}
+              className={contractorContracts.length === 1 ? 'bg-gray-100 cursor-not-allowed' : ''}
+            />
           </FormRow>
+
+          {/* Информация за договорите */}
+          {form.contractorId && (
+            <div className="text-xs">
+              {contractorContracts.length === 0 && (
+                <p className="text-orange-600">⚠️ Няма намерени договори за този водоползвател</p>
+              )}
+              {contractorContracts.length === 1 && (
+                <p className="text-green-600">✓ Договорът е попълнен автоматично</p>
+              )}
+              {contractorContracts.length > 1 && (
+                <p className="text-blue-600">ℹ️ Намерени {contractorContracts.length} договора - изберете от списъка</p>
+              )}
+            </div>
+          )}
+
           <FormRow label="Дата">
             <Input type="date" value={form.data} onChange={e => setF({ data: e.target.value })} />
           </FormRow>
