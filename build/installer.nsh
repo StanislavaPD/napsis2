@@ -9,8 +9,9 @@
 ; ============================================================================
 
 ; Use Modern UI
-!define MUI_ICON "${BUILD_RESOURCES_DIR}\build-icon.ico"
-!define MUI_UNICON "${BUILD_RESOURCES_DIR}\build-icon.ico"
+; Icon is defined by electron-builder, no need to redefine
+;!define MUI_ICON "${BUILD_RESOURCES_DIR}\build-icon.ico"
+;!define MUI_UNICON "${BUILD_RESOURCES_DIR}\build-icon.ico"
 
 ; Header and sidebar graphics (if available)
 !ifdef INSTALLER_HEADER_BMP

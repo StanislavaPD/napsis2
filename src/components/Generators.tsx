@@ -3694,8 +3694,8 @@ function UdvnUpcomingGenerator({
           const workers = repair.workers || '____________'
 
           repairsList += `  - ${facilityType} ${pipeline} ${locations || '_______'} – ${repairType}\n`
-          repairsList += `Необходими материали :  ${materials}\n`
-          repairsList += `Необходими техника и хора: ${workers}\n`
+          repairsList += `Използвани материали: ${materials}\n`
+          repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
         })
 
         repairsList += '\n' // Empty line between facilities
@@ -3753,8 +3753,8 @@ function UdvnUpcomingGenerator({
         const workers = repair.workers || '____________'
 
         repairsList += `-    ${facilityType} ${pipeline} ${locations || '_______'} ${repairType}\n`
-        repairsList += `Необходими материали :  ${materials}\n`
-        repairsList += `Необходими техника и хора: ${workers}\n`
+        repairsList += `Използвани материали: ${materials}\n`
+        repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
       })
 
       repairsList += '\n' // Празен ред между съоръженията
