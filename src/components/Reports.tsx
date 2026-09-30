@@ -1113,8 +1113,8 @@ const reportingData = useMemo(() => {
     // waterCubic е вода за 1 поливка, затова умножаваме по irrigationCount
     const contractWater = monthContracts.reduce((s, x) => s + (x.waterCubic * x.irrigationCount), 0) / 1000
 
-    // DEBUG INFO - създаваме текст за debug колона
-    const debugInfo = monthContracts.length > 0
+    // DEBUG INFO - ще го допълним след обработка на актовете
+    let debugInfo = monthContracts.length > 0
       ? `Договори: ${monthContracts.length} | Area sum: ${contractArea} | Детайли: ${monthContracts.map((c, i) => `#${i+1}:area=${c.area},water=${c.waterCubic},cnt=${c.irrigationCount}`).join(' | ')}`
       : 'Няма договори'
 
@@ -1124,7 +1124,7 @@ const reportingData = useMemo(() => {
       availableArea: 0, // Годни площи - това ще остане празно или ще се попълва ръчно
       contractArea,
       contractWater,
-      debugInfo, // DEBUG: информация за изчисленията
+      debugInfo: '', // DEBUG: ще се попълни по-късно
       // ОБЩО ПОЛЯТИ - ще се изчисли от формули
       totalFirstArea: 0,
       totalFirstWater: 0,
@@ -1201,6 +1201,16 @@ const reportingData = useMemo(() => {
     // ОБЩО ПОЛЯТИ - поливодекари = сума от всички поливки (І + ІІ)
     data.totalPolivodecares = data.totalFirstArea + data.corn2Area + data.tobacco2Area + data.vegetables2Area + data.perennial2Area + data.other2Area
     data.totalPolivodecaresWater = data.totalFirstWater + data.corn2Water + data.tobacco2Water + data.vegetables2Water + data.perennial2Water + data.other2Water
+
+    // DEBUG INFO - добавяме информация за актовете
+    if (monthActs.length > 0) {
+      debugInfo += ` | Актове: ${monthActs.length} | ` + monthActs.map((a, i) => {
+        const cropName = crops.find(c => c.id === a.cropId)?.name ?? '???'
+        const category = getCropCategory(cropName)
+        return `#${i+1}:crop=${cropName},cat=${category},irr=${a.irrigationNumber},area=${a.area},water=${a.waterCubic}`
+      }).join(' | ')
+    }
+    data.debugInfo = debugInfo
 
     return data
   })
