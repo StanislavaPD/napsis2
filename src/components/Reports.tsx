@@ -365,18 +365,6 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
 function ReportingTable({ data }: { data: any[] }) {
   return (
     <div>
-      {/* DEBUG INFO - показва детайли за изчисленията */}
-      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-xs">
-        <h4 className="font-bold mb-2">🔍 DEBUG INFO - Детайли за договорите по месеци:</h4>
-        <div className="space-y-1 font-mono text-[10px]">
-          {data.map((row, i) => (
-            <div key={i} className="border-b border-yellow-200 pb-1">
-              <strong>{row.month}:</strong> {row.debugInfo}
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse border border-gray-300">
         {/* Header Row 1 - Main groups */}
