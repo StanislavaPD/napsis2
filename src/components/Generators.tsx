@@ -2619,7 +2619,8 @@ function Appendix3Generator() {
 
     contractorActs.forEach(act => {
       const method = irrigationMethods.find(m => m.id === act.irrigationMethodId)
-      if (method?.name === 'Гравитачно') {
+      const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
+      if (isGravity) {
         totalDeclaredGravity += act.waterCubic
         totalActualGravity += act.waterCubic
       } else {
@@ -2680,16 +2681,17 @@ function Appendix3Generator() {
         const act = monthActs[0] // Вземаме първия акт за месеца
         const crop = act ? allCrops.find(c => c.id === act.cropId) : null
         const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
+        const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
 
         tagData[`{ЗЕМЛИЩЕ}`] = act?.village || ''
         tagData[`{дка}`] = act?.area ? num(act.area, 2) : ''
         tagData[`{КУЛТУРА}`] = crop?.name || ''
         tagData[`{ПОЛ НОРМА}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ГР.}`] = method?.name === 'Гравитачно' && act ? num(act.waterCubic, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО}`] = method?.name === 'Помпено' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ГР.}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
         tagData[`{БР. ПОЛИВКИ}`] = monthActs.length.toString()
-        tagData[`{АКТУВАН ОБЕМ ГР.}`] = method?.name === 'Гравитачно' && act ? num(act.waterCubic, 0) : ''
-        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО}`] = method?.name === 'Помпено' && act ? num(act.waterCubic, 0) : ''
+        tagData[`{АКТУВАН ОБЕМ ГР.}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
         tagData[`{РАЗЛИКА}`] = '0'
       })
 
