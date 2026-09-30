@@ -83,7 +83,8 @@ function Gate() {
     )
   }
   if (hasBackend && !ready) return null
-  if (hasBackend && !username) return <Login />
+  // ВРЕМЕННО: Премахнат login екран за да работи без PostgreSQL
+  // if (hasBackend && !username) return <Login />
 
   return (
       <StoreProvider token={hasBackend ? token : undefined} isAdmin={role === 'admin'}>
