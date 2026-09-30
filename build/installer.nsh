@@ -114,13 +114,14 @@ FunctionEnd
 ; ============================================================================
 
 ; Add version info to installer
-VIProductVersion "${VERSION}"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "ProductName" "Напояване ХТР Ямбол"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "CompanyName" "ХТР Ямбол"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "LegalCopyright" "© 2026 ХТР Ямбол"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "FileDescription" "Система за управление на договори и напояване"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "FileVersion" "${VERSION}"
-VIAddVersionKey /LANG=${LANG_BULGARIAN} "ProductVersion" "${VERSION}"
+; Version info is defined by electron-builder, no need to redefine
+;VIProductVersion "${VERSION}"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "ProductName" "Напояване ХТР Ямбол"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "CompanyName" "ХТР Ямбол"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "LegalCopyright" "© 2026 ХТР Ямбол"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "FileDescription" "Система за управление на договори и напояване"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "FileVersion" "${VERSION}"
+;VIAddVersionKey /LANG=${LANG_BULGARIAN} "ProductVersion" "${VERSION}"
 
 ; Progress bar customization
 XPStyle on
