@@ -101,13 +101,14 @@ Function ShowPostgreSQLInfo
 FunctionEnd
 
 ; Check if application is running
-Function .onInit
-  System::Call 'kernel32::CreateMutex(i 0, i 0, t "NapoyavaneHTRYambol") i .r1 ?e'
-  Pop $R0
-  StrCmp $R0 0 +3
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(MSG_RUNNING)"
-    Abort
-FunctionEnd
+; .onInit is defined by electron-builder, no need to redefine
+;Function .onInit
+;  System::Call 'kernel32::CreateMutex(i 0, i 0, t "NapoyavaneHTRYambol") i .r1 ?e'
+;  Pop $R0
+;  StrCmp $R0 0 +3
+;    MessageBox MB_OK|MB_ICONEXCLAMATION "$(MSG_RUNNING)"
+;    Abort
+;FunctionEnd
 
 ; ============================================================================
 ; Modern UI Completion
