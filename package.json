@@ -57,7 +57,7 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "artifactName": "${productName}-Setup-${version}.${ext}",
-      "unicode": true,
+      "unicode": false,
       "license": "LICENSE.txt",
       "include": "build/installer.nsh"
     }
