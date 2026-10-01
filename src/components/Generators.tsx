@@ -2696,6 +2696,7 @@ function Appendix3Generator() {
         tagData[`{РАЗЛИКА}`] = '0'
       })
 
+      console.log('Appendix3 tagData:', tagData)
       const blob = await fillDocxTemplate(templateFile, tagData)
       await downloadBlob(blob, `Приложение_3_Рекапитулация_${form.vodopolzvatel || 'проект'}.docx`)
     } catch (err) {
