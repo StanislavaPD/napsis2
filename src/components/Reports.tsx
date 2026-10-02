@@ -257,9 +257,9 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
     'Април': 'bg-emerald-50',
     'Май': 'bg-green-50',
     'Юни': 'bg-lime-50',
-    'Юли': 'bg-yellow-50',
-    'Август': 'bg-amber-50',
-    'Септември': 'bg-orange-50',
+    'Юли': 'bg-yellow-200',      // По-наситен жълт за по-добър контраст
+    'Август': 'bg-orange-200',   // По-наситен оранжев за по-добър контраст
+    'Септември': 'bg-red-100',   // Червен вместо оранжев за разнообразие
     'Октомври': 'bg-rose-50',
     'Ноември': 'bg-purple-50',
     'Декември': 'bg-blue-50',
@@ -294,6 +294,17 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
             // Визуализация с междинни суми по ХТУ
             <>
               {groupedData.map((group, groupIdx) => {
+                // Цветове за ХТУ колоната
+                const htuColors = [
+                  'bg-indigo-100',
+                  'bg-violet-100',
+                  'bg-purple-100',
+                  'bg-fuchsia-100',
+                  'bg-pink-100',
+                  'bg-rose-100'
+                ]
+                const htuColor = htuColors[groupIdx % htuColors.length]
+
                 // Групиране по месец в рамките на ХТУ
                 const monthMap = new Map<string, any[]>()
                 group.rows.forEach(row => {
@@ -316,8 +327,26 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
                   actValue: group.rows.reduce((sum, x) => sum + (x.actValue || 0), 0),
                 }
 
-                // Списък с уникални култури за това ХТУ
-                const uniqueCrops = [...new Set(group.rows.map(r => r.name))].sort((a, b) => a.localeCompare(b, 'bg'))
+                // Агрегиране на данните по култури за това ХТУ
+                const cropMap = new Map<string, any>()
+                group.rows.forEach(row => {
+                  if (!cropMap.has(row.name)) {
+                    cropMap.set(row.name, {
+                      contractArea: 0,
+                      contractWater: 0,
+                      actArea: 0,
+                      actWater: 0
+                    })
+                  }
+                  const crop = cropMap.get(row.name)!
+                  crop.contractArea += row.contractArea || 0
+                  crop.contractWater += row.contractWater || 0
+                  crop.actArea += row.actArea || 0
+                  crop.actWater += row.actWater || 0
+                })
+
+                // Сортиране на културите по име
+                const sortedCrops = Array.from(cropMap.entries()).sort((a, b) => a[0].localeCompare(b[0], 'bg'))
 
                 let htuRowIndex = 0
 
@@ -334,12 +363,12 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
                         return (
                           <tr
                             key={`${x.htuName}-${x.month}-${x.name}`}
-                            className={`border-b border-gray-50`}
+                            className={`border-b border-gray-50 ${monthColor}`}
                           >
                             {/* ХТУ колона - показва се само на първия ред за това ХТУ */}
                             {isFirstRowInHtu && (
                               <td
-                                className="px-3 py-2 font-bold text-left align-top bg-gray-100"
+                                className={`px-3 py-2 font-bold text-left align-top ${htuColor}`}
                                 rowSpan={group.rows.length}
                               >
                                 {x.htuName}
@@ -386,12 +415,19 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
                       })
                     })}
 
-                    {/* Междинна сума за това ХТУ със списък култури */}
+                    {/* Междинна сума за това ХТУ със списък култури и стойности */}
                     <tr className="bg-amber-100 font-semibold border-t-2 border-amber-400">
                       <td className="px-3 py-2 text-left" colSpan={3}>
-                        <div className="italic mb-1">Общо за {group.htuName}:</div>
-                        <div className="text-xs font-normal text-gray-700">
-                          Култури: {uniqueCrops.join(', ')}
+                        <div className="italic mb-2">Общо за {group.htuName}:</div>
+                        <div className="text-xs font-normal text-gray-700 space-y-1">
+                          {sortedCrops.map(([cropName, cropData]) => (
+                            <div key={cropName} className="border-l-2 border-amber-400 pl-2">
+                              <span className="font-semibold">{cropName}:</span> Дог. пл. {num(cropData.contractArea, 2)} дка,
+                              Дог. вода {num(cropData.contractWater, 0)} м³,
+                              Акт. пл. {num(cropData.actArea, 2)} дка,
+                              Акт. вода {num(cropData.actWater, 0)} м³
+                            </div>
+                          ))}
                         </div>
                       </td>
                       <td className="px-3 py-2 text-center">
