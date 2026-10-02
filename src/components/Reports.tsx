@@ -206,7 +206,7 @@ function CropMonthAnalysisTable({ data, color = 'amber' }: { data: any[]; color?
   )
 }
 
-function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = false, showHtuMonth = false }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS; showTotals?: boolean; sumCounts?: boolean; showHtuMonth?: boolean }) {
+function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = false, showHtuMonth = false, showHtuSubtotals = false }: { data: any[]; color?: keyof typeof ANALYSIS_COLORS; showTotals?: boolean; sumCounts?: boolean; showHtuMonth?: boolean; showHtuSubtotals?: boolean }) {
 
   // Ако showHtuMonth е true, добавяме колони за ХТУ и Месец
   const headers = showHtuMonth ? [
@@ -233,6 +233,22 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
     [<>Стойност<br/>актове €</>, 'Стойност актове €'],
   ]
 
+  // Групиране на данни по ХТУ ако е необходимо
+  const groupedData: { htuName: string; rows: any[] }[] = []
+  if (showHtuSubtotals && showHtuMonth) {
+    const htuMap = new Map<string, any[]>()
+    data.forEach(row => {
+      const htu = row.htuName || '—'
+      if (!htuMap.has(htu)) {
+        htuMap.set(htu, [])
+      }
+      htuMap.get(htu)!.push(row)
+    })
+    htuMap.forEach((rows, htuName) => {
+      groupedData.push({ htuName, rows })
+    })
+  }
+
   return (
     <div className="overflow-x-auto">
 
@@ -258,65 +274,169 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
 
         <tbody>
 
-          {data.map((x, i) => (
+          {showHtuSubtotals && showHtuMonth ? (
+            // Визуализация с междинни суми по ХТУ
+            <>
+              {groupedData.map((group, groupIdx) => {
+                // Изчисляване на междинна сума за това ХТУ
+                const subtotal = {
+                  contractCount: sumCounts ? group.rows.reduce((sum, x) => sum + (x.contractCount || 0), 0) : 0,
+                  contractArea: group.rows.reduce((sum, x) => sum + (x.contractArea || 0), 0),
+                  contractWater: group.rows.reduce((sum, x) => sum + (x.contractWater || 0), 0),
+                  contractValue: group.rows.reduce((sum, x) => sum + (x.contractValue || 0), 0),
+                  actCount: sumCounts ? group.rows.reduce((sum, x) => sum + (x.actCount || 0), 0) : 0,
+                  actArea: group.rows.reduce((sum, x) => sum + (x.actArea || 0), 0),
+                  actWater: group.rows.reduce((sum, x) => sum + (x.actWater || 0), 0),
+                  actValue: group.rows.reduce((sum, x) => sum + (x.actValue || 0), 0),
+                }
 
-            <tr
-              key={showHtuMonth ? `${x.htuName}-${x.month}-${x.name}` : x.name}
-              className={`border-b border-gray-50 ${
-                i % 2 === 0 ? '' : 'bg-gray-50/40'
-              }`}
-            >
+                return (
+                  <React.Fragment key={`group-${groupIdx}-${group.htuName}`}>
+                    {group.rows.map((x, i) => (
+                      <tr
+                        key={`${x.htuName}-${x.month}-${x.name}`}
+                        className={`border-b border-gray-50 ${
+                          i % 2 === 0 ? '' : 'bg-gray-50/40'
+                        }`}
+                      >
+                        {/* ХТУ колона - показва се само на първия ред за това ХТУ */}
+                        {i === 0 && (
+                          <td
+                            className="px-3 py-2 font-medium text-left align-top bg-gray-50"
+                            rowSpan={group.rows.length}
+                          >
+                            {x.htuName}
+                          </td>
+                        )}
+                        <td className="px-3 py-2 text-left">
+                          {x.month}
+                        </td>
+                        <td className="px-3 py-2 font-medium text-left">
+                          {x.name}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {x.contractCount}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.contractArea, 2)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.contractWater, 0)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.contractValue, 2)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {x.actCount}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.actArea, 2)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.actWater, 0)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {num(x.actValue, 2)}
+                        </td>
+                      </tr>
+                    ))}
 
-              {showHtuMonth && (
-                <>
+                    {/* Междинна сума за това ХТУ */}
+                    <tr className="bg-amber-50 font-semibold border-t-2 border-amber-300">
+                      <td className="px-3 py-2 text-left italic" colSpan={3}>
+                        Общо за {group.htuName}:
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {sumCounts ? subtotal.contractCount : <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.contractArea, 2)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.contractWater, 0)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.contractValue, 2)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {sumCounts ? subtotal.actCount : <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.actArea, 2)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.actWater, 0)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {num(subtotal.actValue, 2)}
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                )
+              })}
+            </>
+          ) : (
+            // Обикновена визуализация без междинни суми
+            <>
+              {data.map((x, i) => (
+                <tr
+                  key={showHtuMonth ? `${x.htuName}-${x.month}-${x.name}` : x.name}
+                  className={`border-b border-gray-50 ${
+                    i % 2 === 0 ? '' : 'bg-gray-50/40'
+                  }`}
+                >
+
+                  {showHtuMonth && (
+                    <>
+                      <td className="px-3 py-2 font-medium text-left">
+                        {x.htuName}
+                      </td>
+                      <td className="px-3 py-2 text-left">
+                        {x.month}
+                      </td>
+                    </>
+                  )}
+
                   <td className="px-3 py-2 font-medium text-left">
-                    {x.htuName}
+                    {x.name}
                   </td>
-                  <td className="px-3 py-2 text-left">
-                    {x.month}
+
+                  <td className="px-3 py-2 text-center">
+                    {x.contractCount}
                   </td>
-                </>
-              )}
 
-              <td className="px-3 py-2 font-medium text-left">
-                {x.name}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.contractArea, 2)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {x.contractCount}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.contractWater, 0)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {num(x.contractArea, 2)}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.contractValue, 2)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {num(x.contractWater, 0)}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {x.actCount}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {num(x.contractValue, 2)}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.actArea, 2)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {x.actCount}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.actWater, 0)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {num(x.actArea, 2)}
-              </td>
+                  <td className="px-3 py-2 text-center">
+                    {num(x.actValue, 2)}
+                  </td>
 
-              <td className="px-3 py-2 text-center">
-                {num(x.actWater, 0)}
-              </td>
-
-              <td className="px-3 py-2 text-center">
-                {num(x.actValue, 2)}
-              </td>
-
-            </tr>
-
-          ))}
+                </tr>
+              ))}
+            </>
+          )}
 
 
         </tbody>
@@ -1965,6 +2085,7 @@ color="emerald"
 showTotals={true}
 sumCounts={false}
 showHtuMonth={true}
+showHtuSubtotals={true}
 />
 
 

@@ -2594,8 +2594,22 @@ function Appendix3Generator() {
     setForm(updated)
   }
 
-  // Филтрираме актовете за избрания контрагент
-  const contractorActs = acts.filter(act => act.contractorId === form.contractorId)
+  // Филтрираме актовете за избрания контрагент (и по договор ако е избран)
+  const contractorActs = acts.filter(act => {
+    if (act.contractorId !== form.contractorId) return false
+    // Ако има избран конкретен договор, филтрираме само актовете от този договор
+    if (form.contractId) {
+      const selectedContract = contracts.find(c => c.id === form.contractId)
+      if (!selectedContract) return false
+      // Актът принадлежи на договора ако имат същите параметри:
+      // ХТУ, култура, начин на напояване И площ
+      return act.htuId === selectedContract.htuId &&
+             act.cropId === selectedContract.cropId &&
+             act.irrigationMethodId === selectedContract.irrigationMethodId &&
+             act.area === selectedContract.area
+    }
+    return true
+  })
 
   // Групираме актовете по месеци (8 месеца: Април-Ноември)
   const actsByMonth = {
@@ -2632,13 +2646,16 @@ function Appendix3Generator() {
       totalPaid += act.value
     })
 
+    // Добавяме 20% ДДС към заплатената сума
+    const totalPaidWithVAT = totalPaid * 1.20
+
     return {
       totalDeclaredGravity,
       totalDeclaredPumped,
       totalActualGravity,
       totalActualPumped,
       totalIrrigations,
-      totalPaid,
+      totalPaid: totalPaidWithVAT,
       totalDifference: 0, // Заявен = Доставен в този случай
       priceDifference: 0 // За доплащане/възстановяване
     }
@@ -2656,30 +2673,51 @@ function Appendix3Generator() {
       const arrayBuffer = await response.arrayBuffer()
       const templateFile = new File([arrayBuffer], 'Приложение 3.docx')
 
-      // Попълваме плейсхолдърите
+      // Попълваме плейсхолдърите (двата варианта - с интервали и без)
       const tagData: any = {
+        // Дата
         '{ДАТА}': formatShortDate(form.data),
+        '{ ДАТА }': formatShortDate(form.data),
+        // Водоползвател
+        '{ВОДОПОЛЗВАТЕЛ}': form.vodopolzvatel,
         '{ ВОДОПОЛЗВАТЕЛ }': form.vodopolzvatel,
+        // Договор
         '{Договор №}': form.contractNumber,
-        // Таблица 1 - Масиви (вземаме уникалните землища от актовете)
+        '{ Договор № }': form.contractNumber,
+        // Таблица 1 - Масиви
         '{ЗЕМЛИЩЕ}': contractorActs[0]?.village || '',
+        '{ ЗЕМЛИЩЕ }': contractorActs[0]?.village || '',
         '{№ на масив }': '1',
+        '{ № на масив }': '1',
         '{дка}': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
+        '{ дка }': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
         // Общи суми
         '{ЗАЯВЕН ОБЕМ ОБЩО ГР.}': num(totals.totalDeclaredGravity, 0),
+        '{ ЗАЯВЕН ОБЕМ ОБЩО ГР. }': num(totals.totalDeclaredGravity, 0),
         '{ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО}': num(totals.totalDeclaredPumped, 0),
+        '{ ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО }': num(totals.totalDeclaredPumped, 0),
+        '{Доставен обем вода гравитачно}': num(totals.totalActualGravity, 0),
         '{ Доставен обем вода гравитачно }': num(totals.totalActualGravity, 0),
+        '{Доставен обем вода помпено}': num(totals.totalActualPumped, 0),
         '{ Доставен обем вода помпено }': num(totals.totalActualPumped, 0),
+        '{Разлика}': num(totals.totalDifference, 0),
         '{ Разлика }': num(totals.totalDifference, 0),
+        '{Цена по Заповед}': form.vodopolzvatel ? '0.0128' : '',
         '{ Цена по Заповед }': form.vodopolzvatel ? '0.0128' : '',
+        '{Заплатена сума}': num(totals.totalPaid, 2),
         '{ Заплатена сума }': num(totals.totalPaid, 2),
+        '{Разлика за доплащане/за възстановяване}': num(totals.priceDifference, 2),
         '{ Разлика за доплащане/за възстановяване }': num(totals.priceDifference, 2),
         '{БРОЙ ПОЛИВКИОБЩО}': totals.totalIrrigations.toString(),
+        '{ БРОЙ ПОЛИВКИОБЩО }': totals.totalIrrigations.toString(),
       }
 
       // Добавяме плейсхолдъри за 8-те месечни таблици
-      Object.entries(actsByMonth).forEach(([month, monthActs], index) => {
-        const act = monthActs[0] // Вземаме първия акт за месеца
+      // Първо попълваме общите (без индекс) с данни от първия месец с актове
+      const firstMonthWithActs = Object.entries(actsByMonth).find(([_, acts]) => acts.length > 0)
+      if (firstMonthWithActs) {
+        const [_, monthActs] = firstMonthWithActs
+        const act = monthActs[0]
         const crop = act ? allCrops.find(c => c.id === act.cropId) : null
         const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
         const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
@@ -2694,6 +2732,26 @@ function Appendix3Generator() {
         tagData[`{АКТУВАН ОБЕМ ГР.}`] = isGravity && act ? num(act.waterCubic, 0) : ''
         tagData[`{АКТУВАН ОБЕМ ПОМПЕНО}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
         tagData[`{РАЗЛИКА}`] = '0'
+      }
+
+      // След това попълваме с индекси за всеки месец (ако шаблонът ги очаква)
+      Object.entries(actsByMonth).forEach(([month, monthActs], index) => {
+        const tableIndex = index + 1 // 1-based index
+        const act = monthActs[0] // Вземаме първия акт за месеца
+        const crop = act ? allCrops.find(c => c.id === act.cropId) : null
+        const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
+        const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
+
+        tagData[`{ЗЕМЛИЩЕ_${tableIndex}}`] = act?.village || ''
+        tagData[`{дка_${tableIndex}}`] = act?.area ? num(act.area, 2) : ''
+        tagData[`{КУЛТУРА_${tableIndex}}`] = crop?.name || ''
+        tagData[`{ПОЛ НОРМА_${tableIndex}}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ГР._${tableIndex}}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО_${tableIndex}}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{БР. ПОЛИВКИ_${tableIndex}}`] = monthActs.length.toString()
+        tagData[`{АКТУВАН ОБЕМ ГР._${tableIndex}}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО_${tableIndex}}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`{РАЗЛИКА_${tableIndex}}`] = '0'
       })
 
       console.log('Appendix3 tagData:', tagData)
@@ -4197,8 +4255,10 @@ function UdvnCompletedGenerator({
       )
 
       if (!hasStructuredContent && plainText.trim()) {
-        // Use plain text directly if no structured data
+        // Use plain text but replace "Необходими" with "Използвани"
         repairsList = plainText.trim()
+          .replace(/Необходими материали\s*:/gi, 'Използвани материали:')
+          .replace(/Необходима техника и човешки ресурс\s*:/gi, 'Използвани техника и човешки ресурс:')
       } else {
         // Build from structured facilities
         facilities.forEach((facility, fIdx) => {
@@ -4248,34 +4308,48 @@ function UdvnCompletedGenerator({
     const dateStr = reportDate ? formatShortDate(reportDate) : '__.__.____'
 
     let repairsList = ''
-    facilities.forEach((facility, fIdx) => {
-      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
-      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
-      if (!hasContent) return
 
-      // Напоително поле като заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+    // Check if facilities have any content
+    const hasStructuredContent = facilities.some(facility =>
+      facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+    )
 
-      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
-      facility.repairs.forEach(repair => {
-        // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
-        if (!repair.pipeline && !repair.repairType && !repair.materials) return
+    if (!hasStructuredContent && plainText.trim()) {
+      // Use plain text but replace "Необходими" with "Използвани"
+      repairsList = plainText.trim()
+        .replace(/Необходими материали\s*:/gi, 'Използвани материали:')
+        .replace(/Необходима техника и човешки ресурс\s*:/gi, 'Използвани техника и човешки ресурс:')
+    } else {
+      // Build from structured facilities
+      facilities.forEach((facility, fIdx) => {
+        // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+        const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+        if (!hasContent) return
 
-        const facilityType = repair.facilityType || 'Тръбопровод'
-        const locations = formatLocations(repair.locations)
-        const pipeline = repair.pipeline || '______'
-        const repairType = repair.repairType || '______'
-        const materials = repair.materials || '____________'
-        const workers = repair.workers || '____________'
-        const zemljishte = facility.zemljishte || '____________'
+        // Напоително поле като заглавие
+        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-        repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
-        repairsList += `\nИзползвани материали :  ${materials}\n`
-        repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+        // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
+        facility.repairs.forEach(repair => {
+          // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
+          if (!repair.pipeline && !repair.repairType && !repair.materials) return
+
+          const facilityType = repair.facilityType || 'Тръбопровод'
+          const locations = formatLocations(repair.locations)
+          const pipeline = repair.pipeline || '______'
+          const repairType = repair.repairType || '______'
+          const materials = repair.materials || '____________'
+          const workers = repair.workers || '____________'
+          const zemljishte = facility.zemljishte || '____________'
+
+          repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
+          repairsList += `\nИзползвани материали :  ${materials}\n`
+          repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+        })
+
+        repairsList += '\n' // Празен ред между съоръженията
       })
-
-      repairsList += '\n' // Празен ред между съоръженията
-    })
+    }
 
     return (
       <div style={{ whiteSpace: 'pre-wrap' }}>
@@ -4609,8 +4683,10 @@ function ProtocolGenerator({
       )
 
       if (!hasStructuredContent && plainText.trim()) {
-        // Use plain text directly if no structured data
+        // Use plain text but replace "Необходими" with "Използвани"
         repairsList = plainText.trim()
+          .replace(/Необходими материали\s*:/gi, 'Използвани материали:')
+          .replace(/Необходима техника и човешки ресурс\s*:/gi, 'Използвани техника и човешки ресурс:')
       } else {
         // Build from structured facilities
         facilities.forEach((facility, fIdx) => {
@@ -4660,34 +4736,48 @@ function ProtocolGenerator({
     const dateStr = protocolDate ? formatShortDate(protocolDate) : '__.__.____'
 
     let repairsList = ''
-    facilities.forEach((facility, fIdx) => {
-      // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
-      const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
-      if (!hasContent) return
 
-      // Напоително поле като заглавие
-      repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
+    // Check if facilities have any content
+    const hasStructuredContent = facilities.some(facility =>
+      facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+    )
 
-      // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
-      facility.repairs.forEach(repair => {
-        // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
-        if (!repair.pipeline && !repair.repairType && !repair.materials) return
+    if (!hasStructuredContent && plainText.trim()) {
+      // Use plain text but replace "Необходими" with "Използвани"
+      repairsList = plainText.trim()
+        .replace(/Необходими материали\s*:/gi, 'Използвани материали:')
+        .replace(/Необходима техника и човешки ресурс\s*:/gi, 'Използвани техника и човешки ресурс:')
+    } else {
+      // Build from structured facilities
+      facilities.forEach((facility, fIdx) => {
+        // Показвай съоръжение ако има име ИЛИ ако има поне един ремонт с данни
+        const hasContent = facility.name || facility.repairs.some(r => r.pipeline || r.repairType || r.materials)
+        if (!hasContent) return
 
-        const facilityType = repair.facilityType || 'Тръбопровод'
-        const locations = formatLocations(repair.locations)
-        const pipeline = repair.pipeline || '______'
-        const repairType = repair.repairType || '______'
-        const materials = repair.materials || '____________'
-        const workers = repair.workers || '____________'
-        const zemljishte = facility.zemljishte || '____________'
+        // Напоително поле като заглавие
+        repairsList += `${fIdx + 1}. ${facility.name || '____________'}\n`
 
-        repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
-        repairsList += `\nИзползвани материали :  ${materials}\n`
-        repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+        // Ремонти за това съоръжение - с вид съоръжение, наименование, локации и землище
+        facility.repairs.forEach(repair => {
+          // Показвай ремонт ако има ПОНЕ ЕДНО попълнено поле
+          if (!repair.pipeline && !repair.repairType && !repair.materials) return
+
+          const facilityType = repair.facilityType || 'Тръбопровод'
+          const locations = formatLocations(repair.locations)
+          const pipeline = repair.pipeline || '______'
+          const repairType = repair.repairType || '______'
+          const materials = repair.materials || '____________'
+          const workers = repair.workers || '____________'
+          const zemljishte = facility.zemljishte || '____________'
+
+          repairsList += `\n\n-    ${facilityType} ${pipeline}, с местонахождение в землището на ${zemljishte}  ${locations || '_______'}`
+          repairsList += `\nИзползвани материали :  ${materials}\n`
+          repairsList += `Използвана техника и човешки ресурс: ${workers}\n`
+        })
+
+        repairsList += '\n' // Празен ред mezi съоръженията
       })
-
-      repairsList += '\n' // Празен ред mezi съоръженията
-    })
+    }
 
     return (
       <div style={{ whiteSpace: 'pre-wrap' }}>
