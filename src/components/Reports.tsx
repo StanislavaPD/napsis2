@@ -446,6 +446,22 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
     })
   }
 
+  // Цветове за месеците
+  const monthColors: Record<string, string> = {
+    'Януари': 'bg-cyan-50',
+    'Февруари': 'bg-sky-50',
+    'Март': 'bg-teal-50',
+    'Април': 'bg-emerald-50',
+    'Май': 'bg-green-50',
+    'Юни': 'bg-lime-50',
+    'Юли': 'bg-yellow-50',
+    'Август': 'bg-amber-50',
+    'Септември': 'bg-orange-50',
+    'Октомври': 'bg-rose-50',
+    'Ноември': 'bg-purple-50',
+    'Декември': 'bg-blue-50',
+  }
+
   return (
     <div className="overflow-x-auto">
 
@@ -475,6 +491,16 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
             // Визуализация с междинни суми по ХТУ
             <>
               {groupedData.map((group, groupIdx) => {
+                // Групиране по месец в рамките на ХТУ
+                const monthMap = new Map<string, any[]>()
+                group.rows.forEach(row => {
+                  const month = row.month || 'Без месец'
+                  if (!monthMap.has(month)) {
+                    monthMap.set(month, [])
+                  }
+                  monthMap.get(month)!.push(row)
+                })
+
                 // Изчисляване на междинна сума за това ХТУ
                 const subtotal = {
                   contractCount: sumCounts ? group.rows.reduce((sum, x) => sum + (x.contractCount || 0), 0) : 0,
@@ -487,61 +513,83 @@ function AnalysisTable({ data, color = 'teal', showTotals = true, sumCounts = fa
                   actValue: group.rows.reduce((sum, x) => sum + (x.actValue || 0), 0),
                 }
 
+                // Списък с уникални култури за това ХТУ
+                const uniqueCrops = [...new Set(group.rows.map(r => r.name))].sort((a, b) => a.localeCompare(b, 'bg'))
+
+                let htuRowIndex = 0
+
                 return (
                   <React.Fragment key={`group-${groupIdx}-${group.htuName}`}>
-                    {group.rows.map((x, i) => (
-                      <tr
-                        key={`${x.htuName}-${x.month}-${x.name}`}
-                        className={`border-b border-gray-50 ${
-                          i % 2 === 0 ? '' : 'bg-gray-50/40'
-                        }`}
-                      >
-                        {/* ХТУ колона - показва се само на първия ред за това ХТУ */}
-                        {i === 0 && (
-                          <td
-                            className="px-3 py-2 font-medium text-left align-top bg-gray-50"
-                            rowSpan={group.rows.length}
-                          >
-                            {x.htuName}
-                          </td>
-                        )}
-                        <td className="px-3 py-2 text-left">
-                          {x.month}
-                        </td>
-                        <td className="px-3 py-2 font-medium text-left">
-                          {x.name}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {x.contractCount}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.contractArea, 2)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.contractWater, 0)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.contractValue, 2)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {x.actCount}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.actArea, 2)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.actWater, 0)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {num(x.actValue, 2)}
-                        </td>
-                      </tr>
-                    ))}
+                    {Array.from(monthMap.entries()).map(([month, monthRows], monthIdx) => {
+                      const monthColor = monthColors[month] || 'bg-gray-50'
 
-                    {/* Междинна сума за това ХТУ */}
-                    <tr className="bg-amber-50 font-semibold border-t-2 border-amber-300">
-                      <td className="px-3 py-2 text-left italic" colSpan={3}>
-                        Общо за {group.htuName}:
+                      return monthRows.map((x, i) => {
+                        const isFirstRowInHtu = htuRowIndex === 0
+                        const isFirstRowInMonth = i === 0
+                        htuRowIndex++
+
+                        return (
+                          <tr
+                            key={`${x.htuName}-${x.month}-${x.name}`}
+                            className={`border-b border-gray-50`}
+                          >
+                            {/* ХТУ колона - показва се само на първия ред за това ХТУ */}
+                            {isFirstRowInHtu && (
+                              <td
+                                className="px-3 py-2 font-bold text-left align-top bg-gray-100"
+                                rowSpan={group.rows.length}
+                              >
+                                {x.htuName}
+                              </td>
+                            )}
+                            {/* Месец колона - показва се само на първия ред за този месец */}
+                            {isFirstRowInMonth && (
+                              <td
+                                className={`px-3 py-2 font-semibold text-left align-top ${monthColor}`}
+                                rowSpan={monthRows.length}
+                              >
+                                {month}
+                              </td>
+                            )}
+                            <td className="px-3 py-2 font-medium text-left">
+                              {x.name}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {x.contractCount}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.contractArea, 2)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.contractWater, 0)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.contractValue, 2)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {x.actCount}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.actArea, 2)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.actWater, 0)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {num(x.actValue, 2)}
+                            </td>
+                          </tr>
+                        )
+                      })
+                    })}
+
+                    {/* Междинна сума за това ХТУ със списък култури */}
+                    <tr className="bg-amber-100 font-semibold border-t-2 border-amber-400">
+                      <td className="px-3 py-2 text-left" colSpan={3}>
+                        <div className="italic mb-1">Общо за {group.htuName}:</div>
+                        <div className="text-xs font-normal text-gray-700">
+                          Култури: {uniqueCrops.join(', ')}
+                        </div>
                       </td>
                       <td className="px-3 py-2 text-center">
                         {sumCounts ? subtotal.contractCount : <span className="text-gray-400">—</span>}
