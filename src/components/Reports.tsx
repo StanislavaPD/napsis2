@@ -1252,17 +1252,22 @@ filteredActs
 // ==========================
 
 const reservoirSummary = useMemo(() => {
-  // Mapping: Reservoir → HTU names
+  // Mapping: Reservoir → HTU search patterns (will match if HTU name contains any of these)
   const reservoirMapping = {
-    'яз. Жребчево': ['БОЛЯРОВО'],
-    'яз. Малко шарково': ['Стралджа', 'ЗИМНИЦА', 'БЕЗМЕР'],
+    'яз. Жребчево': ['БОЛЯРОВО', 'Болярово'],
+    'яз. Малко шарково': ['Стралджа', 'ЗИМНИЦА', 'Зимница', 'БЕЗМЕР', 'Безмер'],
     'Запорна врата': ['Ямбол']
   }
 
-  const results = Object.entries(reservoirMapping).map(([reservoirName, htuNames]) => {
-    // Find HTU IDs for this reservoir
+  const results = Object.entries(reservoirMapping).map(([reservoirName, searchPatterns]) => {
+    // Find HTU IDs for this reservoir (case-insensitive partial match)
     const htuIds = htus
-      .filter(h => htuNames.includes(h.htuName))
+      .filter(h => {
+        const htuNameLower = h.htuName.toLowerCase()
+        return searchPatterns.some(pattern =>
+          htuNameLower.includes(pattern.toLowerCase())
+        )
+      })
       .map(h => h.id)
 
     // Filter acts for these HTUs
