@@ -761,6 +761,36 @@ function ReportingTable({ data }: { data: any[] }) {
   )
 }
 
+function ReservoirSummaryTable({ data }: { data: any[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gradient-to-br from-blue-500 to-blue-600">
+            <th className="text-left px-3 py-3 text-xs font-semibold text-white leading-tight">
+              Язовир
+            </th>
+            <th className="text-center px-3 py-3 text-xs font-semibold text-white leading-tight">
+              Физ. дка
+            </th>
+            <th className="text-center px-3 py-3 text-xs font-semibold text-white leading-tight">
+              Обем м³
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, i) => (
+            <tr key={row.reservoirName} className={`border-b border-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+              <td className="px-3 py-2 font-medium text-left">{row.reservoirName}</td>
+              <td className="px-3 py-2 text-center">{num(row.physicalHectares, 2)}</td>
+              <td className="px-3 py-2 text-center">{num(row.totalVolume, 0)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 export default function Reports({ onNavigate }: { onNavigate?: (module: 'contracts' | 'acts', contractorId?: string) => void }) {
 
@@ -1180,6 +1210,45 @@ crops,
 filteredContracts,
 filteredActs
 ])
+
+// ==========================
+// ОБОБЩЕНИЕ ПО ЯЗОВИРИ
+// ==========================
+
+const reservoirSummary = useMemo(() => {
+  // Mapping: Reservoir → HTU names
+  const reservoirMapping = {
+    'яз. Жребчево': ['БОЛЯРОВО'],
+    'яз. Малко шарково': ['Стралджа', 'ЗИМНИЦА', 'БЕЗМЕР'],
+    'Запорна врата': ['Ямбол']
+  }
+
+  const results = Object.entries(reservoirMapping).map(([reservoirName, htuNames]) => {
+    // Find HTU IDs for this reservoir
+    const htuIds = htus
+      .filter(h => htuNames.includes(h.htuName))
+      .map(h => h.id)
+
+    // Filter acts for these HTUs
+    const reservoirActs = filteredActs.filter(a => htuIds.includes(a.htuId))
+
+    // Physical hectares: only from first irrigation
+    const physicalHectares = reservoirActs
+      .filter(a => a.irrigationNumber === '1' || a.irrigationNumber === 'Първа')
+      .reduce((sum, a) => sum + a.area, 0)
+
+    // Total volume: sum of all waterCubic
+    const totalVolume = reservoirActs.reduce((sum, a) => sum + a.waterCubic, 0)
+
+    return {
+      reservoirName,
+      physicalHectares,
+      totalVolume
+    }
+  })
+
+  return results
+}, [htus, filteredActs])
 
 // ==========================
 // ОТЧЕТНОСТ ПО МЕСЕЦИ
@@ -2151,6 +2220,22 @@ showHtuSubtotals={true}
 data={analysisByHTU}
 color="teal"
 sumCounts={true}
+/>
+
+
+</Card>
+
+
+
+<Card className="p-5">
+
+<h3 className="font-semibold mb-4">
+Обобщение по язовири
+</h3>
+
+
+<ReservoirSummaryTable
+data={reservoirSummary}
 />
 
 

@@ -166,12 +166,24 @@ export default function Dashboard({ onNavigate }: { onNavigate: (m: Module) => v
           <Card className="p-3 sm:p-4">
             <h2 className="text-base font-semibold text-gray-900 mb-3">Договори по ХТУ</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2 sm:gap-3">
-              {contractsByHtu.map(h => (
-                <div key={h.name} className="rounded-xl bg-gray-50 px-3 sm:px-4 py-2 sm:py-3">
-                  <p className="text-xs text-gray-500 truncate">{h.name}</p>
-                  <p className="mt-1 text-lg sm:text-xl font-semibold text-gray-800">{h.count}</p>
-                </div>
-              ))}
+              {contractsByHtu.map((h, i) => {
+                const gradients = [
+                  'from-teal-500 to-teal-600',
+                  'from-blue-500 to-blue-600',
+                  'from-amber-400 to-amber-500',
+                  'from-emerald-500 to-emerald-600'
+                ]
+                return (
+                  <button
+                    key={h.name}
+                    onClick={() => onNavigate('contracts')}
+                    className={`text-left rounded-xl bg-gradient-to-br ${gradients[i % gradients.length]} px-3 sm:px-4 py-2 sm:py-3 shadow-sm text-white opacity-90 hover:opacity-100 transition-all`}
+                  >
+                    <p className="text-xs font-medium opacity-90 truncate">{h.name}</p>
+                    <p className="mt-1 text-lg sm:text-xl font-semibold">{h.count}</p>
+                  </button>
+                )
+              })}
             </div>
           </Card>
         )}

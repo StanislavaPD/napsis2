@@ -14,6 +14,9 @@ interface StoreState {
   payments: Payment[]
   udvnRepairs: UdvnRepair[]
   seasonArchives: SeasonArchive[]
+  isArchiveMode: boolean
+  loadedArchiveYear: number | null
+  currentSeasonBackup: { contracts: Contract[], acts: Act[], requests: IrrigRequest[], payments: Payment[] } | null
   setContractors: (v: Contractor[]) => void
   setHtus: (v: HTU[]) => void
   setIrrigationMethods: (v: IrrigationMethod[]) => void
@@ -24,6 +27,8 @@ interface StoreState {
   setPayments: (v: Payment[]) => void
   setUdvnRepairs: (v: UdvnRepair[]) => void
   setSeasonArchives: (v: SeasonArchive[]) => void
+  setArchiveMode: (isArchive: boolean, year: number | null) => void
+  setCurrentSeasonBackup: (backup: { contracts: Contract[], acts: Act[], requests: IrrigRequest[], payments: Payment[] } | null) => void
   findOrCreateContractor: (name: string) => string
 }
 
@@ -185,6 +190,16 @@ export function StoreProvider({ children, token, isAdmin = false }: { children: 
   const [seasonArchives, setSeasonArchives] = useState<SeasonArchive[]>(() => useBackend ? [] : loadLegacyFromLocalStorage().seasonArchives)
   const [loaded, setLoaded] = useState(!useBackend)
 
+  // Archive mode state
+  const [isArchiveMode, setIsArchiveMode] = useState(false)
+  const [loadedArchiveYear, setLoadedArchiveYear] = useState<number | null>(null)
+  const [currentSeasonBackup, setCurrentSeasonBackup] = useState<{ contracts: Contract[], acts: Act[], requests: IrrigRequest[], payments: Payment[] } | null>(null)
+
+  function setArchiveMode(isArchive: boolean, year: number | null) {
+    setIsArchiveMode(isArchive)
+    setLoadedArchiveYear(year)
+  }
+
   // One-time fetch from Postgres via the Electron backend. If the server has no data yet for this
   // account, seed it from whatever is already in this browser's localStorage (pre-account data).
   useEffect(() => {
@@ -283,6 +298,11 @@ export function StoreProvider({ children, token, isAdmin = false }: { children: 
       payments, setPayments,
       udvnRepairs, setUdvnRepairs,
       seasonArchives, setSeasonArchives,
+      isArchiveMode,
+      loadedArchiveYear,
+      currentSeasonBackup,
+      setArchiveMode,
+      setCurrentSeasonBackup,
       findOrCreateContractor,
     }}>
       {children}

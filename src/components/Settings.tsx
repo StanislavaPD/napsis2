@@ -13,6 +13,7 @@ export default function Settings() {
   const {
     contractors, htus, irrigationMethods, crops, contracts, acts, requests, payments, seasonArchives,
     setContractors, setHtus, setIrrigationMethods, setCrops, setContracts, setActs, setRequests, setPayments, setSeasonArchives,
+    isArchiveMode, loadedArchiveYear, currentSeasonBackup, setArchiveMode, setCurrentSeasonBackup,
   } = useStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingRestore, setPendingRestore] = useState<ArchiveFile | null>(null)
@@ -127,6 +128,41 @@ export default function Settings() {
     setConfirmArchive(false)
     setArchiveNotes('')
     setArchiveYear(archiveYear + 1)
+  }
+
+  // Зареждане на архивиран сезон за преглед (само четене)
+  function loadArchiveForView(archive: SeasonArchive) {
+    // Първо запазваме текущите данни (ако не сме вече в архивен режим)
+    if (!isArchiveMode) {
+      setCurrentSeasonBackup({
+        contracts,
+        acts,
+        requests,
+        payments,
+      })
+    }
+
+    // Зареждаме архивните данни
+    setContracts(archive.contracts)
+    setActs(archive.acts)
+    setRequests(archive.requests)
+    setPayments(archive.payments)
+
+    // Включваме архивен режим
+    setArchiveMode(true, archive.seasonYear)
+  }
+
+  // Връщане към текущ сезон (редактируем режим)
+  function restoreCurrentSeason() {
+    if (currentSeasonBackup) {
+      setContracts(currentSeasonBackup.contracts)
+      setActs(currentSeasonBackup.acts)
+      setRequests(currentSeasonBackup.requests)
+      setPayments(currentSeasonBackup.payments)
+    }
+
+    setArchiveMode(false, null)
+    setCurrentSeasonBackup(null)
   }
 
   async function createAccount() {
@@ -304,16 +340,22 @@ export default function Settings() {
                       <p className="text-sm font-medium text-gray-700 mb-3">Архивирани сезони ({seasonArchives.length})</p>
                       <div className="space-y-2">
                         {seasonArchives.sort((a, b) => b.seasonYear - a.seasonYear).map(archive => (
-                          <div key={archive.id} className="flex items-center justify-between text-sm p-3 bg-gray-50 rounded-lg">
-                            <div>
+                          <div key={archive.id} className="flex items-center justify-between text-sm p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div className="flex-1">
                               <span className="font-medium text-gray-900">Сезон {archive.seasonYear}</span>
                               <span className="text-gray-500 ml-2">
                                 ({archive.contracts.length} договори, {archive.acts.length} акта)
                               </span>
+                              <span className="text-xs text-gray-400 ml-2">
+                                {new Date(archive.archivedDate).toLocaleDateString('bg-BG')}
+                              </span>
                             </div>
-                            <span className="text-xs text-gray-400">
-                              {new Date(archive.archivedDate).toLocaleDateString('bg-BG')}
-                            </span>
+                            <button
+                              onClick={() => loadArchiveForView(archive)}
+                              className="ml-3 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors"
+                            >
+                              👁️ Преглед
+                            </button>
                           </div>
                         ))}
                       </div>

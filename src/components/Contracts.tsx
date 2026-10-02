@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { Contract } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Select, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, SaveIcon } from './ui'
 import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToDateStr, cellToNum, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
@@ -65,7 +66,9 @@ function calcForm(f: ContractForm): ContractForm {
 }
 
 export default function Contracts({ initialContractorId, onClearFilter }: { initialContractorId?: string; onClearFilter?: () => void } = {}) {
-  const { contracts, setContracts, contractors, htus, irrigationMethods, crops, findOrCreateContractor } = useStore()
+  const { contracts, setContracts, contractors, htus, irrigationMethods, crops, findOrCreateContractor, isArchiveMode } = useStore()
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const initialContractor = initialContractorId ? contractors.find(c => c.id === initialContractorId) : undefined
   const [search, setSearch] = useState(initialContractor?.name ?? '')
   const [editing, setEditing] = useState<Contract | null>(null)
@@ -320,46 +323,52 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
                 Изчисти филтър
               </Btn>
             )}
-            {selected.size > 0 && (
+            {!isArchiveMode && selected.size > 0 && (
               <Btn variant="secondary" onClick={() => setBulkModal(true)}>
                 <EditIcon /> Масово редактиране ({selected.size})
               </Btn>
             )}
-            <ImportButton onFile={handleImport} />
+            {!isArchiveMode && <ImportButton onFile={handleImport} />}
             <Btn variant="secondary" onClick={exportContracts}><ExportIcon /> Експорт</Btn>
-            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={contracts.length === 0}>
-              <TrashIcon /> Изтрий всичко
-            </Btn>
-            <Btn onClick={openAdd}>+ Нов договор</Btn>
+            {!isArchiveMode && (
+              <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={contracts.length === 0}>
+                <TrashIcon /> Изтрий всичко
+              </Btn>
+            )}
+            {!isArchiveMode && <Btn onClick={openAdd}>+ Нов договор</Btn>}
           </>
         }
       />
 
-      <div className="grid grid-cols-5 gap-3 mb-6">
-        {htuCounts.map(({ name, count }, i) => {
-          const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
-          const isActive = htuFilter === name
-          return (
-            <button
-              key={name}
-              onClick={() => setHtuFilter(f => f === name ? null : name)}
-              className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
-            >
-              <p className="text-xs font-medium opacity-90 truncate">{name}</p>
-              <p className="mt-1 text-2xl font-semibold">{count}</p>
-            </button>
-          )
-        })}
-      </div>
+      {isAdmin && (
+        <div className="grid grid-cols-5 gap-3 mb-6">
+          {htuCounts.map(({ name, count }, i) => {
+            const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
+            const isActive = htuFilter === name
+            return (
+              <button
+                key={name}
+                onClick={() => setHtuFilter(f => f === name ? null : name)}
+                className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
+              >
+                <p className="text-xs font-medium opacity-90 truncate">{name}</p>
+                <p className="mt-1 text-2xl font-semibold">{count}</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-gradient-to-br from-emerald-500 to-emerald-600">
-                <th className="px-1.5 py-2.5 w-10">
-                  <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
-                </th>
+                {!isArchiveMode && (
+                  <th className="px-1.5 py-2.5 w-10">
+                    <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
+                  </th>
+                )}
                 {([
                   ['Дата', 'date'], ['№ Договор', 'number'], ['Контрагент', 'contractorName'], ['БУЛСТАТ', 'contractorBulstat'],
                   ['ХТУ', 'htuName'], ['Съоражение', 'equipment'], ['Землище', 'village'], ['Начин на поливане', 'methodName'],
@@ -387,9 +396,11 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
                   const crop = crops.find(x => x.id === c.cropId)
                   return (
                     <tr key={c.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'} ${selected.has(c.id) ? 'bg-teal-50' : ''}`}>
-                      <td className="px-1.5 py-2 text-center">
-                        <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded" />
-                      </td>
+                      {!isArchiveMode && (
+                        <td className="px-1.5 py-2 text-center">
+                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="rounded" />
+                        </td>
+                      )}
                       <td className="px-1.5 py-2 text-gray-600">{formatContractDate(c.date)}</td>
                       <td className="px-0.5 py-2 font-medium text-gray-900">{c.number.split('/')[0]}</td>
                       <td className="px-0.5 py-2 text-gray-700">{cont?.name ?? '—'}</td>
@@ -412,12 +423,14 @@ export default function Contracts({ initialContractorId, onClearFilter }: { init
                       <td className="px-1.5 py-2 text-left text-xs">{num(c.unitPrice, 4)}</td>
                       <td className="px-1.5 py-2 text-left text-xs font-semibold text-teal-700">{num(c.value, 2)}</td>
                       <td className="px-1.5 py-2 text-center text-gray-600">{MONTHS.indexOf(c.month) + 1 || ''}</td>
-                      <td className="px-1.5 py-2">
-                        <div className="flex gap-1">
-                          <Btn size="sm" variant="ghost" onClick={() => openEdit(c)}><EditIcon /></Btn>
-                          <Btn size="sm" variant="ghost" onClick={() => setDeleteId(c.id)}><TrashIcon /></Btn>
-                        </div>
-                      </td>
+                      {!isArchiveMode && (
+                        <td className="px-1.5 py-2">
+                          <div className="flex gap-1">
+                            <Btn size="sm" variant="ghost" onClick={() => openEdit(c)}><EditIcon /></Btn>
+                            <Btn size="sm" variant="ghost" onClick={() => setDeleteId(c.id)}><TrashIcon /></Btn>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })

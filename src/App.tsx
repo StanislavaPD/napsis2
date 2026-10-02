@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { StoreProvider } from './store'
+import { StoreProvider, useStore } from './store'
 import { AuthProvider, useAuth } from './auth'
 import type { Module } from './types'
 import Sidebar from './components/Sidebar'
@@ -19,10 +19,22 @@ import Settings from './components/Settings'
 
 function AppContent() {
   const { logout, role } = useAuth()
+  const { isArchiveMode, loadedArchiveYear, setArchiveMode, setContracts, setActs, setRequests, setPayments, currentSeasonBackup } = useStore()
   const isAdmin = role === 'admin'
   const [active, setActive] = useState<Module>(isAdmin ? 'dashboard' : 'contractors')
   const [contractorFilter, setContractorFilter] = useState<string | undefined>(undefined)
   const visibleActive = !isAdmin && (active === 'dashboard' || active === 'reports') ? 'contractors' : active
+
+  // Функция за връщане към текущ сезон
+  function restoreCurrentSeason() {
+    if (currentSeasonBackup) {
+      setContracts(currentSeasonBackup.contracts)
+      setActs(currentSeasonBackup.acts)
+      setRequests(currentSeasonBackup.requests)
+      setPayments(currentSeasonBackup.payments)
+    }
+    setArchiveMode(false, null)
+  }
 
   function handleReportsNavigate(module: 'contracts' | 'acts', contractorId?: string) {
     setContractorFilter(contractorId)
@@ -51,11 +63,30 @@ function AppContent() {
   return (
     <div className="flex h-screen flex-col md:flex-row bg-[#dae7f4] font-sans overflow-hidden">
       <Sidebar active={visibleActive} onNavigate={setActive} onLogout={logout} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-full">
-          {renderModule()}
-        </div>
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {isArchiveMode && (
+          <div className="bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-3 flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📦</span>
+              <div>
+                <p className="text-white font-semibold text-sm">Преглед на архив: Сезон {loadedArchiveYear}</p>
+                <p className="text-white/90 text-xs">🔒 Режим "само четене" - не можете да редактирате данни</p>
+              </div>
+            </div>
+            <button
+              onClick={restoreCurrentSeason}
+              className="px-4 py-2 bg-white text-orange-700 rounded-lg font-medium text-sm hover:bg-orange-50 transition-colors shadow-sm"
+            >
+              ← Върни се към текущ сезон
+            </button>
+          </div>
+        )}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-full">
+            {renderModule()}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
@@ -83,8 +114,7 @@ function Gate() {
     )
   }
   if (hasBackend && !ready) return null
-  // ВРЕМЕННО: Премахнат login екран за да работи без PostgreSQL
-  // if (hasBackend && !username) return <Login />
+  if (hasBackend && !username) return <Login />
 
   return (
       <StoreProvider token={hasBackend ? token : undefined} isAdmin={role === 'admin'}>

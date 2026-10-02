@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store'
+import { useAuth } from '../auth'
 import type { Payment } from '../types'
 import { Modal, Btn, FormRow, Input, NumberInput, Combobox, SearchBar, ConfirmDialog, PageHeader, EmptyState, Card, num, ImportButton, ImportResultModal, EditIcon, TrashIcon, ExportIcon, Badge } from './ui'
 import { parseSpreadsheetFile, exportStyledRowsToSpreadsheet, exportFilename, cellToNum, cellToDateStr, findByField, findSimilarByField, rowGet } from '../lib/spreadsheet'
@@ -16,7 +17,9 @@ function formatPaymentDate(date: string): string {
 type SortField = 'invoiceNumber' | 'invoiceDate' | 'contractorName' | 'crops' | 'area' | 'amount' | 'status'
 
 export default function Payments() {
-  const { payments, setPayments, contractors, crops, contracts, htus, findOrCreateContractor } = useStore()
+  const { payments, setPayments, contractors, crops, contracts, htus, findOrCreateContractor, isArchiveMode } = useStore()
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Payment | null>(null)
   const [adding, setAdding] = useState(false)
@@ -235,32 +238,36 @@ export default function Payments() {
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по номер, контрагент..." />
-            <ImportButton onFile={handleImport} />
+            {!isArchiveMode && <ImportButton onFile={handleImport} />}
             <Btn variant="secondary" onClick={exportPayments}><ExportIcon /> Експорт</Btn>
-            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={payments.length === 0}>
-              <TrashIcon /> Изтрий всичко
-            </Btn>
-            <Btn onClick={openAdd}>+ Нова фактура</Btn>
+            {!isArchiveMode && (
+              <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={payments.length === 0}>
+                <TrashIcon /> Изтрий всичко
+              </Btn>
+            )}
+            {!isArchiveMode && <Btn onClick={openAdd}>+ Нова фактура</Btn>}
           </>
         }
       />
 
-      <div className="grid grid-cols-5 gap-3 mb-6">
-        {htuCounts.map(({ name, count }, i) => {
-          const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
-          const isActive = htuFilter === name
-          return (
-            <button
-              key={name}
-              onClick={() => setHtuFilter(f => f === name ? null : name)}
-              className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
-            >
-              <p className="text-xs font-medium opacity-90 truncate">{name}</p>
-              <p className="mt-1 text-2xl font-semibold">{count}</p>
-            </button>
-          )
-        })}
-      </div>
+      {isAdmin && (
+        <div className="grid grid-cols-5 gap-3 mb-6">
+          {htuCounts.map(({ name, count }, i) => {
+            const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
+            const isActive = htuFilter === name
+            return (
+              <button
+                key={name}
+                onClick={() => setHtuFilter(f => f === name ? null : name)}
+                className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
+              >
+                <p className="text-xs font-medium opacity-90 truncate">{name}</p>
+                <p className="mt-1 text-2xl font-semibold">{count}</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <button onClick={() => setPaidFilter(null)} className="text-left">
@@ -297,9 +304,11 @@ export default function Payments() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gradient-to-br from-amber-400 to-amber-500">
-                <th className="px-4 py-3 w-8">
-                  <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
-                </th>
+                {!isArchiveMode && (
+                  <th className="px-4 py-3 w-8">
+                    <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="rounded" />
+                  </th>
+                )}
                 {([
                   ['№ Фактура', 'invoiceNumber'], ['Дата на фактура', 'invoiceDate'], ['Контрагент', 'contractorName'], ['Култури', 'crops'],
                   ['Дка', 'area'], ['Сума €', 'amount'], ['Статус', 'status'], ['Действия', null],
@@ -324,9 +333,11 @@ export default function Payments() {
                   const totalArea = p.items.reduce((sum, item) => sum + (item.area || 0), 0)
                   return (
                     <tr key={p.id} className={`border-b border-gray-50 hover:bg-teal-50/30 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'} ${selected.has(p.id) ? 'bg-teal-50' : ''}`}>
-                      <td className="px-4 py-3">
-                        <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
-                      </td>
+                      {!isArchiveMode && (
+                        <td className="px-4 py-3">
+                          <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)} className="rounded" />
+                        </td>
+                      )}
                       <td className="px-4 py-3 font-medium text-gray-900">{p.invoiceNumber}</td>
                       <td className="px-4 py-3 text-gray-600">{p.invoiceDate ? formatPaymentDate(p.invoiceDate) : '—'}</td>
                       <td className="px-4 py-3 text-gray-700">{cont?.name ?? '—'}</td>
@@ -336,12 +347,14 @@ export default function Payments() {
                       <td className="px-4 py-3">
                         <Badge color={p.paid ? 'teal' : 'red'}>{p.paid ? 'Платена' : 'Неплатена'}</Badge>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5">
-                          <Btn size="sm" variant="ghost" onClick={() => openEdit(p)}><EditIcon /></Btn>
-                          <Btn size="sm" variant="ghost" onClick={() => setDeleteId(p.id)}><TrashIcon /></Btn>
-                        </div>
-                      </td>
+                      {!isArchiveMode && (
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1.5">
+                            <Btn size="sm" variant="ghost" onClick={() => openEdit(p)}><EditIcon /></Btn>
+                            <Btn size="sm" variant="ghost" onClick={() => setDeleteId(p.id)}><TrashIcon /></Btn>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })

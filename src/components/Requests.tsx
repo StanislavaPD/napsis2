@@ -34,7 +34,7 @@ function computeStatus(r: IrrigRequest, isCompleted: boolean, today: string): Re
 export default function Requests() {
   const { role } = useAuth()
   const isAdmin = role === 'admin'
-  const { requests, setRequests, contractors, crops, acts, contracts, htus, findOrCreateContractor } = useStore()
+  const { requests, setRequests, contractors, crops, acts, contracts, htus, findOrCreateContractor, isArchiveMode } = useStore()
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<IrrigRequest | null>(null)
@@ -270,32 +270,36 @@ export default function Requests() {
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Търсене по контрагент, № поливка..." />
-            <ImportButton onFile={handleImport} />
+            {!isArchiveMode && <ImportButton onFile={handleImport} />}
             <Btn variant="secondary" onClick={exportRequests}><ExportIcon /> Експорт</Btn>
-            <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={requests.length === 0}>
-              <TrashIcon /> Изтрий всичко
-            </Btn>
-            <Btn onClick={openAdd}>+ Нова заявка</Btn>
+            {!isArchiveMode && (
+              <Btn variant="danger" onClick={() => setDeleteAllConfirm(true)} disabled={requests.length === 0}>
+                <TrashIcon /> Изтрий всичко
+              </Btn>
+            )}
+            {!isArchiveMode && <Btn onClick={openAdd}>+ Нова заявка</Btn>}
           </>
         }
       />
 
-      <div className="grid grid-cols-5 gap-3 mb-6">
-        {htuCounts.map(({ name, count }, i) => {
-          const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
-          const isActive = htuFilter === name
-          return (
-            <button
-              key={name}
-              onClick={() => setHtuFilter(f => f === name ? null : name)}
-              className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
-            >
-              <p className="text-xs font-medium opacity-90 truncate">{name}</p>
-              <p className="mt-1 text-2xl font-semibold">{count}</p>
-            </button>
-          )
-        })}
-      </div>
+      {isAdmin && (
+        <div className="grid grid-cols-5 gap-3 mb-6">
+          {htuCounts.map(({ name, count }, i) => {
+            const gradients = ['from-teal-500 to-teal-600', 'from-blue-500 to-blue-600', 'from-amber-400 to-amber-500', 'from-emerald-500 to-emerald-600']
+            const isActive = htuFilter === name
+            return (
+              <button
+                key={name}
+                onClick={() => setHtuFilter(f => f === name ? null : name)}
+                className={`text-left rounded-xl p-4 text-white shadow-sm bg-gradient-to-br ${gradients[i % gradients.length]} transition-all ${isActive ? 'ring-2 ring-offset-2 ring-gray-800' : 'opacity-90 hover:opacity-100'}`}
+              >
+                <p className="text-xs font-medium opacity-90 truncate">{name}</p>
+                <p className="mt-1 text-2xl font-semibold">{count}</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {isAdmin && (
         <div className="grid grid-cols-4 gap-4 mb-6">
@@ -381,12 +385,14 @@ export default function Requests() {
                         {status === 'active' && <Badge color="gray">Активна</Badge>}
                         {status === 'noDeadline' && <Badge color="gray">Без крайна дата</Badge>}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1.5">
-                          <Btn size="sm" variant="ghost" onClick={() => openEdit(r)}><EditIcon /></Btn>
-                          <Btn size="sm" variant="ghost" onClick={() => setDeleteId(r.id)}><TrashIcon /></Btn>
-                        </div>
-                      </td>
+                      {!isArchiveMode && (
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1.5">
+                            <Btn size="sm" variant="ghost" onClick={() => openEdit(r)}><EditIcon /></Btn>
+                            <Btn size="sm" variant="ghost" onClick={() => setDeleteId(r.id)}><TrashIcon /></Btn>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })
