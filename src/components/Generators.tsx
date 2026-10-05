@@ -2562,7 +2562,13 @@ function Appendix3Generator() {
   const [fillError, setFillError] = useState('')
 
   // Договорите за избрания водоползвател
+  // Групираме по номер и дата, за да покажем само уникални договори
   const contractorContracts = contracts.filter(c => c.contractorId === form.contractorId)
+  const uniqueContracts = Array.from(
+    new Map(
+      contractorContracts.map(c => [`${c.number}/${c.date}`, c])
+    ).values()
+  )
 
   function setF(patch: Partial<typeof form>) {
     const updated = { ...form, ...patch }
@@ -2574,9 +2580,16 @@ function Appendix3Generator() {
       // Намираме договорите за този водоползвател
       const availableContracts = contracts.filter(c => c.contractorId === patch.contractorId)
 
-      // Ако има точно един договор - автоматично го попълваме
-      if (availableContracts.length === 1) {
-        const contract = availableContracts[0]
+      // Групираме по номер и дата
+      const uniqueAvailableContracts = Array.from(
+        new Map(
+          availableContracts.map(c => [`${c.number}/${c.date}`, c])
+        ).values()
+      )
+
+      // Ако има точно един уникален договор - автоматично го попълваме
+      if (uniqueAvailableContracts.length === 1) {
+        const contract = uniqueAvailableContracts[0]
         updated.contractNumber = `${contract.number}/${contract.date}`
         updated.contractId = contract.id
       } else {
@@ -2598,16 +2611,25 @@ function Appendix3Generator() {
   // Филтрираме актовете за избрания контрагент (и по договор ако е избран)
   const contractorActs = acts.filter(act => {
     if (act.contractorId !== form.contractorId) return false
-    // Ако има избран конкретен договор, филтрираме само актовете от този договор
+    // Ако има избран конкретен договор, филтрираме актовете от ВСИЧКИ договори с този номер
     if (form.contractId) {
       const selectedContract = contracts.find(c => c.id === form.contractId)
       if (!selectedContract) return false
-      // Актът принадлежи на договора ако имат същите параметри:
-      // ХТУ, култура, начин на напояване И площ
-      return act.htuId === selectedContract.htuId &&
-             act.cropId === selectedContract.cropId &&
-             act.irrigationMethodId === selectedContract.irrigationMethodId &&
-             act.area === selectedContract.area
+
+      // Намираме всички договори с същия номер и дата
+      const contractKey = `${selectedContract.number}/${selectedContract.date}`
+      const relatedContracts = contracts.filter(c =>
+        c.contractorId === form.contractorId &&
+        `${c.number}/${c.date}` === contractKey
+      )
+
+      // Проверяваме дали актът принадлежи на някой от тези договори
+      return relatedContracts.some(contract =>
+        act.htuId === contract.htuId &&
+        act.cropId === contract.cropId &&
+        act.irrigationMethodId === contract.irrigationMethodId &&
+        act.area === contract.area
+      )
     }
     return true
   })
@@ -2793,12 +2815,12 @@ function Appendix3Generator() {
             </Select>
           </FormRow>
 
-          {/* Ако има повече от 1 договор - показваме dropdown */}
-          {contractorContracts.length > 1 && (
+          {/* Ако има повече от 1 уникален договор - показваме dropdown */}
+          {uniqueContracts.length > 1 && (
             <FormRow label="Избери договор" required>
               <Select value={form.contractId} onChange={e => setF({ contractId: e.target.value })}>
                 <option value="">— Избери договор —</option>
-                {contractorContracts.map(c => (
+                {uniqueContracts.map(c => (
                   <option key={c.id} value={c.id}>
                     Договор № {c.number} от {c.date}
                   </option>
@@ -2812,8 +2834,8 @@ function Appendix3Generator() {
               value={form.contractNumber}
               onChange={e => setF({ contractNumber: e.target.value })}
               placeholder="123/2026"
-              readOnly={contractorContracts.length === 1}
-              className={contractorContracts.length === 1 ? 'bg-gray-100 cursor-not-allowed' : ''}
+              readOnly={uniqueContracts.length === 1}
+              className={uniqueContracts.length === 1 ? 'bg-gray-100 cursor-not-allowed' : ''}
             />
           </FormRow>
 
@@ -2828,14 +2850,14 @@ function Appendix3Generator() {
           {/* Информация за договорите */}
           {form.contractorId && (
             <div className="text-xs">
-              {contractorContracts.length === 0 && (
+              {uniqueContracts.length === 0 && (
                 <p className="text-orange-600">⚠️ Няма намерени договори за този водоползвател</p>
               )}
-              {contractorContracts.length === 1 && (
-                <p className="text-green-600">✓ Договорът е попълнен автоматично</p>
+              {uniqueContracts.length === 1 && (
+                <p className="text-green-600">✓ Договорът е попълнен автоматично{contractorContracts.length > 1 ? ` (${contractorContracts.length} култури)` : ''}</p>
               )}
-              {contractorContracts.length > 1 && (
-                <p className="text-blue-600">ℹ️ Намерени {contractorContracts.length} договора - изберете от списъка</p>
+              {uniqueContracts.length > 1 && (
+                <p className="text-blue-600">ℹ️ Намерени {uniqueContracts.length} договора - изберете от списъка</p>
               )}
             </div>
           )}
