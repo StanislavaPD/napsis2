@@ -2555,6 +2555,7 @@ function Appendix3Generator() {
     contractorId: contractors[0]?.id ?? '',
     contractNumber: '',
     contractId: '',
+    masivNumber: '1',
     data: new Date().toISOString().slice(0, 10),
   })
   const [filling, setFilling] = useState(false)
@@ -2688,8 +2689,8 @@ function Appendix3Generator() {
         // Таблица 1 - Масиви
         'ЗЕМЛИЩЕ': contractorActs[0]?.village || '',
         ' ЗЕМЛИЩЕ ': contractorActs[0]?.village || '',
-        '№ на масив ': '1',
-        ' № на масив ': '1',
+        '№ на масив ': form.masivNumber,
+        ' № на масив ': form.masivNumber,
         'дка': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
         ' дка ': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
         // Общи суми
@@ -2816,6 +2817,14 @@ function Appendix3Generator() {
             />
           </FormRow>
 
+          <FormRow label="№ на масив">
+            <Input
+              value={form.masivNumber}
+              onChange={e => setF({ masivNumber: e.target.value })}
+              placeholder="1"
+            />
+          </FormRow>
+
           {/* Информация за договорите */}
           {form.contractorId && (
             <div className="text-xs">
@@ -2896,22 +2905,47 @@ function Appendix3Generator() {
               </tr>
             </thead>
             <tbody>
-              {contractorActs.slice(0, 3).map((act, idx) => (
-                <tr key={idx}>
-                  <td className="border border-gray-400 p-1 text-center">{idx + 1}</td>
-                  <td className="border border-gray-400 p-1">{act.village}</td>
-                  <td className="border border-gray-400 p-1 text-center">1</td>
-                  <td className="border border-gray-400 p-1 text-right">{num(act.area, 2)}</td>
-                </tr>
-              ))}
-              {contractorActs.length === 0 && (
-                <tr>
-                  <td className="border border-gray-400 p-1 text-center">1</td>
-                  <td className="border border-gray-400 p-1">___________</td>
-                  <td className="border border-gray-400 p-1 text-center">1</td>
-                  <td className="border border-gray-400 p-1 text-right">___</td>
-                </tr>
-              )}
+              {/* Показваме само един ред ако всички актове са за една култура */}
+              {(() => {
+                const uniqueCrops = [...new Set(contractorActs.map(a => a.cropId))]
+                const shouldShowOneRow = uniqueCrops.length === 1 && contractorActs.length > 0
+
+                if (shouldShowOneRow) {
+                  // Показваме един ред със сумираната площ
+                  const totalArea = contractorActs.reduce((sum, a) => sum + a.area, 0)
+                  const firstAct = contractorActs[0]
+                  return (
+                    <tr>
+                      <td className="border border-gray-400 p-1 text-center">1</td>
+                      <td className="border border-gray-400 p-1">{firstAct.village}</td>
+                      <td className="border border-gray-400 p-1 text-center">{form.masivNumber}</td>
+                      <td className="border border-gray-400 p-1 text-right">{num(totalArea, 2)}</td>
+                    </tr>
+                  )
+                }
+
+                // Иначе показваме до 3 реда
+                if (contractorActs.length > 0) {
+                  return contractorActs.slice(0, 3).map((act, idx) => (
+                    <tr key={idx}>
+                      <td className="border border-gray-400 p-1 text-center">{idx + 1}</td>
+                      <td className="border border-gray-400 p-1">{act.village}</td>
+                      <td className="border border-gray-400 p-1 text-center">{form.masivNumber}</td>
+                      <td className="border border-gray-400 p-1 text-right">{num(act.area, 2)}</td>
+                    </tr>
+                  ))
+                }
+
+                // Ако няма актове
+                return (
+                  <tr>
+                    <td className="border border-gray-400 p-1 text-center">1</td>
+                    <td className="border border-gray-400 p-1">___________</td>
+                    <td className="border border-gray-400 p-1 text-center">1</td>
+                    <td className="border border-gray-400 p-1 text-right">___</td>
+                  </tr>
+                )
+              })()}
             </tbody>
           </table>
 
