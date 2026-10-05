@@ -2673,43 +2673,44 @@ function Appendix3Generator() {
       const arrayBuffer = await response.arrayBuffer()
       const templateFile = new File([arrayBuffer], 'Приложение 3.docx')
 
-      // Попълваме плейсхолдърите (двата варианта - с интервали и без)
+      // Попълваме плейсхолдърите (Docxtemplater очаква ключове БЕЗ къдрави скоби)
+      // Шаблонът може да има placeholder-и с и без интервали, затова добавяме и двата варианта
       const tagData: any = {
-        // Дата
-        '{ДАТА}': formatShortDate(form.data),
-        '{ ДАТА }': formatShortDate(form.data),
+        // Дата (двата варианта)
+        'ДАТА': formatShortDate(form.data),
+        ' ДАТА ': formatShortDate(form.data),
         // Водоползвател
-        '{ВОДОПОЛЗВАТЕЛ}': form.vodopolzvatel,
-        '{ ВОДОПОЛЗВАТЕЛ }': form.vodopolzvatel,
+        'ВОДОПОЛЗВАТЕЛ': form.vodopolzvatel,
+        ' ВОДОПОЛЗВАТЕЛ ': form.vodopolzvatel,
         // Договор
-        '{Договор №}': form.contractNumber,
-        '{ Договор № }': form.contractNumber,
+        'Договор №': form.contractNumber,
+        ' Договор № ': form.contractNumber,
         // Таблица 1 - Масиви
-        '{ЗЕМЛИЩЕ}': contractorActs[0]?.village || '',
-        '{ ЗЕМЛИЩЕ }': contractorActs[0]?.village || '',
-        '{№ на масив }': '1',
-        '{ № на масив }': '1',
-        '{дка}': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
-        '{ дка }': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
+        'ЗЕМЛИЩЕ': contractorActs[0]?.village || '',
+        ' ЗЕМЛИЩЕ ': contractorActs[0]?.village || '',
+        '№ на масив ': '1',
+        ' № на масив ': '1',
+        'дка': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
+        ' дка ': contractorActs[0]?.area ? num(contractorActs[0].area, 2) : '',
         // Общи суми
-        '{ЗАЯВЕН ОБЕМ ОБЩО ГР.}': num(totals.totalDeclaredGravity, 0),
-        '{ ЗАЯВЕН ОБЕМ ОБЩО ГР. }': num(totals.totalDeclaredGravity, 0),
-        '{ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО}': num(totals.totalDeclaredPumped, 0),
-        '{ ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО }': num(totals.totalDeclaredPumped, 0),
-        '{Доставен обем вода гравитачно}': num(totals.totalActualGravity, 0),
-        '{ Доставен обем вода гравитачно }': num(totals.totalActualGravity, 0),
-        '{Доставен обем вода помпено}': num(totals.totalActualPumped, 0),
-        '{ Доставен обем вода помпено }': num(totals.totalActualPumped, 0),
-        '{Разлика}': num(totals.totalDifference, 0),
-        '{ Разлика }': num(totals.totalDifference, 0),
-        '{Цена по Заповед}': form.vodopolzvatel ? '0.0128' : '',
-        '{ Цена по Заповед }': form.vodopolzvatel ? '0.0128' : '',
-        '{Заплатена сума}': num(totals.totalPaid, 2),
-        '{ Заплатена сума }': num(totals.totalPaid, 2),
-        '{Разлика за доплащане/за възстановяване}': num(totals.priceDifference, 2),
-        '{ Разлика за доплащане/за възстановяване }': num(totals.priceDifference, 2),
-        '{БРОЙ ПОЛИВКИОБЩО}': totals.totalIrrigations.toString(),
-        '{ БРОЙ ПОЛИВКИОБЩО }': totals.totalIrrigations.toString(),
+        'ЗАЯВЕН ОБЕМ ОБЩО ГР.': num(totals.totalDeclaredGravity, 0),
+        ' ЗАЯВЕН ОБЕМ ОБЩО ГР. ': num(totals.totalDeclaredGravity, 0),
+        'ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО': num(totals.totalDeclaredPumped, 0),
+        ' ЗАЯВЕН ОБЕМ ОБЩО ПОМПЕНО ': num(totals.totalDeclaredPumped, 0),
+        'Доставен обем вода гравитачно': num(totals.totalActualGravity, 0),
+        ' Доставен обем вода гравитачно ': num(totals.totalActualGravity, 0),
+        'Доставен обем вода помпено': num(totals.totalActualPumped, 0),
+        ' Доставен обем вода помпено ': num(totals.totalActualPumped, 0),
+        'Разлика': num(totals.totalDifference, 0),
+        ' Разлика ': num(totals.totalDifference, 0),
+        'Цена по Заповед': form.vodopolzvatel ? '0.0128' : '',
+        ' Цена по Заповед ': form.vodopolzvatel ? '0.0128' : '',
+        'Заплатена сума': num(totals.totalPaid, 2),
+        ' Заплатена сума ': num(totals.totalPaid, 2),
+        'Разлика за доплащане/за възстановяване': num(totals.priceDifference, 2),
+        ' Разлика за доплащане/за възстановяване ': num(totals.priceDifference, 2),
+        'БРОЙ ПОЛИВКИОБЩО': totals.totalIrrigations.toString(),
+        ' БРОЙ ПОЛИВКИОБЩО ': totals.totalIrrigations.toString(),
       }
 
       // Добавяме плейсхолдъри за 8-те месечни таблици
@@ -2722,16 +2723,20 @@ function Appendix3Generator() {
         const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
         const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
 
-        tagData[`{ЗЕМЛИЩЕ}`] = act?.village || ''
-        tagData[`{дка}`] = act?.area ? num(act.area, 2) : ''
-        tagData[`{КУЛТУРА}`] = crop?.name || ''
-        tagData[`{ПОЛ НОРМА}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ГР.}`] = isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{БР. ПОЛИВКИ}`] = monthActs.length.toString()
-        tagData[`{АКТУВАН ОБЕМ ГР.}`] = isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{РАЗЛИКА}`] = '0'
+        tagData['КУЛТУРА'] = crop?.name || ''
+        tagData[' КУЛТУРА '] = crop?.name || ''
+        tagData['ПОЛ НОРМА'] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData[' ПОЛ НОРМА '] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData['ЗАЯВЕН ОБЕМ ГР.'] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[' ЗАЯВЕН ОБЕМ ГР. '] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData['ЗАЯВЕН ОБЕМ ПОМПЕНО'] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[' ЗАЯВЕН ОБЕМ ПОМПЕНО '] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData['БР. ПОЛИВКИ'] = monthActs.length.toString()
+        tagData[' БР. ПОЛИВКИ '] = monthActs.length.toString()
+        tagData['АКТУВАН ОБЕМ ГР.'] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[' АКТУВАН ОБЕМ ГР. '] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData['АКТУВАН ОБЕМ ПОМПЕНО'] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[' АКТУВАН ОБЕМ ПОМПЕНО '] = !isGravity && act ? num(act.waterCubic, 0) : ''
       }
 
       // След това попълваме с индекси за всеки месец (ако шаблонът ги очаква)
@@ -2742,16 +2747,20 @@ function Appendix3Generator() {
         const method = act ? irrigationMethods.find(m => m.id === act.irrigationMethodId) : null
         const isGravity = method?.name?.toLowerCase().includes('гравитачно') || false
 
-        tagData[`{ЗЕМЛИЩЕ_${tableIndex}}`] = act?.village || ''
-        tagData[`{дка_${tableIndex}}`] = act?.area ? num(act.area, 2) : ''
-        tagData[`{КУЛТУРА_${tableIndex}}`] = crop?.name || ''
-        tagData[`{ПОЛ НОРМА_${tableIndex}}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ГР._${tableIndex}}`] = isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{ЗАЯВЕН ОБЕМ ПОМПЕНО_${tableIndex}}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{БР. ПОЛИВКИ_${tableIndex}}`] = monthActs.length.toString()
-        tagData[`{АКТУВАН ОБЕМ ГР._${tableIndex}}`] = isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{АКТУВАН ОБЕМ ПОМПЕНО_${tableIndex}}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
-        tagData[`{РАЗЛИКА_${tableIndex}}`] = '0'
+        tagData[`КУЛТУРА_${tableIndex}`] = crop?.name || ''
+        tagData[` КУЛТУРА_${tableIndex} `] = crop?.name || ''
+        tagData[`ПОЛ НОРМА_${tableIndex}`] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData[` ПОЛ НОРМА_${tableIndex} `] = act?.cubicPerDka ? num(act.cubicPerDka, 0) : ''
+        tagData[`ЗАЯВЕН ОБЕМ ГР._${tableIndex}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[` ЗАЯВЕН ОБЕМ ГР._${tableIndex} `] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`ЗАЯВЕН ОБЕМ ПОМПЕНО_${tableIndex}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[` ЗАЯВЕН ОБЕМ ПОМПЕНО_${tableIndex} `] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`БР. ПОЛИВКИ_${tableIndex}`] = monthActs.length.toString()
+        tagData[` БР. ПОЛИВКИ_${tableIndex} `] = monthActs.length.toString()
+        tagData[`АКТУВАН ОБЕМ ГР._${tableIndex}`] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[` АКТУВАН ОБЕМ ГР._${tableIndex} `] = isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[`АКТУВАН ОБЕМ ПОМПЕНО_${tableIndex}`] = !isGravity && act ? num(act.waterCubic, 0) : ''
+        tagData[` АКТУВАН ОБЕМ ПОМПЕНО_${tableIndex} `] = !isGravity && act ? num(act.waterCubic, 0) : ''
       })
 
       console.log('Appendix3 tagData:', tagData)
